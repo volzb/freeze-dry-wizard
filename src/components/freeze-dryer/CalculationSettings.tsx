@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +8,7 @@ import { FreezeDryerSettings, estimateHeatInputRate } from "@/utils/freezeDryerC
 import { Separator } from "@/components/ui/separator";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CalculationSettingsProps {
   settings: Partial<FreezeDryerSettings>;
@@ -31,9 +30,7 @@ export function CalculationSettings({
       [field]: value
     };
     
-    // Auto-calculate heat input rate when tray parameters change
     if (field === "numberOfTrays" || field === "traySizeCm2") {
-      // Use first step temperature and pressure as reference if available
       const tempC = settings.steps?.[0]?.temperature || 20;
       const pressureMbar = settings.steps?.[0]?.pressure || 300;
       const calculatedHeatRate = estimateHeatInputRate(
