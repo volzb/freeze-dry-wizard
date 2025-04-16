@@ -59,12 +59,12 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   );
 
   return (
-    <div className="w-full overflow-hidden">
-      <ChartContainer config={chartConfig} className="h-[450px]">
+    <div className="w-full overflow-hidden h-full min-h-[450px]">
+      <ChartContainer config={chartConfig} className="h-full min-h-[450px]">
         <ResponsiveContainer width="99%" height="100%">
           <LineChart
             data={chartData}
-            margin={{ top: 20, right: 30, left: 10, bottom: 100 }}
+            margin={{ top: 20, right: 30, left: 10, bottom: 120 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
             <XAxis 
@@ -72,9 +72,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
               label={{ 
                 value: 'Time (hours)', 
                 position: 'insideBottom', 
-                offset: -60,
-                style: { textAnchor: 'middle' } 
+                offset: -80,
+                style: { textAnchor: 'middle', fill: 'var(--foreground)' } 
               }}
+              tick={{ fill: 'var(--foreground)' }}
               tickFormatter={(value) => {
                 // Safely handle different value types
                 if (typeof value === 'number') {
@@ -89,9 +90,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
                 value: `Temperature (°${displayUnit})`, 
                 angle: -90, 
                 position: 'insideLeft',
-                style: { textAnchor: 'middle' }
+                style: { textAnchor: 'middle', fill: 'var(--foreground)' }
               }}
               domain={['auto', 'auto']}
+              tick={{ fill: 'var(--foreground)' }}
             />
             <YAxis 
               yAxisId="progress"
@@ -100,20 +102,22 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
                 value: 'Sublimation Progress (%)', 
                 angle: -90, 
                 position: 'insideRight',
-                style: { textAnchor: 'middle' }
+                style: { textAnchor: 'middle', fill: 'var(--foreground)' }
               }}
               domain={[0, 100]}
+              tick={{ fill: 'var(--foreground)' }}
             />
             
             <ChartTooltip />
             
             <Legend 
               verticalAlign="bottom" 
-              height={80}
+              height={100}
               wrapperStyle={{ 
                 bottom: 0,
-                paddingTop: "30px",
-                marginTop: "20px"
+                paddingTop: "40px",
+                marginTop: "30px",
+                color: 'var(--foreground)'
               }}
             />
             
@@ -122,7 +126,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
               yAxisId="temp"
               type="stepAfter"
               dataKey="displayTemp"
-              stroke="#33C3F0"
+              stroke="var(--primary)"
               strokeWidth={3}
               name={`Temperature (°${displayUnit})`}
               dot={false}
@@ -133,7 +137,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
               yAxisId="progress"
               type="monotone"
               dataKey="progress"
-              stroke="#9b87f5"
+              stroke="var(--secondary)"
               strokeWidth={2}
               name="Sublimation Progress (%)"
               dot={false}
