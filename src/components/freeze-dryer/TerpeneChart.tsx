@@ -1,9 +1,8 @@
 
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
-import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { terpenes, calculateBoilingPoint, celsiusToFahrenheit } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
-import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface TerpeneChartProps {
@@ -64,17 +63,24 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 50 }} // Increased bottom margin
+          margin={{ top: 20, right: 30, left: 20, bottom: 60 }} // Increased bottom margin for legend
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis 
             dataKey="time" 
             label={{ 
               value: 'Time (hours)', 
-              position: 'insideBottomRight', 
-              offset: -10 
+              position: 'insideBottom', 
+              offset: -10,
+              style: { textAnchor: 'middle' } 
             }}
-            tickFormatter={(value) => value.toFixed(2)} // Limit to 2 decimal places
+            tickFormatter={(value) => {
+              // Safely handle different value types
+              if (typeof value === 'number') {
+                return value.toFixed(2);
+              }
+              return String(value);
+            }}
           />
           <YAxis 
             yAxisId="temp"
@@ -99,21 +105,37 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           />
           
           <ChartTooltip 
-            content={
-              <ChartTooltipContent
-                hideIndicator={false}
-                formatter={(value, name) => {
-                  if (name === 'time') return value.toFixed(2);
-                  if (name === 'displayTemp' || typeof value === 'number') return value.toFixed(2);
-                  return value;
-                }}
-              />
-            } 
+            content={(props) => {
+              if (!props.active || !props.payload) {
+                return null;
+              }
+              return (
+                <ChartTooltipContent
+                  {...props}
+                  formatter={(value, name) => {
+                    if (name === 'time' && typeof value === 'number') {
+                      return value.toFixed(2);
+                    }
+                    if (name === 'displayTemp' && typeof value === 'number') {
+                      return value.toFixed(2);
+                    }
+                    if (typeof value === 'number') {
+                      return value.toFixed(2);
+                    }
+                    return value;
+                  }}
+                />
+              );
+            }}
           />
           <Legend 
             verticalAlign="bottom" 
             height={36} 
-            wrapperStyle={{ bottom: -20 }} // Push legend slightly further down
+            wrapperStyle={{ 
+              bottom: 0, 
+              paddingTop: "10px",
+              marginTop: "10px"
+            }}
           />
           
           {/* Step temperature line */}
