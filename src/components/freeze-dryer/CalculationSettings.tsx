@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +32,7 @@ export function CalculationSettings({
     <Card>
       <CardContent className="p-4 space-y-4">
         <div>
-          <h3 className="text-lg font-semibold mb-4">Freeze Parameters</h3>
+          <h3 className="text-2xl font-semibold leading-none tracking-tight mb-4">Freeze Parameters</h3>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -89,4 +88,3 @@ export function CalculationSettings({
     </Card>
   );
 }
-
