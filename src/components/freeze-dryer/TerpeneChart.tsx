@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -127,7 +128,12 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           />
           
           <Tooltip content={<CustomTooltip />} />
-          <Legend verticalAlign="bottom" height={36} />
+          <Legend 
+            verticalAlign="bottom" 
+            height={36}
+            wrapperStyle={{ fontSize: '10px' }} // Make the legend text smaller
+            iconSize={8} // Make the legend icons smaller
+          />
           
           {/* Step temperature line */}
           <Line

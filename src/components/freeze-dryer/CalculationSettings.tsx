@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface CalculationSettingsProps {
   settings: Partial<FreezeDryerSettings>;
@@ -17,12 +19,26 @@ interface CalculationSettingsProps {
   onDisplayUnitChange: (unit: 'C' | 'F') => void;
 }
 
+// Freeze dryer model configurations
+const freezeDryerModels = {
+  "harvest-right-small": { traySizeCm2: 490, numberOfTrays: 3, label: "Small" },
+  "harvest-right-medium": { traySizeCm2: 615, numberOfTrays: 4, label: "Medium" },
+  "harvest-right-large": { traySizeCm2: 820, numberOfTrays: 5, label: "Large" },
+  "harvest-right-xl": { traySizeCm2: 1025, numberOfTrays: 6, label: "XL" },
+  "cryodry-compact": { traySizeCm2: 400, numberOfTrays: 2, label: "Compact" },
+  "cryodry-standard": { traySizeCm2: 625, numberOfTrays: 3, label: "Standard" },
+  "cryodry-pro": { traySizeCm2: 800, numberOfTrays: 4, label: "Pro" },
+  "custom": { traySizeCm2: 500, numberOfTrays: 3, label: "Custom" }
+};
+
 export function CalculationSettings({ 
   settings, 
   onSettingsChange,
   displayUnit,
   onDisplayUnitChange
 }: CalculationSettingsProps) {
+  
+  const [selectedModel, setSelectedModel] = useState<string>("custom");
   
   const handleSettingChange = (field: keyof FreezeDryerSettings, value: any) => {
     const updatedSettings = {
@@ -44,12 +60,62 @@ export function CalculationSettings({
     onSettingsChange(updatedSettings);
   };
   
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    
+    if (model !== "custom") {
+      const modelConfig = freezeDryerModels[model as keyof typeof freezeDryerModels];
+      handleSettingChange("traySizeCm2", modelConfig.traySizeCm2);
+      handleSettingChange("numberOfTrays", modelConfig.numberOfTrays);
+    }
+  };
+  
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
         <div>
           <h3 className="text-2xl font-semibold leading-none tracking-tight mb-4">Freeze Dryer Parameters</h3>
         </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="freezeDryerModel">Freeze Dryer Model</Label>
+          <Select value={selectedModel} onValueChange={handleModelChange}>
+            <SelectTrigger id="freezeDryerModel">
+              <SelectValue placeholder="Select Model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="custom">Custom</SelectItem>
+              <SelectItem value="harvest-right-header" disabled className="font-semibold">
+                Harvest Right
+              </SelectItem>
+              <SelectItem value="harvest-right-small">Harvest Right Small</SelectItem>
+              <SelectItem value="harvest-right-medium">Harvest Right Medium</SelectItem>
+              <SelectItem value="harvest-right-large">Harvest Right Large</SelectItem>
+              <SelectItem value="harvest-right-xl">Harvest Right XL</SelectItem>
+              <SelectItem value="cryodry-header" disabled className="font-semibold">
+                CryoDry
+              </SelectItem>
+              <SelectItem value="cryodry-compact">CryoDry Compact</SelectItem>
+              <SelectItem value="cryodry-standard">CryoDry Standard</SelectItem>
+              <SelectItem value="cryodry-pro">CryoDry Pro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {selectedModel !== "custom" && (
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">
+              {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].numberOfTrays} Trays
+            </Badge>
+            <Badge variant="outline">
+              {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].traySizeCm2} cm² Per Tray
+            </Badge>
+            <Badge variant="outline">
+              {(freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].traySizeCm2 * 
+                freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].numberOfTrays).toLocaleString()} cm² Total
+            </Badge>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -91,37 +157,39 @@ export function CalculationSettings({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="traySizeCm2">Tray Size</Label>
-            <div className="flex items-center">
-              <Input
-                id="traySizeCm2"
-                type="number"
-                value={settings.traySizeCm2 || ""}
-                onChange={(e) => handleSettingChange("traySizeCm2", parseFloat(e.target.value))}
-                placeholder="500"
-              />
-              <span className="ml-2 text-sm text-muted-foreground w-10">cm²</span>
+        {selectedModel === "custom" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="traySizeCm2">Tray Size</Label>
+              <div className="flex items-center">
+                <Input
+                  id="traySizeCm2"
+                  type="number"
+                  value={settings.traySizeCm2 || ""}
+                  onChange={(e) => handleSettingChange("traySizeCm2", parseFloat(e.target.value))}
+                  placeholder="500"
+                />
+                <span className="ml-2 text-sm text-muted-foreground w-10">cm²</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="numberOfTrays">Number of Trays</Label>
+              <div className="flex items-center">
+                <Input
+                  id="numberOfTrays"
+                  type="number"
+                  value={settings.numberOfTrays || ""}
+                  onChange={(e) => handleSettingChange("numberOfTrays", parseInt(e.target.value))}
+                  placeholder="1"
+                  min="1"
+                  step="1"
+                />
+                <span className="ml-2 text-sm text-muted-foreground w-10">trays</span>
+              </div>
             </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="numberOfTrays">Number of Trays</Label>
-            <div className="flex items-center">
-              <Input
-                id="numberOfTrays"
-                type="number"
-                value={settings.numberOfTrays || ""}
-                onChange={(e) => handleSettingChange("numberOfTrays", parseInt(e.target.value))}
-                placeholder="1"
-                min="1"
-                step="1"
-              />
-              <span className="ml-2 text-sm text-muted-foreground w-10">trays</span>
-            </div>
-          </div>
-        </div>
+        )}
         
         <Separator />
         
