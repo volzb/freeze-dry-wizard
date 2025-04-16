@@ -1,6 +1,6 @@
 
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -63,7 +63,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }} // Increased bottom margin for legend
+          margin={{ top: 20, right: 30, left: 20, bottom: 80 }} // Increased bottom margin for legend
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis 
@@ -71,7 +71,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             label={{ 
               value: 'Time (hours)', 
               position: 'insideBottom', 
-              offset: -10,
+              offset: -40, // Increased offset to move it away from legend
               style: { textAnchor: 'middle' } 
             }}
             tickFormatter={(value) => {
@@ -104,37 +104,16 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             domain={[0, 100]}
           />
           
-          <ChartTooltip 
-            content={(props) => {
-              if (!props.active || !props.payload) {
-                return null;
-              }
-              return (
-                <ChartTooltipContent
-                  {...props}
-                  formatter={(value, name) => {
-                    if (name === 'time' && typeof value === 'number') {
-                      return value.toFixed(2);
-                    }
-                    if (name === 'displayTemp' && typeof value === 'number') {
-                      return value.toFixed(2);
-                    }
-                    if (typeof value === 'number') {
-                      return value.toFixed(2);
-                    }
-                    return value;
-                  }}
-                />
-              );
-            }}
-          />
+          {/* ChartTooltip without content prop - will use default behavior */}
+          <ChartTooltip />
+          
           <Legend 
             verticalAlign="bottom" 
-            height={36} 
+            height={60} // Increased height for legend
             wrapperStyle={{ 
-              bottom: 0, 
-              paddingTop: "10px",
-              marginTop: "10px"
+              bottom: 0,
+              paddingTop: "20px",
+              marginTop: "20px"
             }}
           />
           
