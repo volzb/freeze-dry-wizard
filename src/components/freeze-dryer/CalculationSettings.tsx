@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,13 +20,7 @@ interface CalculationSettingsProps {
 
 // Freeze dryer model configurations
 const freezeDryerModels = {
-  "harvest-right-small": { traySizeCm2: 490, numberOfTrays: 3, label: "Small" },
-  "harvest-right-medium": { traySizeCm2: 615, numberOfTrays: 4, label: "Medium" },
-  "harvest-right-large": { traySizeCm2: 820, numberOfTrays: 5, label: "Large" },
-  "harvest-right-xl": { traySizeCm2: 1025, numberOfTrays: 6, label: "XL" },
-  "cryodry-compact": { traySizeCm2: 400, numberOfTrays: 2, label: "Compact" },
-  "cryodry-standard": { traySizeCm2: 625, numberOfTrays: 3, label: "Standard" },
-  "cryodry-pro": { traySizeCm2: 800, numberOfTrays: 4, label: "Pro" },
+  "cryodry-cd8": { traySizeCm2: 625, numberOfTrays: 3, label: "CryoDry CD8" },
   "custom": { traySizeCm2: 500, numberOfTrays: 3, label: "Custom" }
 };
 
@@ -85,19 +78,7 @@ export function CalculationSettings({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="custom">Custom</SelectItem>
-              <SelectItem value="harvest-right-header" disabled className="font-semibold">
-                Harvest Right
-              </SelectItem>
-              <SelectItem value="harvest-right-small">Harvest Right Small</SelectItem>
-              <SelectItem value="harvest-right-medium">Harvest Right Medium</SelectItem>
-              <SelectItem value="harvest-right-large">Harvest Right Large</SelectItem>
-              <SelectItem value="harvest-right-xl">Harvest Right XL</SelectItem>
-              <SelectItem value="cryodry-header" disabled className="font-semibold">
-                CryoDry
-              </SelectItem>
-              <SelectItem value="cryodry-compact">CryoDry Compact</SelectItem>
-              <SelectItem value="cryodry-standard">CryoDry Standard</SelectItem>
-              <SelectItem value="cryodry-pro">CryoDry Pro</SelectItem>
+              <SelectItem value="cryodry-cd8">CryoDry CD8</SelectItem>
             </SelectContent>
           </Select>
         </div>
