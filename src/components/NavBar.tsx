@@ -1,0 +1,55 @@
+
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut, User } from "lucide-react";
+
+export function NavBar() {
+  const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  return (
+    <header className="border-b">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center gap-6 text-lg font-semibold">
+          <Link to="/" className="hover:text-primary">Freeze Dryer Calculator</Link>
+        </div>
+        <nav className="flex items-center gap-4">
+          <Link to="/" className="text-sm font-medium hover:text-primary">
+            Home
+          </Link>
+          <Link to="/calculator" className="text-sm font-medium hover:text-primary">
+            Calculator
+          </Link>
+          
+          {isAuthenticated ? (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate("/login")}
+              className="flex items-center gap-2"
+            >
+              <User size={16} />
+              <span>Login</span>
+            </Button>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
