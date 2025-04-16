@@ -86,7 +86,12 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
                       id={`temp-${index}`}
                       type="number"
                       value={step.temperature}
-                      onChange={(e) => handleStepChange(index, "temperature", parseFloat(e.target.value))}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                        handleStepChange(index, "temperature", value);
+                      }}
+                      min="-100"
+                      step="1"
                     />
                     <Select 
                       value={step.tempUnit} 
@@ -110,7 +115,12 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
                       id={`pressure-${index}`}
                       type="number"
                       value={step.pressure}
-                      onChange={(e) => handleStepChange(index, "pressure", parseFloat(e.target.value))}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                        handleStepChange(index, "pressure", value);
+                      }}
+                      min="0"
+                      step="1"
                     />
                     <Select 
                       value={step.pressureUnit} 
@@ -134,7 +144,12 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
                       id={`duration-${index}`}
                       type="number"
                       value={step.duration}
-                      onChange={(e) => handleStepChange(index, "duration", parseInt(e.target.value))}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : parseInt(e.target.value);
+                        handleStepChange(index, "duration", value);
+                      }}
+                      min="1"
+                      step="1"
                     />
                     <span className="w-20 text-sm text-muted-foreground">minutes</span>
                   </div>
