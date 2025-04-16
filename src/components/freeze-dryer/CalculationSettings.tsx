@@ -32,6 +32,10 @@ export function CalculationSettings({
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Freeze Parameters</h3>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="iceWeight">Ice Weight</Label>
@@ -85,3 +89,4 @@ export function CalculationSettings({
     </Card>
   );
 }
+
