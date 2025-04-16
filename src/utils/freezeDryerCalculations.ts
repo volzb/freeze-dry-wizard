@@ -15,6 +15,10 @@ export interface FreezeDryerSettings {
   steps: DryingStep[];
   iceWeight: number; // in kg
   heatInputRate: number; // in kJ/hr
+  traySizeCm2: number; // tray size in square centimeters
+  numberOfTrays: number; // number of trays used
+  chamberVolume?: number; // optional: freeze dryer chamber volume in liters
+  condenserCapacity?: number; // optional: condenser capacity in kg of ice
 }
 
 // Convert temperature based on unit
@@ -43,22 +47,29 @@ export function calculateSubTimeInHours(iceWeightKg: number, heatInputRateKJHr: 
 export function estimateHeatInputRate(
   temperatureC: number,
   pressureMbar: number,
-  shelfAreaM2: number = 0.5 // Default shelf area in m²
+  totalShelfAreaM2: number = 0.5 // Total shelf area in m²
 ): number {
-  // This is a simplified model - in real applications this would be more complex
-  // and would depend on the specific freeze dryer characteristics
-  const baseRate = 500; // Base heat transfer rate in kJ/hr
+  // Base rate per square meter at reference conditions
+  const baseRatePerM2 = 800; // Base heat transfer rate in kJ/hr/m²
   
   // Temperature factor - higher temperature increases heat transfer
-  const tempFactor = 1 + (temperatureC + 40) / 60; // Normalize temp from -40°C to +20°C
+  // Normalized for -40°C to +20°C range
+  const normalizedTemp = Math.max(-40, Math.min(20, temperatureC));
+  const tempFactor = 1 + (normalizedTemp + 40) / 60;
   
   // Pressure factor - lower pressure decreases heat transfer
-  const pressureFactor = 0.5 + (Math.min(pressureMbar, 1000) / 2000);
+  // More significant effect at very low pressures
+  const normalizedPressure = Math.min(1000, pressureMbar);
+  const pressureFactor = normalizedPressure <= 100 
+    ? 0.5 + (normalizedPressure / 200) // More pronounced effect at very low pressures
+    : 0.5 + (normalizedPressure / 2000) + 0.25; // Less pronounced effect at higher pressures
   
-  // Surface area factor
-  const areaFactor = shelfAreaM2;
+  // Thermal conductivity factor
+  // This could be expanded with actual material properties in a more complex model
+  const conductivityFactor = 1.0;
   
-  return baseRate * tempFactor * pressureFactor * areaFactor;
+  // Surface area factor - directly proportional to heat transfer
+  return baseRatePerM2 * tempFactor * pressureFactor * conductivityFactor * totalShelfAreaM2;
 }
 
 // Calculate the sublimation progress over time for each drying step
@@ -71,11 +82,13 @@ export interface SubTimePoint {
 }
 
 export function calculateProgressCurve(
-  settings: FreezeDryerSettings,
-  shelfAreaM2: number = 0.5
+  settings: FreezeDryerSettings
 ): SubTimePoint[] {
   const { steps, iceWeight } = settings;
   if (!steps.length || iceWeight <= 0) return [];
+
+  // Calculate total shelf area in m²
+  const totalShelfAreaM2 = ((settings.traySizeCm2 || 500) / 10000) * (settings.numberOfTrays || 1);
 
   let remainingIce = iceWeight;
   let accumulatedTime = 0;
@@ -95,7 +108,11 @@ export function calculateProgressCurve(
   steps.forEach((step, index) => {
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
-    const heatRate = estimateHeatInputRate(tempC, pressureMbar, shelfAreaM2); // kJ/hr
+    
+    // Calculate heat rate based on current settings
+    const heatRate = settings.heatInputRate || 
+      estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
+    
     const stepDurationHr = step.duration / 60;
     
     // Energy transferred during this step
@@ -122,7 +139,10 @@ export function calculateProgressCurve(
     const lastStep = steps[steps.length - 1];
     const tempC = normalizeTemperature(lastStep.temperature, lastStep.tempUnit);
     const pressureMbar = normalizePressure(lastStep.pressure, lastStep.pressureUnit);
-    const heatRate = estimateHeatInputRate(tempC, pressureMbar, shelfAreaM2);
+    
+    // Calculate heat rate based on current settings
+    const heatRate = settings.heatInputRate || 
+      estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
     
     // Additional time needed to sublimate remaining ice
     const additionalTimeHr = (remainingIce * LATENT_HEAT_SUBLIMATION) / heatRate;

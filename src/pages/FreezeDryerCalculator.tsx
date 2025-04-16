@@ -15,7 +15,8 @@ import {
   calculateProgressCurve,
   SubTimePoint,
   normalizeTemperature,
-  normalizePressure
+  normalizePressure,
+  estimateHeatInputRate
 } from "@/utils/freezeDryerCalculations";
 import { InfoIcon } from "lucide-react";
 import { v4 as uuidv4 } from "@/utils/uuid";
@@ -52,10 +53,23 @@ export default function FreezeDryerCalculator() {
     }
   ]);
   
+  // Default tray size (typical lab freeze dryer tray)
+  const defaultTraySizeCm2 = 500; // 500 cm² (e.g., 22.4cm × 22.4cm)
+  const defaultNumberOfTrays = 3;
+  
+  // Calculate initial heat input rate based on defaults
+  const initialHeatRate = estimateHeatInputRate(
+    -30, // Initial temperature from first step
+    200, // Initial pressure from first step
+    (defaultTraySizeCm2 / 10000) * defaultNumberOfTrays // Convert to m²
+  );
+  
   // Calculation settings
   const [settings, setSettings] = useState<Partial<FreezeDryerSettings>>({
     iceWeight: 0.5,
-    heatInputRate: 800
+    heatInputRate: Math.round(initialHeatRate),
+    traySizeCm2: defaultTraySizeCm2,
+    numberOfTrays: defaultNumberOfTrays
   });
   
   // Selected terpenes to display
@@ -70,9 +84,11 @@ export default function FreezeDryerCalculator() {
     return calculateProgressCurve({
       steps,
       iceWeight: settings.iceWeight || 0,
-      heatInputRate: settings.heatInputRate || 0
+      heatInputRate: settings.heatInputRate || 0,
+      traySizeCm2: settings.traySizeCm2 || defaultTraySizeCm2,
+      numberOfTrays: settings.numberOfTrays || defaultNumberOfTrays
     });
-  }, [steps, settings.iceWeight, settings.heatInputRate]);
+  }, [steps, settings.iceWeight, settings.heatInputRate, settings.traySizeCm2, settings.numberOfTrays]);
   
   // Check for potentially risky conditions (high temp/low pressure)
   const riskAssessment = useMemo(() => {
