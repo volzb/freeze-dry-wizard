@@ -1,0 +1,173 @@
+
+import { useMemo } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer, TooltipProps } from 'recharts';
+import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
+import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
+import { Label } from "@/components/ui/label";
+import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
+
+interface TerpeneChartProps {
+  dryingData: SubTimePoint[];
+  steps: DryingStep[];
+  displayUnit: 'C' | 'F';
+  showTerpenes: string[];
+}
+
+export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: TerpeneChartProps) {
+  // Process data to include terpene boiling points at each step's pressure
+  const chartData = useMemo(() => {
+    if (!dryingData.length) return [];
+    
+    return dryingData.map((point) => {
+      const terpenesAtPoint: Record<string, number> = {};
+      
+      // Calculate boiling point for each terpene at this pressure
+      terpenes.forEach((terpene) => {
+        // Convert pressure from mbar to torr for calculation
+        const pressureTorr = point.pressure / 1.33322;
+        let boilingTemp = calculateBoilingPoint(terpene, pressureTorr);
+        
+        // Convert to Fahrenheit if needed
+        if (displayUnit === 'F') {
+          boilingTemp = celsiusToFahrenheit(boilingTemp);
+        }
+        
+        terpenesAtPoint[terpene.name] = boilingTemp;
+      });
+      
+      // Adjust temperature for display unit
+      const displayTemp = displayUnit === 'F' 
+        ? celsiusToFahrenheit(point.temperature) 
+        : point.temperature;
+      
+      return {
+        ...point,
+        displayTemp,
+        ...terpenesAtPoint
+      };
+    });
+  }, [dryingData, displayUnit]);
+
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+    if (active && payload && payload.length) {
+      // Find the current step data
+      const pointData = payload[0]?.payload;
+      if (!pointData) return null;
+      
+      // Get current step temperature
+      const stepTemp = pointData.displayTemp;
+      
+      // Get the terpenes that would boil at this point
+      const boilingTerpenes = Object.entries(pointData)
+        .filter(([key, value]) => {
+          return terpenes.some(t => t.name === key) && 
+                 typeof value === 'number' &&
+                 value <= stepTemp;
+        })
+        .map(([key]) => key);
+      
+      return (
+        <div className="bg-background border border-border p-3 shadow-md rounded-md">
+          <p className="font-semibold mb-1">{`Time: ${Math.round(pointData.time * 10) / 10} hours`}</p>
+          <p className="text-sm mb-2">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
+          <p className="text-sm mb-2">{`Pressure: ${Math.round(pointData.pressure)} mBar`}</p>
+          <p className="text-sm">{`Ice Sublimated: ${Math.round(pointData.progress)}%`}</p>
+          
+          {boilingTerpenes.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-border">
+              <p className="text-sm font-semibold text-destructive">Terpenes at risk:</p>
+              <ul className="text-xs max-h-32 overflow-y-auto">
+                {boilingTerpenes.map((name) => (
+                  <li key={name} className="text-destructive">{name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const filteredTerpenes = terpenes.filter(t => showTerpenes.includes(t.name));
+
+  return (
+    <div className="w-full">
+      <ResponsiveContainer width="100%" height={450}>
+        <LineChart
+          data={chartData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+          <XAxis 
+            dataKey="time" 
+            label={{ value: 'Time (hours)', position: 'insideBottomRight', offset: -10 }}
+          />
+          <YAxis 
+            yAxisId="temp"
+            label={{ 
+              value: `Temperature (°${displayUnit})`, 
+              angle: -90, 
+              position: 'insideLeft',
+              style: { textAnchor: 'middle' }
+            }}
+            domain={['auto', 'auto']}
+          />
+          <YAxis 
+            yAxisId="progress"
+            orientation="right"
+            label={{ 
+              value: 'Sublimation Progress (%)', 
+              angle: -90, 
+              position: 'insideRight',
+              style: { textAnchor: 'middle' }
+            }}
+            domain={[0, 100]}
+          />
+          
+          <Tooltip content={<CustomTooltip />} />
+          <Legend verticalAlign="top" height={36} />
+          
+          {/* Step temperature line */}
+          <Line
+            yAxisId="temp"
+            type="stepAfter"
+            dataKey="displayTemp"
+            stroke="#33C3F0"
+            strokeWidth={3}
+            name={`Temperature (°${displayUnit})`}
+            dot={false}
+          />
+          
+          {/* Progress line */}
+          <Line
+            yAxisId="progress"
+            type="monotone"
+            dataKey="progress"
+            stroke="#9b87f5"
+            strokeWidth={2}
+            name="Sublimation Progress (%)"
+            dot={false}
+          />
+          
+          {/* Terpene boiling point lines */}
+          {filteredTerpenes.map((terpene) => (
+            <Line
+              key={terpene.name}
+              yAxisId="temp"
+              type="monotone"
+              dataKey={terpene.name}
+              stroke={terpene.color}
+              strokeDasharray="5 5"
+              strokeWidth={1.5}
+              name={`${terpene.name} Boiling Point`}
+              dot={false}
+              activeDot={false}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
