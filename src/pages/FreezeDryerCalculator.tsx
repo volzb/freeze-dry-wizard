@@ -174,21 +174,21 @@ export default function FreezeDryerCalculator() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="chart" className="space-y-4">
-                  <TabsList>
-                    <TabsTrigger value="chart">Chart</TabsTrigger>
-                    <TabsTrigger value="info">Information</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="chart" className="space-y-4">
-                    <div className="flex justify-end">
-                      <div className="w-80">
-                        <TerpeneSelector
-                          selectedTerpenes={selectedTerpenes}
-                          onChange={setSelectedTerpenes}
-                        />
-                      </div>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <TabsList>
+                      <TabsTrigger value="chart">Chart</TabsTrigger>
+                      <TabsTrigger value="info">Information</TabsTrigger>
+                    </TabsList>
                     
+                    <div className="w-80">
+                      <TerpeneSelector
+                        selectedTerpenes={selectedTerpenes}
+                        onChange={setSelectedTerpenes}
+                      />
+                    </div>
+                  </div>
+                  
+                  <TabsContent value="chart" className="space-y-4">                    
                     <TerpeneChart 
                       dryingData={progressCurve}
                       steps={steps}

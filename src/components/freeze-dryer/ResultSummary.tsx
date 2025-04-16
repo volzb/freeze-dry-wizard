@@ -54,7 +54,7 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
             <p className="text-2xl font-bold">
               {totalTime < 1 
                 ? `${Math.round(totalTime * 60)} min` 
-                : `${Math.round(totalTime * 10) / 10} hrs`}
+                : `${totalTime.toFixed(2)} hrs`}
             </p>
           </div>
           

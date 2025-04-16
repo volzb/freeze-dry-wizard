@@ -69,7 +69,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       
       return (
         <div className="bg-background border border-border p-3 shadow-md rounded-md">
-          <p className="font-semibold mb-1">{`Time: ${Math.round(pointData.time * 10) / 10} hours`}</p>
+          <p className="font-semibold mb-1">{`Time: ${pointData.time.toFixed(2)} hours`}</p>
           <p className="text-sm mb-2">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
           <p className="text-sm mb-2">{`Pressure: ${Math.round(pointData.pressure)} mBar`}</p>
           <p className="text-sm">{`Ice Sublimated: ${Math.round(pointData.progress)}%`}</p>
@@ -127,7 +127,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           />
           
           <Tooltip content={<CustomTooltip />} />
-          <Legend verticalAlign="top" height={36} />
+          <Legend verticalAlign="bottom" height={36} />
           
           {/* Step temperature line */}
           <Line
