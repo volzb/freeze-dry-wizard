@@ -1,9 +1,10 @@
 
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
-import { terpenes, calculateBoilingPoint, celsiusToFahrenheit } from "@/utils/terpeneData";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
+import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
-import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface TerpeneChartProps {
   dryingData: SubTimePoint[];
@@ -59,111 +60,104 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   );
 
   return (
-    <div className="w-full overflow-hidden h-full min-h-[450px]">
-      <ChartContainer config={chartConfig} className="h-full min-h-[450px]">
-        <ResponsiveContainer width="99%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 10, bottom: 120 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-            <XAxis 
-              dataKey="time" 
-              label={{ 
-                value: 'Time (hours)', 
-                position: 'insideBottom', 
-                offset: -80,
-                style: { textAnchor: 'middle', fill: 'var(--foreground)' } 
-              }}
-              tick={{ fill: 'var(--foreground)' }}
-              tickFormatter={(value) => {
-                // Safely handle different value types
-                if (typeof value === 'number') {
-                  return value.toFixed(2);
-                }
-                return String(value);
-              }}
-            />
-            <YAxis 
-              yAxisId="temp"
-              label={{ 
-                value: `Temperature (°${displayUnit})`, 
-                angle: -90, 
-                position: 'insideLeft',
-                style: { textAnchor: 'middle', fill: 'var(--foreground)' }
-              }}
-              domain={['auto', 'auto']}
-              tick={{ fill: 'var(--foreground)' }}
-            />
-            <YAxis 
-              yAxisId="progress"
-              orientation="right"
-              label={{ 
-                value: 'Sublimation Progress (%)', 
-                angle: -90, 
-                position: 'insideRight',
-                style: { textAnchor: 'middle', fill: 'var(--foreground)' }
-              }}
-              domain={[0, 100]}
-              tick={{ fill: 'var(--foreground)' }}
-            />
-            
-            <ChartTooltip />
-            
-            <Legend 
-              verticalAlign="bottom" 
-              height={100}
-              wrapperStyle={{ 
-                bottom: 0,
-                paddingTop: "40px",
-                marginTop: "30px",
-                color: 'var(--foreground)'
-              }}
-            />
-            
-            {/* Step temperature line */}
-            <Line
-              yAxisId="temp"
-              type="stepAfter"
-              dataKey="displayTemp"
-              stroke="var(--primary)"
-              strokeWidth={3}
-              name={`Temperature (°${displayUnit})`}
-              dot={false}
-            />
-            
-            {/* Progress line */}
-            <Line
-              yAxisId="progress"
-              type="monotone"
-              dataKey="progress"
-              stroke="var(--secondary)"
-              strokeWidth={2}
-              name="Sublimation Progress (%)"
-              dot={false}
-            />
-            
-            {/* Terpene boiling point lines */}
-            {terpenes
-              .filter(t => showTerpenes.includes(t.name))
-              .map((terpene) => (
-                <Line
-                  key={terpene.name}
-                  yAxisId="temp"
-                  type="monotone"
-                  dataKey={terpene.name}
-                  stroke={terpene.color}
-                  strokeDasharray="5 5"
-                  strokeWidth={1.5}
-                  name={`${terpene.name} Boiling Point`}
-                  dot={false}
-                  activeDot={false}
-                />
-              ))
-            }
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartContainer>
-    </div>
+    <ChartContainer config={chartConfig} className="h-[450px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={chartData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 50 }} // Increased bottom margin
+        >
+          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+          <XAxis 
+            dataKey="time" 
+            label={{ 
+              value: 'Time (hours)', 
+              position: 'insideBottomRight', 
+              offset: -10 
+            }}
+            tickFormatter={(value) => value.toFixed(2)} // Limit to 2 decimal places
+          />
+          <YAxis 
+            yAxisId="temp"
+            label={{ 
+              value: `Temperature (°${displayUnit})`, 
+              angle: -90, 
+              position: 'insideLeft',
+              style: { textAnchor: 'middle' }
+            }}
+            domain={['auto', 'auto']}
+          />
+          <YAxis 
+            yAxisId="progress"
+            orientation="right"
+            label={{ 
+              value: 'Sublimation Progress (%)', 
+              angle: -90, 
+              position: 'insideRight',
+              style: { textAnchor: 'middle' }
+            }}
+            domain={[0, 100]}
+          />
+          
+          <ChartTooltip 
+            content={
+              <ChartTooltipContent
+                hideIndicator={false}
+                formatter={(value, name) => {
+                  if (name === 'time') return value.toFixed(2);
+                  if (name === 'displayTemp' || typeof value === 'number') return value.toFixed(2);
+                  return value;
+                }}
+              />
+            } 
+          />
+          <Legend 
+            verticalAlign="bottom" 
+            height={36} 
+            wrapperStyle={{ bottom: -20 }} // Push legend slightly further down
+          />
+          
+          {/* Step temperature line */}
+          <Line
+            yAxisId="temp"
+            type="stepAfter"
+            dataKey="displayTemp"
+            stroke="#33C3F0"
+            strokeWidth={3}
+            name={`Temperature (°${displayUnit})`}
+            dot={false}
+          />
+          
+          {/* Progress line */}
+          <Line
+            yAxisId="progress"
+            type="monotone"
+            dataKey="progress"
+            stroke="#9b87f5"
+            strokeWidth={2}
+            name="Sublimation Progress (%)"
+            dot={false}
+          />
+          
+          {/* Terpene boiling point lines */}
+          {terpenes
+            .filter(t => showTerpenes.includes(t.name))
+            .map((terpene) => (
+              <Line
+                key={terpene.name}
+                yAxisId="temp"
+                type="monotone"
+                dataKey={terpene.name}
+                stroke={terpene.color}
+                strokeDasharray="5 5"
+                strokeWidth={1.5}
+                name={`${terpene.name} Boiling Point`}
+                dot={false}
+                activeDot={false}
+              />
+            ))
+          }
+        </LineChart>
+      </ResponsiveContainer>
+    </ChartContainer>
   );
 }
