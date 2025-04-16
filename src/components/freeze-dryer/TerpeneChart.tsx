@@ -1,10 +1,10 @@
 
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer, TooltipProps } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
-import { Label } from "@/components/ui/label";
 import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface TerpeneChartProps {
   dryingData: SubTimePoint[];
@@ -48,61 +48,33 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     });
   }, [dryingData, displayUnit]);
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
-    if (active && payload && payload.length) {
-      // Find the current step data
-      const pointData = payload[0]?.payload;
-      if (!pointData) return null;
-      
-      // Get current step temperature
-      const stepTemp = pointData.displayTemp;
-      
-      // Get the terpenes that would boil at this point
-      const boilingTerpenes = Object.entries(pointData)
-        .filter(([key, value]) => {
-          return terpenes.some(t => t.name === key) && 
-                 typeof value === 'number' &&
-                 value <= stepTemp;
-        })
-        .map(([key]) => key);
-      
-      return (
-        <div className="bg-background border border-border p-3 shadow-md rounded-md">
-          <p className="font-semibold mb-1">{`Time: ${pointData.time.toFixed(2)} hours`}</p>
-          <p className="text-sm mb-2">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
-          <p className="text-sm mb-2">{`Pressure: ${Math.round(pointData.pressure)} mBar`}</p>
-          <p className="text-sm">{`Ice Sublimated: ${Math.round(pointData.progress)}%`}</p>
-          
-          {boilingTerpenes.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-border">
-              <p className="text-sm font-semibold text-destructive">Terpenes at risk:</p>
-              <ul className="text-xs max-h-32 overflow-y-auto">
-                {boilingTerpenes.map((name) => (
-                  <li key={name} className="text-destructive">{name}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const filteredTerpenes = terpenes.filter(t => showTerpenes.includes(t.name));
+  // Config for chart to help with styling and legend
+  const chartConfig = Object.fromEntries(
+    terpenes.map((terpene) => [
+      terpene.name, 
+      { 
+        label: `${terpene.name} Boiling Point`, 
+        color: terpene.color 
+      }
+    ])
+  );
 
   return (
-    <div className="w-full">
-      <ResponsiveContainer width="100%" height={450}>
+    <ChartContainer config={chartConfig} className="h-[450px]">
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 50 }} // Increased bottom margin
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis 
             dataKey="time" 
-            label={{ value: 'Time (hours)', position: 'insideBottomRight', offset: -10 }}
+            label={{ 
+              value: 'Time (hours)', 
+              position: 'insideBottomRight', 
+              offset: -10 
+            }}
+            tickFormatter={(value) => value.toFixed(2)} // Limit to 2 decimal places
           />
           <YAxis 
             yAxisId="temp"
@@ -126,8 +98,23 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             domain={[0, 100]}
           />
           
-          <Tooltip content={<CustomTooltip />} />
-          <Legend verticalAlign="bottom" height={36} />
+          <ChartTooltip 
+            content={
+              <ChartTooltipContent
+                hideIndicator={false}
+                formatter={(value, name) => {
+                  if (name === 'time') return value.toFixed(2);
+                  if (name === 'displayTemp' || typeof value === 'number') return value.toFixed(2);
+                  return value;
+                }}
+              />
+            } 
+          />
+          <Legend 
+            verticalAlign="bottom" 
+            height={36} 
+            wrapperStyle={{ bottom: -20 }} // Push legend slightly further down
+          />
           
           {/* Step temperature line */}
           <Line
@@ -152,22 +139,25 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           />
           
           {/* Terpene boiling point lines */}
-          {filteredTerpenes.map((terpene) => (
-            <Line
-              key={terpene.name}
-              yAxisId="temp"
-              type="monotone"
-              dataKey={terpene.name}
-              stroke={terpene.color}
-              strokeDasharray="5 5"
-              strokeWidth={1.5}
-              name={`${terpene.name} Boiling Point`}
-              dot={false}
-              activeDot={false}
-            />
-          ))}
+          {terpenes
+            .filter(t => showTerpenes.includes(t.name))
+            .map((terpene) => (
+              <Line
+                key={terpene.name}
+                yAxisId="temp"
+                type="monotone"
+                dataKey={terpene.name}
+                stroke={terpene.color}
+                strokeDasharray="5 5"
+                strokeWidth={1.5}
+                name={`${terpene.name} Boiling Point`}
+                dot={false}
+                activeDot={false}
+              />
+            ))
+          }
         </LineChart>
       </ResponsiveContainer>
-    </div>
+    </ChartContainer>
   );
 }
