@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { SubTimePoint } from "@/utils/freezeDryerCalculations";
 import { celsiusToFahrenheit } from "@/utils/terpeneData";
 
@@ -25,6 +26,7 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
   const lastPoint = progressCurve[progressCurve.length - 1];
   const totalTime = lastPoint.time;
   const completedPercent = lastPoint.progress;
+  const isOverDry = completedPercent > 100;
   
   // Find highest temperature point
   const highestTempPoint = [...progressCurve].sort((a, b) => b.temperature - a.temperature)[0];
@@ -53,8 +55,9 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
           
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Completion</p>
-            <p className="text-2xl font-bold">
-              {Math.min(100, Math.round(completedPercent))}%
+            <p className={`text-2xl font-bold ${isOverDry ? 'text-amber-500' : ''}`}>
+              {Math.round(completedPercent)}%
+              {isOverDry && " (Over Dry)"}
             </p>
           </div>
           
@@ -71,6 +74,23 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
               {Math.round(lowestPressurePoint.pressure)} mBar
             </p>
           </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs">
+            <span>Drying Progress</span>
+            <span>{Math.round(completedPercent)}%</span>
+          </div>
+          <Progress 
+            value={Math.min(100, completedPercent)} 
+            className={`h-2 ${isOverDry ? 'bg-amber-100' : ''}`}
+            indicatorClassName={isOverDry ? 'bg-amber-500' : undefined}
+          />
+          {isOverDry && (
+            <p className="text-xs text-amber-500 italic">
+              Program duration exceeds required drying time by {Math.round(completedPercent - 100)}%
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
