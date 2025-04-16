@@ -1,6 +1,5 @@
-
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer, TooltipProps } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
 import { Label } from "@/components/ui/label";
@@ -103,6 +102,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <XAxis 
             dataKey="time" 
             label={{ value: 'Time (hours)', position: 'insideBottomRight', offset: -10 }}
+            tickFormatter={(value) => Math.round(value).toString()}
           />
           <YAxis 
             yAxisId="temp"
