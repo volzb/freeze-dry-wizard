@@ -131,7 +131,40 @@ export default function FreezeDryerCalculator() {
         
         <div className="grid gap-6 md:grid-cols-3">
           <div className="space-y-6 md:col-span-2">
-            {/* Chart Card - Moved above the Freeze Drying Program */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Freeze Drying Program</CardTitle>
+                <CardDescription>
+                  Configure your drying steps to optimize for terpene preservation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <DryingStepForm 
+                    steps={steps}
+                    onChange={setSteps}
+                    maxSteps={8}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            {riskAssessment.length > 0 && (
+              <Alert variant="destructive">
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>Potential Terpene Loss Detected</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    {riskAssessment.map((risk, idx) => (
+                      <li key={idx}>
+                        Step {risk.stepIndex + 1}: {risk.message}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Card>
               <CardHeader>
                 <CardTitle>Drying and Terpene Visualization</CardTitle>
@@ -197,40 +230,6 @@ export default function FreezeDryerCalculator() {
                 </Tabs>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Freeze Drying Program</CardTitle>
-                <CardDescription>
-                  Configure your drying steps to optimize for terpene preservation
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <DryingStepForm 
-                    steps={steps}
-                    onChange={setSteps}
-                    maxSteps={8}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            
-            {riskAssessment.length > 0 && (
-              <Alert variant="destructive">
-                <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Potential Terpene Loss Detected</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    {riskAssessment.map((risk, idx) => (
-                      <li key={idx}>
-                        Step {risk.stepIndex + 1}: {risk.message}
-                      </li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
           
           <div className="space-y-6">
