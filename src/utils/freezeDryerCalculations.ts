@@ -1,4 +1,3 @@
-
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -122,8 +121,12 @@ export function calculateProgressCurve(
     const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg
     remainingIce = Math.max(0, remainingIce - iceSublimated);
     
-    accumulatedTime += stepDurationHr;
+    // Explicitly calculate water removal percentage
     const progress = ((iceWeight - remainingIce) / iceWeight) * 100;
+    
+    console.log(`Step ${index + 1}: Ice remaining: ${remainingIce}kg, Progress: ${progress.toFixed(1)}%`);
+    
+    accumulatedTime += stepDurationHr;
     
     points.push({
       time: accumulatedTime,
@@ -156,6 +159,9 @@ export function calculateProgressCurve(
       pressure: pressureMbar,
     });
   }
+  
+  console.log("Final progress curve points:", points.length);
+  console.log("Last point:", points[points.length - 1]);
   
   return points;
 }

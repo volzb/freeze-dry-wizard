@@ -24,6 +24,8 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
   
   const lastPoint = progressCurve[progressCurve.length - 1];
   const totalTime = lastPoint.time;
+  
+  // Explicitly calculate completion percentage based on the last point's progress value
   const completedPercent = lastPoint.progress;
   const isOverDry = completedPercent > 100;
   
@@ -35,6 +37,10 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
     
   // Find lowest pressure point
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
+  
+  // Debug information to verify data
+  console.log("ResultSummary - Last Point:", lastPoint);
+  console.log("ResultSummary - Completion %:", completedPercent);
   
   return (
     <Card>
@@ -53,7 +59,7 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
           </div>
           
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Completion</p>
+            <p className="text-sm font-medium text-muted-foreground">Water Removal</p>
             <p className={`text-2xl font-bold ${isOverDry ? 'text-amber-500' : ''}`}>
               {Math.round(completedPercent)}%
               {isOverDry && " (Over Dry)"}
