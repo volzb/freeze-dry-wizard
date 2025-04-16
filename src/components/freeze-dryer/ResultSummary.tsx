@@ -1,6 +1,5 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { SubTimePoint } from "@/utils/freezeDryerCalculations";
 import { celsiusToFahrenheit } from "@/utils/terpeneData";
 
@@ -76,22 +75,11 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
           </div>
         </div>
         
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs">
-            <span>Drying Progress</span>
-            <span>{Math.round(completedPercent)}%</span>
-          </div>
-          <Progress 
-            value={Math.min(100, completedPercent)} 
-            className={`h-2 ${isOverDry ? 'bg-amber-100' : ''}`}
-            indicatorClassName={isOverDry ? 'bg-amber-500' : undefined}
-          />
-          {isOverDry && (
-            <p className="text-xs text-amber-500 italic">
-              Program duration exceeds required drying time by {Math.round(completedPercent - 100)}%
-            </p>
-          )}
-        </div>
+        {isOverDry && (
+          <p className="text-xs text-amber-500 italic">
+            Program duration exceeds required drying time by {Math.round(completedPercent - 100)}%
+          </p>
+        )}
       </CardContent>
     </Card>
   );
