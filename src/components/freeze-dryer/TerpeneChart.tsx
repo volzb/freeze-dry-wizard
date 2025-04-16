@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 
 interface TerpeneChartProps {
   dryingData: SubTimePoint[];
@@ -59,106 +59,107 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   );
 
   return (
-    <ChartContainer config={chartConfig} className="h-[450px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 80 }} // Increased bottom margin for legend
-        >
-          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-          <XAxis 
-            dataKey="time" 
-            label={{ 
-              value: 'Time (hours)', 
-              position: 'insideBottom', 
-              offset: -40, // Increased offset to move it away from legend
-              style: { textAnchor: 'middle' } 
-            }}
-            tickFormatter={(value) => {
-              // Safely handle different value types
-              if (typeof value === 'number') {
-                return value.toFixed(2);
-              }
-              return String(value);
-            }}
-          />
-          <YAxis 
-            yAxisId="temp"
-            label={{ 
-              value: `Temperature (°${displayUnit})`, 
-              angle: -90, 
-              position: 'insideLeft',
-              style: { textAnchor: 'middle' }
-            }}
-            domain={['auto', 'auto']}
-          />
-          <YAxis 
-            yAxisId="progress"
-            orientation="right"
-            label={{ 
-              value: 'Sublimation Progress (%)', 
-              angle: -90, 
-              position: 'insideRight',
-              style: { textAnchor: 'middle' }
-            }}
-            domain={[0, 100]}
-          />
-          
-          {/* ChartTooltip without content prop - will use default behavior */}
-          <ChartTooltip />
-          
-          <Legend 
-            verticalAlign="bottom" 
-            height={60} // Increased height for legend
-            wrapperStyle={{ 
-              bottom: 0,
-              paddingTop: "20px",
-              marginTop: "20px"
-            }}
-          />
-          
-          {/* Step temperature line */}
-          <Line
-            yAxisId="temp"
-            type="stepAfter"
-            dataKey="displayTemp"
-            stroke="#33C3F0"
-            strokeWidth={3}
-            name={`Temperature (°${displayUnit})`}
-            dot={false}
-          />
-          
-          {/* Progress line */}
-          <Line
-            yAxisId="progress"
-            type="monotone"
-            dataKey="progress"
-            stroke="#9b87f5"
-            strokeWidth={2}
-            name="Sublimation Progress (%)"
-            dot={false}
-          />
-          
-          {/* Terpene boiling point lines */}
-          {terpenes
-            .filter(t => showTerpenes.includes(t.name))
-            .map((terpene) => (
-              <Line
-                key={terpene.name}
-                yAxisId="temp"
-                type="monotone"
-                dataKey={terpene.name}
-                stroke={terpene.color}
-                strokeDasharray="5 5"
-                strokeWidth={1.5}
-                name={`${terpene.name} Boiling Point`}
-                dot={false}
-                activeDot={false}
-              />
-            ))
-          }
-        </LineChart>
-      </ResponsiveContainer>
-    </ChartContainer>
+    <div className="w-full overflow-hidden">
+      <ChartContainer config={chartConfig} className="h-[450px]">
+        <ResponsiveContainer width="99%" height="100%">
+          <LineChart
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 10, bottom: 100 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis 
+              dataKey="time" 
+              label={{ 
+                value: 'Time (hours)', 
+                position: 'insideBottom', 
+                offset: -60,
+                style: { textAnchor: 'middle' } 
+              }}
+              tickFormatter={(value) => {
+                // Safely handle different value types
+                if (typeof value === 'number') {
+                  return value.toFixed(2);
+                }
+                return String(value);
+              }}
+            />
+            <YAxis 
+              yAxisId="temp"
+              label={{ 
+                value: `Temperature (°${displayUnit})`, 
+                angle: -90, 
+                position: 'insideLeft',
+                style: { textAnchor: 'middle' }
+              }}
+              domain={['auto', 'auto']}
+            />
+            <YAxis 
+              yAxisId="progress"
+              orientation="right"
+              label={{ 
+                value: 'Sublimation Progress (%)', 
+                angle: -90, 
+                position: 'insideRight',
+                style: { textAnchor: 'middle' }
+              }}
+              domain={[0, 100]}
+            />
+            
+            <ChartTooltip />
+            
+            <Legend 
+              verticalAlign="bottom" 
+              height={80}
+              wrapperStyle={{ 
+                bottom: 0,
+                paddingTop: "30px",
+                marginTop: "20px"
+              }}
+            />
+            
+            {/* Step temperature line */}
+            <Line
+              yAxisId="temp"
+              type="stepAfter"
+              dataKey="displayTemp"
+              stroke="#33C3F0"
+              strokeWidth={3}
+              name={`Temperature (°${displayUnit})`}
+              dot={false}
+            />
+            
+            {/* Progress line */}
+            <Line
+              yAxisId="progress"
+              type="monotone"
+              dataKey="progress"
+              stroke="#9b87f5"
+              strokeWidth={2}
+              name="Sublimation Progress (%)"
+              dot={false}
+            />
+            
+            {/* Terpene boiling point lines */}
+            {terpenes
+              .filter(t => showTerpenes.includes(t.name))
+              .map((terpene) => (
+                <Line
+                  key={terpene.name}
+                  yAxisId="temp"
+                  type="monotone"
+                  dataKey={terpene.name}
+                  stroke={terpene.color}
+                  strokeDasharray="5 5"
+                  strokeWidth={1.5}
+                  name={`${terpene.name} Boiling Point`}
+                  dot={false}
+                  activeDot={false}
+                />
+              ))
+            }
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </div>
   );
 }
