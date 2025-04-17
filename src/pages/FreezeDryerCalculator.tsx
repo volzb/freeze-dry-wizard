@@ -256,6 +256,18 @@ export default function FreezeDryerCalculator() {
         message: `Water content is ${settings.waterPercentage}%. Very high water content may extend drying time significantly.`
       });
     }
+
+    if (progressCurve.length > 0) {
+      const completedPercent = progressCurve[progressCurve.length - 1].progress;
+      const isDryingIncomplete = completedPercent < 99;
+
+      if (isDryingIncomplete) {
+        risks.push({
+          type: "drying",
+          message: `Drying process will only be ${Math.round(completedPercent)}% complete. Consider increasing step duration or adding more drying steps.`
+        });
+      }
+    }
     
     steps.forEach((step, index) => {
       const tempC = normalizeTemperature(step.temperature, step.tempUnit);
@@ -280,7 +292,7 @@ export default function FreezeDryerCalculator() {
     });
     
     return risks;
-  }, [steps, settings.hashPerTray, settings.traySizeCm2, settings.numberOfTrays, settings.waterPercentage]);
+  }, [steps, settings.hashPerTray, settings.traySizeCm2, settings.numberOfTrays, settings.waterPercentage, progressCurve]);
   
   const [terpeneGuideUnit, setTerpeneGuideUnit] = useState<'C' | 'F'>('C');
   

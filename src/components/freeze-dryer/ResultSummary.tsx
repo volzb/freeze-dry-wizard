@@ -65,7 +65,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
             <p className="text-sm font-medium text-muted-foreground">Water Removal</p>
             <p className={`text-2xl font-bold ${isDryingIncomplete ? 'text-destructive' : isOverDry ? 'text-amber-500' : ''}`}>
               {Math.round(completedPercent)}%
-              {isDryingIncomplete ? " (Incomplete)" : isOverDry ? " (Over Dry)" : ""}
+              {isOverDry ? " (Over Dry)" : ""}
             </p>
           </div>
           
@@ -103,14 +103,8 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
             Program duration exceeds required drying time by {Math.round(completedPercent - 100)}%
           </p>
         )}
-        
-        {isDryingIncomplete && (
-          <p className="text-xs text-destructive italic">
-            Drying process will only be {Math.round(completedPercent)}% complete. 
-            Consider increasing step duration or adding more drying steps.
-          </p>
-        )}
       </CardContent>
     </Card>
   );
 }
+
