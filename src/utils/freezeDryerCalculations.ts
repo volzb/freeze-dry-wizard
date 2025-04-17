@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -121,7 +122,6 @@ export function calculateProgressCurve(
   let remainingIce = iceWeight;
   let accumulatedTime = 0;
   const points: SubTimePoint[] = [];
-  const totalEnergy = iceWeight * LATENT_HEAT_SUBLIMATION; // kJ
   
   // Add starting point at time 0
   points.push({
@@ -150,7 +150,7 @@ export function calculateProgressCurve(
     const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg
     remainingIce = Math.max(0, remainingIce - iceSublimated);
     
-    // Explicitly calculate water removal percentage
+    // Calculate progress percentage
     const progress = ((iceWeight - remainingIce) / iceWeight) * 100;
     
     console.log(`Step ${index + 1}: Ice remaining: ${remainingIce}kg, Progress: ${progress.toFixed(1)}%`);
@@ -168,16 +168,7 @@ export function calculateProgressCurve(
     });
   });
   
-  // Fixed: Only add the completion point if we've actually removed all the ice
-  // Otherwise, end at the actual calculated progress percentage
-  if (remainingIce > 0 && steps.length > 0) {
-    const lastStep = steps[steps.length - 1];
-    const tempC = normalizeTemperature(lastStep.temperature, lastStep.tempUnit);
-    const pressureMbar = normalizePressure(lastStep.pressure, lastStep.pressureUnit);
-    
-    console.log(`Final ice remaining: ${remainingIce}kg (${((remainingIce/iceWeight) * 100).toFixed(1)}% remains)`);
-  }
-  
+  console.log(`Final ice remaining: ${remainingIce}kg (${((remainingIce/iceWeight) * 100).toFixed(1)}% remains)`);
   console.log("Final progress curve points:", points.length);
   if (points.length > 0) {
     console.log("Last point:", points[points.length - 1]);

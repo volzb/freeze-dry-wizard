@@ -1,10 +1,10 @@
 
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
-import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
+import { SubTimePoint, DryingStep, normalizeTemperature } from "@/utils/freezeDryerCalculations";
+import { TooltipProps } from 'recharts/types/component/Tooltip';
 import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 interface TerpeneChartProps {
   dryingData: SubTimePoint[];
@@ -29,46 +29,48 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     });
 
     const maxTime = dryingData[dryingData.length - 1]?.time || 0;
+    if (maxTime === 0) return dryingData;
     
     // Create data points with interpolation to ensure smooth chart
-    // We'll create points for every hour plus original data points
-    const densePoints = new Set<number>();
+    // Generate more points for smoother lines
+    const timePoints = new Set<number>();
     
     // Add all original time points
-    dryingData.forEach(point => densePoints.add(point.time));
+    dryingData.forEach(point => timePoints.add(point.time));
     
-    // Add regular interval points for smoother lines
-    const intervalCount = Math.max(20, Math.ceil(maxTime * 2));
+    // Add regular interval points for smoother lines (many more points)
+    const intervalCount = Math.max(100, Math.ceil(maxTime * 10));
     for (let i = 0; i <= intervalCount; i++) {
-      densePoints.add((maxTime * i) / intervalCount);
+      timePoints.add((maxTime * i) / intervalCount);
     }
     
     // Convert to sorted array
-    const timePoints = Array.from(densePoints).sort((a, b) => a - b);
-    console.log(`Generated ${timePoints.length} time points for chart`);
+    const sortedTimePoints = Array.from(timePoints).sort((a, b) => a - b);
+    console.log(`Generated ${sortedTimePoints.length} time points for chart`);
     
     // Create interpolated data for each time point
-    return timePoints.map(time => {
+    return sortedTimePoints.map(time => {
       // Find surrounding data points for interpolation
-      const prevPointIndex = dryingData.findIndex(p => p.time > time) - 1;
-      const nextPointIndex = prevPointIndex + 1;
+      let prevPoint = dryingData[0];
+      let nextPoint = dryingData[0];
       
-      let prevPoint = dryingData[prevPointIndex];
-      let nextPoint = dryingData[nextPointIndex];
-      
-      // Handle edge cases
-      if (prevPointIndex < 0) {
-        prevPoint = dryingData[0];
-        nextPoint = dryingData[0];
+      for (let i = 0; i < dryingData.length - 1; i++) {
+        if (dryingData[i].time <= time && dryingData[i + 1].time >= time) {
+          prevPoint = dryingData[i];
+          nextPoint = dryingData[i + 1];
+          break;
+        }
       }
       
-      if (nextPointIndex >= dryingData.length) {
+      // If time is after the last point, use the last point
+      if (time > dryingData[dryingData.length - 1].time) {
+        prevPoint = dryingData[dryingData.length - 1];
         nextPoint = dryingData[dryingData.length - 1];
       }
       
       // Calculate weight for linear interpolation
       let weight = 0;
-      if (nextPoint && prevPoint && nextPoint.time !== prevPoint.time) {
+      if (nextPoint.time !== prevPoint.time) {
         weight = (time - prevPoint.time) / (nextPoint.time - prevPoint.time);
       }
       
@@ -81,10 +83,16 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         (nextPoint.pressure - prevPoint.pressure) * weight;
       
       // Find the current step based on time
-      const step = steps.findIndex((_, idx) => {
+      const currentStep = steps.findIndex((_, idx, array) => {
         const stepEndTime = dryingData.find(p => p.step === idx)?.time || 0;
-        return time <= stepEndTime;
+        const nextStepEndTime = idx < array.length - 1 
+          ? dryingData.find(p => p.step === idx + 1)?.time || 0
+          : Infinity;
+        
+        return time <= nextStepEndTime;
       });
+      
+      const step = currentStep >= 0 ? currentStep : steps.length - 1;
       
       // Calculate terpene boiling points at this pressure
       const terpenesAtPoint: Record<string, number> = {};
@@ -112,7 +120,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         displayTemp,
         progress,
         pressure,
-        step: step >= 0 ? step : 0,
+        step,
         ...terpenesAtPoint
       };
     });
@@ -170,14 +178,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     console.log("Generated temperature data points:", result);
     return result;
   }, [steps, displayUnit]);
-  
-  // Helper function to normalize temperature
-  function normalizeTemperature(temperature: number, unit: 'C' | 'F'): number {
-    if (unit === 'F') {
-      return (temperature - 32) * 5/9; // Convert to Celsius
-    }
-    return temperature;
-  }
 
   // Generate tick values for time axis
   const timeAxisTicks = useMemo(() => {
@@ -187,8 +187,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     const maxTime = chartData[chartData.length - 1]?.time || 0;
     if (maxTime === 0) return [0];
     
-    // Generate evenly spaced ticks
-    const tickCount = 6; // Number of ticks to display
+    // Generate evenly spaced ticks (more ticks for better visibility)
+    const tickCount = 8; // Increased number of ticks
     const ticks = [];
     
     for (let i = 0; i < tickCount; i++) {
@@ -268,7 +268,13 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     if (chartData[chartData.length - 1]?.time < 1) {
       return value.toFixed(1);
     }
-    // Otherwise just round to whole numbers
+    
+    // For larger values, round appropriately
+    if (value < 10) {
+      return value.toFixed(1);
+    }
+    
+    // For very large values, round to whole numbers
     return Math.round(value).toString();
   };
 
@@ -287,6 +293,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             ticks={timeAxisTicks}
             domain={[0, 'dataMax']}
             type="number"
+            allowDecimals={true}
           />
           <YAxis 
             yAxisId="temp"
@@ -333,6 +340,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             name={`Temperature (°${displayUnit})`}
             dot={false}
             connectNulls={true}
+            isAnimationActive={false}
           />
           
           {/* Sublimation progress line */}
@@ -345,6 +353,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             name="Sublimation Progress (%)"
             dot={false}
             connectNulls={true}
+            isAnimationActive={false}
           />
           
           {/* Terpene boiling point lines */}
@@ -361,6 +370,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
               dot={false}
               activeDot={false}
               connectNulls={true}
+              isAnimationActive={false}
             />
           ))}
         </LineChart>
