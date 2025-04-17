@@ -1,4 +1,5 @@
 
+
 // Constants
 const WATTS_TO_KJ_PER_HOUR = 3.6; // 1 Watt = 3.6 kJ/hr
 
@@ -35,18 +36,21 @@ export function estimateHeatTransferEfficiency(
   // Temperature factor - higher temp increases efficiency
   const tempFactor = 0.7 + (normalizedTemp + 40) / 100;
   
-  // Pressure factor - extremely low pressure decreases efficiency
+  // Pressure factor - lower pressure increases sublimation efficiency
+  // This reflects that sublimation rates are higher at lower pressures
   const normalizedPressure = Math.max(0.1, Math.min(1000, pressureMbar));
   
+  // Revised pressure factor - create an inverse relationship with pressure
   let pressureFactor;
   if (normalizedPressure <= 1) {
-    pressureFactor = 0.2 + (normalizedPressure * 0.3);
+    pressureFactor = 0.9; // Maximum efficiency at very low pressure
   } else if (normalizedPressure <= 10) {
-    pressureFactor = 0.5 + (normalizedPressure * 0.05);
+    pressureFactor = 0.8 - (normalizedPressure - 1) * 0.02; // 0.8-0.6 range
   } else if (normalizedPressure <= 100) {
-    pressureFactor = 0.7 + (normalizedPressure / 500);
+    pressureFactor = 0.6 - (normalizedPressure - 10) * 0.002; // 0.6-0.4 range
   } else {
-    pressureFactor = 0.9 + (normalizedPressure / 10000);
+    pressureFactor = 0.4 - (normalizedPressure - 100) * 0.0002; // 0.4-0.2 range (minimum of 0.2)
+    pressureFactor = Math.max(0.2, pressureFactor);
   }
   
   // Combined efficiency (capped between 0.2 and 0.95)
@@ -78,3 +82,4 @@ export function estimateHeatInputRate(
   // Calculate total heat transfer rate
   return baseRatePerM2 * efficiency * conductivityFactor * totalShelfAreaM2;
 }
+

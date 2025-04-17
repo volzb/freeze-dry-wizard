@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -163,6 +164,22 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       
       const progress = typeof pointData.progress === 'number' ? pointData.progress : 0;
       const hourlyRate = typeof pointData.hourlyRate === 'number' ? pointData.hourlyRate : 0;
+      const pressure = pointData.pressure || 0;
+      
+      // Calculate sublimation efficiency based on pressure
+      let sublimationEfficiency = "High";
+      let sublimationColor = "text-green-500";
+      
+      if (pressure > 100) {
+        sublimationEfficiency = "Low";
+        sublimationColor = "text-amber-500";
+      } else if (pressure > 10) {
+        sublimationEfficiency = "Medium";
+        sublimationColor = "text-yellow-500";
+      } else if (pressure > 1) {
+        sublimationEfficiency = "Good";
+        sublimationColor = "text-lime-500";
+      }
       
       const boilingTerpenes = Object.entries(pointData)
         .filter(([key, value]) => {
@@ -181,6 +198,15 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           {currentStep !== null && (
             <p className="text-sm mb-1">{`Step ${currentStep} Rate: ${hourlyRate.toFixed(1)}% per hour`}</p>
           )}
+          
+          <p className="text-sm mb-1">
+            Sublimation Efficiency: <span className={sublimationColor}>{sublimationEfficiency}</span>
+            {pressure > 10 && (
+              <span className="text-xs block text-muted-foreground">
+                Higher pressure reduces sublimation rate
+              </span>
+            )}
+          </p>
           
           {boilingTerpenes.length > 0 && (
             <div className="mt-2 pt-2 border-t border-border">
@@ -231,6 +257,29 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
 
   return (
     <div className="w-full">
+      {/* Visual indicator for pressure-sublimation relationship */}
+      <div className="mb-4 p-3 bg-muted rounded-md text-sm">
+        <p className="font-medium mb-1">Pressure & Sublimation Efficiency:</p>
+        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+          <div className="flex flex-col items-center">
+            <span className="text-green-500 font-bold mb-1">High</span>
+            <span>0.1-1 mBar</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lime-500 font-bold mb-1">Good</span>
+            <span>1-10 mBar</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-yellow-500 font-bold mb-1">Medium</span>
+            <span>10-100 mBar</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-amber-500 font-bold mb-1">Low</span>
+            <span>>100 mBar</span>
+          </div>
+        </div>
+      </div>
+      
       <ResponsiveContainer width="100%" height={500}>
         <LineChart
           data={chartData}
