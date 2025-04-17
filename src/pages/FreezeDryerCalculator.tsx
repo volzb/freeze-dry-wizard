@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,45 @@ import {
 import { InfoIcon } from "lucide-react";
 import { v4 as uuidv4 } from "@/utils/uuid";
 
+// Default values for the calculator - these will be used as initial values
+// and will update when the user saves their settings to localStorage
+const defaultSettings = {
+  // Default tray dimensions (typical lab freeze dryer tray)
+  trayLength: 22.36, // 22.36 cm
+  trayWidth: 22.36, // 22.36 cm
+  traySizeCm2: 22.36 * 22.36, // 500 cm²
+  numberOfTrays: 3,
+  hashPerTray: 0.15, // Default hash per tray in kg
+  waterPercentage: 75, // Default water percentage  
+  heatingPowerWatts: 250, // Default heating power in watts per tray
+  iceWeight: 0.5 // Will be recalculated based on hash and water percentage
+};
+
+// Try to load saved defaults from localStorage
+const loadSavedDefaults = (): Partial<FreezeDryerSettings> => {
+  try {
+    const savedDefaultsString = localStorage.getItem('freezeDryerDefaults');
+    if (savedDefaultsString) {
+      const savedDefaults = JSON.parse(savedDefaultsString);
+      console.log("Loaded saved defaults:", savedDefaults);
+      return savedDefaults;
+    }
+  } catch (error) {
+    console.error("Error loading saved defaults:", error);
+  }
+  return defaultSettings;
+};
+
+// Save current settings as defaults
+const saveAsDefaults = (settings: Partial<FreezeDryerSettings>) => {
+  try {
+    localStorage.setItem('freezeDryerDefaults', JSON.stringify(settings));
+    console.log("Saved current settings as defaults:", settings);
+  } catch (error) {
+    console.error("Error saving defaults:", error);
+  }
+};
+
 export default function FreezeDryerCalculator() {
   // Temperature unit for display
   const [displayUnit, setDisplayUnit] = useState<'C' | 'F'>('C');
@@ -31,12 +71,16 @@ export default function FreezeDryerCalculator() {
   // Reference to savedSettings component for reloading
   const [savedSettingsKey, setSavedSettingsKey] = useState<number>(0);
   
-  // Force reload of saved settings when authentication state changes
-  useEffect(() => {
-    // Increment key to force component remount/reload when auth state changes
-    setSavedSettingsKey(prev => prev + 1);
-    console.log("Auth state changed in calculator, triggering saved settings reload");
-  }, [isAuthenticated, user]);
+  // Load saved defaults when component mounts
+  const initialSettings = useMemo(() => loadSavedDefaults(), []);
+  
+  // Initialize heat input rate based on first step and loaded defaults
+  const initialHeatRate = useMemo(() => estimateHeatInputRate(
+    -30, // Initial temperature from first step
+    200, // Initial pressure from first step
+    ((initialSettings.traySizeCm2 || defaultSettings.traySizeCm2) / 10000) * 
+    (initialSettings.numberOfTrays || defaultSettings.numberOfTrays) // Convert to m²
+  ), [initialSettings]);
   
   // Drying steps
   const [steps, setSteps] = useState<DryingStep[]>([
@@ -66,34 +110,33 @@ export default function FreezeDryerCalculator() {
     }
   ]);
   
-  // Default tray size (typical lab freeze dryer tray)
-  const defaultTrayLength = 22.36; // 22.36 cm
-  const defaultTrayWidth = 22.36; // 22.36 cm
-  const defaultTraySizeCm2 = defaultTrayLength * defaultTrayWidth; // 500 cm²
-  const defaultNumberOfTrays = 3;
-  const defaultHashPerTray = 0.15; // Default hash per tray in kg
-  const defaultWaterPercentage = 75; // Default water percentage
-  const defaultHeatingPowerWatts = 250; // Default heating power in watts per tray
-  
-  // Calculate initial heat input rate based on defaults
-  const initialHeatRate = estimateHeatInputRate(
-    -30, // Initial temperature from first step
-    200, // Initial pressure from first step
-    (defaultTraySizeCm2 / 10000) * defaultNumberOfTrays // Convert to m²
-  );
-  
   // Calculation settings
   const [settings, setSettings] = useState<Partial<FreezeDryerSettings>>({
-    iceWeight: 0.5,
-    heatInputRate: Math.round(initialHeatRate),
-    traySizeCm2: defaultTraySizeCm2,
-    trayLength: defaultTrayLength,
-    trayWidth: defaultTrayWidth,
-    numberOfTrays: defaultNumberOfTrays,
-    waterPercentage: defaultWaterPercentage,
-    hashPerTray: defaultHashPerTray,
-    heatingPowerWatts: defaultHeatingPowerWatts
+    iceWeight: initialSettings.iceWeight || defaultSettings.iceWeight,
+    heatInputRate: initialSettings.heatInputRate || Math.round(initialHeatRate),
+    traySizeCm2: initialSettings.traySizeCm2 || defaultSettings.traySizeCm2,
+    trayLength: initialSettings.trayLength || defaultSettings.trayLength,
+    trayWidth: initialSettings.trayWidth || defaultSettings.trayWidth,
+    numberOfTrays: initialSettings.numberOfTrays || defaultSettings.numberOfTrays,
+    waterPercentage: initialSettings.waterPercentage || defaultSettings.waterPercentage,
+    hashPerTray: initialSettings.hashPerTray || defaultSettings.hashPerTray,
+    heatingPowerWatts: initialSettings.heatingPowerWatts || defaultSettings.heatingPowerWatts
   });
+  
+  // Force reload of saved settings when authentication state changes
+  useEffect(() => {
+    // Increment key to force component remount/reload when auth state changes
+    setSavedSettingsKey(prev => prev + 1);
+    console.log("Auth state changed in calculator, triggering saved settings reload");
+  }, [isAuthenticated, user]);
+  
+  // Save current settings as defaults when they change
+  useEffect(() => {
+    // Only save after initial mount to avoid overwriting with empty values
+    if (Object.keys(settings).length > 0) {
+      saveAsDefaults(settings);
+    }
+  }, [settings]);
   
   // Selected terpenes to display
   const [selectedTerpenes, setSelectedTerpenes] = useState<string[]>(
@@ -123,25 +166,25 @@ export default function FreezeDryerCalculator() {
       if (savedSettingsCopy.hashPerTray !== undefined) {
         savedSettingsCopy.hashPerTray = Number(savedSettingsCopy.hashPerTray);
       } else {
-        savedSettingsCopy.hashPerTray = defaultHashPerTray;
+        savedSettingsCopy.hashPerTray = defaultSettings.hashPerTray;
       }
       
       // Ensure waterPercentage is explicitly handled
       if (savedSettingsCopy.waterPercentage === undefined) {
-        savedSettingsCopy.waterPercentage = defaultWaterPercentage;
+        savedSettingsCopy.waterPercentage = defaultSettings.waterPercentage;
       }
       
       // Ensure trayLength and trayWidth are explicitly handled
       if (savedSettingsCopy.trayLength === undefined) {
-        savedSettingsCopy.trayLength = defaultTrayLength;
+        savedSettingsCopy.trayLength = defaultSettings.trayLength;
       }
       if (savedSettingsCopy.trayWidth === undefined) {
-        savedSettingsCopy.trayWidth = defaultTrayWidth;
+        savedSettingsCopy.trayWidth = defaultSettings.trayWidth;
       }
       
       // Ensure heatingPowerWatts is explicitly handled
       if (savedSettingsCopy.heatingPowerWatts === undefined) {
-        savedSettingsCopy.heatingPowerWatts = defaultHeatingPowerWatts;
+        savedSettingsCopy.heatingPowerWatts = defaultSettings.heatingPowerWatts;
       }
       
       // Make sure steps have IDs
@@ -153,6 +196,9 @@ export default function FreezeDryerCalculator() {
       // Update settings state with the complete settings
       setSettings(savedSettingsCopy);
       setSteps(completeSteps);
+      
+      // Save these loaded settings as new defaults
+      saveAsDefaults(savedSettingsCopy);
     } catch (error) {
       console.error("Error loading saved settings:", error);
     }
@@ -166,13 +212,13 @@ export default function FreezeDryerCalculator() {
       steps,
       iceWeight: settings.iceWeight || 0,
       heatInputRate: settings.heatInputRate || 0,
-      traySizeCm2: settings.traySizeCm2 || defaultTraySizeCm2,
-      numberOfTrays: settings.numberOfTrays || defaultNumberOfTrays,
-      trayLength: settings.trayLength || defaultTrayLength,
-      trayWidth: settings.trayWidth || defaultTrayWidth,
-      hashPerTray: settings.hashPerTray || defaultHashPerTray,
-      waterPercentage: settings.waterPercentage || defaultWaterPercentage,
-      heatingPowerWatts: settings.heatingPowerWatts || defaultHeatingPowerWatts
+      traySizeCm2: settings.traySizeCm2 || defaultSettings.traySizeCm2,
+      numberOfTrays: settings.numberOfTrays || defaultSettings.numberOfTrays,
+      trayLength: settings.trayLength || defaultSettings.trayLength,
+      trayWidth: settings.trayWidth || defaultSettings.trayWidth,
+      hashPerTray: settings.hashPerTray || defaultSettings.hashPerTray,
+      waterPercentage: settings.waterPercentage || defaultSettings.waterPercentage,
+      heatingPowerWatts: settings.heatingPowerWatts || defaultSettings.heatingPowerWatts
     } as FreezeDryerSettings);
   }, [
     steps, 
@@ -189,9 +235,9 @@ export default function FreezeDryerCalculator() {
   
   // Calculate water weight based on hash per tray, number of trays, and water percentage
   const waterWeight = useMemo(() => {
-    const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultHashPerTray;
-    const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultNumberOfTrays);
-    const waterPercentageValue = settings.waterPercentage !== undefined ? settings.waterPercentage : defaultWaterPercentage;
+    const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultSettings.hashPerTray;
+    const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultSettings.numberOfTrays);
+    const waterPercentageValue = settings.waterPercentage !== undefined ? settings.waterPercentage : defaultSettings.waterPercentage;
     
     return calculateWaterWeight(totalHashWeight, waterPercentageValue);
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
