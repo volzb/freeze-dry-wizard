@@ -40,17 +40,23 @@ export default function UpdatePassword() {
   useEffect(() => {
     const processUrlParams = async () => {
       setIsProcessingUrl(true);
+      setError(null);
       
-      // Check if we're on the update-password page directly
-      if (window.location.pathname === '/update-password') {
-        // Check if there's a valid hash in the URL
-        const hash = window.location.hash;
-        if (!hash || !hash.includes("access_token")) {
+      // First try to get the hash from the current URL directly
+      let hash = window.location.hash;
+      
+      console.log("Current URL hash:", hash);
+      
+      if (!hash || !hash.includes("access_token")) {
+        console.log("No valid hash found in current URL, proceeding with session check");
+        // Check if user is already authenticated with a valid session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
           setError("Invalid or expired reset link. Please try requesting a new password reset.");
           setIsProcessingUrl(false);
           return;
         }
-
+      } else {
         try {
           // Parse the hash and set the session
           const hashParams = new URLSearchParams(hash.substring(1));
@@ -58,28 +64,46 @@ export default function UpdatePassword() {
           const refreshToken = hashParams.get("refresh_token");
           const type = hashParams.get("type");
           
+          console.log("Found tokens in URL, type:", type);
+          
           if (accessToken && refreshToken) {
-            console.log("Found valid tokens in URL, type:", type);
+            console.log("Setting session with tokens from URL");
             
             // Set the session with the tokens from the URL
-            const { error } = await supabase.auth.setSession({
+            const { error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken
             });
 
-            if (error) {
-              console.error("Error setting session:", error);
+            if (sessionError) {
+              console.error("Error setting session:", sessionError);
               setError("Failed to authenticate with the provided token. Please try requesting a new password reset.");
+              setIsProcessingUrl(false);
+              return;
             }
-          } else {
-            setError("Invalid reset link parameters. Please try requesting a new password reset.");
+            
+            // Clear the hash from the URL without triggering a reload
+            if (typeof window.history.replaceState === 'function') {
+              window.history.replaceState(null, '', window.location.pathname);
+            }
           }
         } catch (error) {
           console.error("Error processing URL parameters:", error);
           setError("An unexpected error occurred. Please try again.");
+          setIsProcessingUrl(false);
+          return;
         }
       }
       
+      // Verify we have a valid session after all our processing
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError("No valid session could be established. Please try requesting a new password reset.");
+        setIsProcessingUrl(false);
+        return;
+      }
+      
+      console.log("Valid session established, ready for password update");
       setIsProcessingUrl(false);
     };
 
