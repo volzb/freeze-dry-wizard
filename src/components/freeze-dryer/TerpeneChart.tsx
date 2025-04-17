@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -21,10 +20,9 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       return [];
     }
     
-    console.log("Processing chart data", { 
-      dataPoints: dryingData.length, 
-      steps: steps.length 
-    });
+    // Add more detailed logging to understand data generation
+    console.log("Drying Data Points:", dryingData);
+    console.log("Drying Steps:", steps);
     
     return dryingData.map((point) => {
       const terpenesAtPoint: Record<string, number> = {};
