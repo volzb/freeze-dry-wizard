@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -54,6 +53,33 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       };
     });
   }, [dryingData, displayUnit]);
+
+  // Generate custom tick values for the time axis to avoid duplicates
+  const timeAxisTicks = useMemo(() => {
+    if (!chartData.length) return [];
+    
+    // Get unique time values, sorted
+    const uniqueTimes = Array.from(new Set(chartData.map(d => Math.round(d.time * 10) / 10)))
+      .sort((a, b) => a - b);
+    
+    // For very short timeframes, use more decimal precision
+    const totalTime = chartData[chartData.length - 1]?.time || 0;
+    const useDecimals = totalTime < 1;
+    
+    // Create evenly spaced ticks based on the data range
+    const maxTime = Math.max(...uniqueTimes);
+    const tickCount = Math.min(5, uniqueTimes.length); // Limit to 5 ticks maximum
+    
+    if (tickCount <= 1) return [0]; // Only show 0 if there's only one time point
+    
+    const ticks: number[] = [];
+    for (let i = 0; i < tickCount; i++) {
+      const tickValue = (maxTime * i) / (tickCount - 1);
+      ticks.push(tickValue);
+    }
+    
+    return ticks;
+  }, [chartData]);
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
@@ -114,6 +140,16 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     );
   }
 
+  // Format the time ticks with appropriate precision
+  const formatTimeTick = (value: number) => {
+    // For very short time periods, show one decimal place
+    if (chartData[chartData.length - 1]?.time < 1) {
+      return value.toFixed(1);
+    }
+    // Otherwise just round to whole numbers
+    return Math.round(value).toString();
+  };
+
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={500}>
@@ -125,7 +161,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <XAxis 
             dataKey="time" 
             label={{ value: 'Time (hours)', position: 'insideBottomRight', offset: -10 }}
-            tickFormatter={(value) => Math.round(value).toString()}
+            tickFormatter={formatTimeTick}
+            ticks={timeAxisTicks}
+            domain={[0, 'dataMax']}
+            allowDecimals={true}
           />
           <YAxis 
             yAxisId="temp"
