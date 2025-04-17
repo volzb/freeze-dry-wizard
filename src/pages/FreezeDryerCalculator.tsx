@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useId } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -222,11 +221,19 @@ export default function FreezeDryerCalculator() {
     }));
   }, [waterWeight]);
   
+  // Explicitly create a state for force updating charts
+  const [chartUpdateKey, setChartUpdateKey] = useState<number>(0);
+  
+  // Force chart update whenever relevant settings change
+  useEffect(() => {
+    setChartUpdateKey(prev => prev + 1);
+  }, [waterWeight, settings.numberOfTrays, settings.heatingPowerWatts]);
+  
   const progressCurve = useMemo(() => {
     if (!steps.length || waterWeight <= 0) return [] as SubTimePoint[];
     
-    // Use unique key for memoization cache busting
-    const uniqueKey = `${waterWeight.toFixed(5)}-${steps.length}-${settings.heatingPowerWatts || 0}`;
+    // Include all key dependencies in the unique key string
+    const uniqueKey = `${waterWeight.toFixed(5)}-${settings.numberOfTrays || 0}-${settings.heatingPowerWatts || 0}-${chartUpdateKey}`;
     
     console.log("Recalculating progress curve with key:", uniqueKey);
     console.log("Current water weight:", waterWeight, "kg");
@@ -248,7 +255,7 @@ export default function FreezeDryerCalculator() {
     return calculateProgressCurve(calculationSettings);
   }, [
     steps, 
-    waterWeight, // Key dependency for recalculation
+    waterWeight,
     settings.heatInputRate, 
     settings.traySizeCm2, 
     settings.numberOfTrays,
@@ -257,7 +264,8 @@ export default function FreezeDryerCalculator() {
     settings.hashPerTray,
     settings.waterPercentage,
     settings.heatingPowerWatts,
-    forceUpdateKey // Add force update key to ensure react rebuilds this
+    forceUpdateKey,
+    chartUpdateKey // Add explicit chart update key
   ]);
   
   const riskAssessment = useMemo(() => {
@@ -315,7 +323,8 @@ export default function FreezeDryerCalculator() {
   console.log("FreezeDryerCalculator render with:", {
     waterWeight,
     numberOfTrays: settings.numberOfTrays,
-    progressCurveLength: progressCurve.length
+    progressCurveLength: progressCurve.length,
+    chartUpdateKey
   });
   
   return (
@@ -377,7 +386,7 @@ export default function FreezeDryerCalculator() {
                   </div>
                   
                   <TerpeneChart 
-                    key={`chart-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
+                    key={`chart-${chartUpdateKey}-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
                     dryingData={progressCurve}
                     steps={steps}
                     displayUnit={displayUnit}
@@ -408,7 +417,7 @@ export default function FreezeDryerCalculator() {
           
           <div className="space-y-6">
             <ResultSummary 
-              key={`summary-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
+              key={`summary-${chartUpdateKey}-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
               progressCurve={progressCurve}
               displayUnit={displayUnit}
               waterWeight={waterWeight}
