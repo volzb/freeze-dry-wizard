@@ -17,7 +17,7 @@ interface TerpeneSelectorProps {
 }
 
 export function TerpeneSelector({ selectedTerpenes, onChange }: TerpeneSelectorProps) {
-  const [selectionMode, setSelectionMode] = useState<'none' | 'all' | 'major' | 'custom'>('major');
+  const [selectionMode, setSelectionMode] = useState<'none' | 'all' | 'major' | 'minor' | 'custom'>('major');
   const terpeneGroups = getTerpeneGroups();
 
   // Initialize with major terpenes
@@ -30,6 +30,7 @@ export function TerpeneSelector({ selectedTerpenes, onChange }: TerpeneSelectorP
       // Determine the current selection mode
       const allTerpeneNames = terpenes.map(t => t.name);
       const majorTerpeneNames = terpeneGroups.major.map(t => t.name);
+      const minorTerpeneNames = terpeneGroups.minor.map(t => t.name);
       
       if (selectedTerpenes.length === 0) {
         setSelectionMode('none');
@@ -40,6 +41,11 @@ export function TerpeneSelector({ selectedTerpenes, onChange }: TerpeneSelectorP
         majorTerpeneNames.every(name => selectedTerpenes.includes(name))
       ) {
         setSelectionMode('major');
+      } else if (
+        selectedTerpenes.length === minorTerpeneNames.length && 
+        minorTerpeneNames.every(name => selectedTerpenes.includes(name))
+      ) {
+        setSelectionMode('minor');
       } else {
         setSelectionMode('custom');
       }
