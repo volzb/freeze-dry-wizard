@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -24,7 +25,12 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     console.log("Drying Data Points:", dryingData);
     console.log("Drying Steps:", steps);
     
-    return dryingData.map((point) => {
+    // Create a new array with denser data points to ensure terpene lines extend fully
+    const densifiedData = [];
+    const maxTime = dryingData[dryingData.length - 1]?.time || 0;
+    
+    // Add the original points
+    for (const point of dryingData) {
       const terpenesAtPoint: Record<string, number> = {};
       
       // Calculate boiling point for each terpene at this pressure
@@ -46,12 +52,24 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         ? celsiusToFahrenheit(point.temperature) 
         : point.temperature;
       
-      return {
+      densifiedData.push({
         ...point,
         displayTemp,
         ...terpenesAtPoint
-      };
-    });
+      });
+    }
+    
+    // Ensure the terpene lines extend to the end by adding an extra point if needed
+    const lastPoint = densifiedData[densifiedData.length - 1];
+    if (lastPoint && lastPoint.time < maxTime) {
+      // Create an additional final point to ensure lines extend fully
+      densifiedData.push({
+        ...lastPoint,
+        time: maxTime
+      });
+    }
+    
+    return densifiedData;
   }, [dryingData, displayUnit]);
 
   // Generate temperature data points based on exact step timings
@@ -115,27 +133,27 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     return temperature;
   }
 
-  // Generate custom tick values for the time axis to avoid duplicates
+  // Generate custom tick values for the time axis with better intermediate points
   const timeAxisTicks = useMemo(() => {
     if (!chartData.length) return [];
     
     // Get the total time span from the data
     const maxTime = chartData.length > 0 ? chartData[chartData.length - 1].time : 0;
     
-    // Create evenly distributed ticks (avoid duplicates and zero at the end)
-    const tickCount = 5; // Adjust as needed for readability
+    // Generate more tick points for a better axis representation
+    const tickCount = Math.min(6, Math.max(3, Math.ceil(maxTime / 2))); // Adjust for reasonable spacing
     const ticks = [];
     
     // Always include 0 as the first tick
     ticks.push(0);
     
-    // Calculate and add intermediate ticks
+    // Generate evenly spaced intermediate ticks
     for (let i = 1; i < tickCount - 1; i++) {
       const tickValue = (maxTime * i) / (tickCount - 1);
       ticks.push(tickValue);
     }
     
-    // Add the max time as the last tick (if it's not already there)
+    // Add the max time as the last tick
     if (maxTime > 0) {
       ticks.push(maxTime);
     }
@@ -192,7 +210,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     dataPoints: chartData.length,
     steps: steps.length,
     filteredTerpenes: filteredTerpenes.length,
-    temperaturePoints: temperatureData.length
+    temperaturePoints: temperatureData.length,
+    timeAxisTicks
   });
   
   if (chartData.length === 0) {
@@ -288,7 +307,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             dot={false}
           />
           
-          {/* Ensure terpene lines are always displayed when they should be */}
+          {/* Ensure terpene lines extend to the end of the chart */}
           {filteredTerpenes.map((terpene) => (
             <Line
               key={terpene.name}
@@ -301,6 +320,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
               name={`${terpene.name} Boiling Point`}
               dot={false}
               activeDot={false}
+              connectNulls={true}
             />
           ))}
         </LineChart>
