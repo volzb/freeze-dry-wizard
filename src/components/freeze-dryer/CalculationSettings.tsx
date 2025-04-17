@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { FreezeDryerSettings, estimateHeatInputRate } from "@/utils/freezeDryerCalculations";
+import { 
+  FreezeDryerSettings, 
+  estimateHeatInputRate, 
+  calculateWaterWeight 
+} from "@/utils/freezeDryerCalculations";
 import { Separator } from "@/components/ui/separator";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Info } from "lucide-react";
@@ -37,6 +41,7 @@ export function CalculationSettings({
   const [trayLength, setTrayLength] = useState<number>(22.36);
   const [trayWidth, setTrayWidth] = useState<number>(22.36);
   const [hashPerTray, setHashPerTray] = useState<number>(0.15);
+  const [waterPercentage, setWaterPercentage] = useState<number>(75); // Default water percentage
   
   // Calculate area when length or width changes
   useEffect(() => {
@@ -44,11 +49,15 @@ export function CalculationSettings({
     handleSettingChange("traySizeCm2", area);
   }, [trayLength, trayWidth]);
   
-  // Calculate total ice weight when hash per tray or number of trays changes
+  // Calculate total ice weight when hash per tray, water percentage, or number of trays changes
   useEffect(() => {
-    const totalIce = hashPerTray * (settings.numberOfTrays || 1);
-    handleSettingChange("iceWeight", totalIce);
-  }, [hashPerTray, settings.numberOfTrays]);
+    const totalHashWeight = hashPerTray * (settings.numberOfTrays || 1);
+    const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
+    
+    handleSettingChange("hashPerTray", hashPerTray);
+    handleSettingChange("waterPercentage", waterPercentage);
+    handleSettingChange("iceWeight", waterWeight);
+  }, [hashPerTray, waterPercentage, settings.numberOfTrays]);
   
   const handleSettingChange = (field: keyof FreezeDryerSettings, value: any) => {
     const updatedSettings = {
@@ -86,6 +95,9 @@ export function CalculationSettings({
   const totalHashWeight = hashPerTray * (settings.numberOfTrays || 1);
   const totalArea = (settings.traySizeCm2 || 0) * (settings.numberOfTrays || 1);
   const hashDensity = totalHashWeight > 0 && totalArea > 0 ? (totalHashWeight * 1000) / totalArea : 0;
+  
+  // Calculate water weight
+  const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
   
   return (
     <Card>
@@ -139,11 +151,31 @@ export function CalculationSettings({
                     onChange={(e) => setHashPerTray(parseFloat(e.target.value))}
                     placeholder="0.15"
                     step="0.05"
+                    min="0.01"
                   />
                   <span className="ml-2 text-sm text-muted-foreground w-10">kg</span>
                 </div>
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="waterPercentage">Water Content</Label>
+                <div className="flex items-center">
+                  <Input
+                    id="waterPercentage"
+                    type="number"
+                    value={waterPercentage || ""}
+                    onChange={(e) => setWaterPercentage(parseFloat(e.target.value))}
+                    placeholder="75"
+                    min="1"
+                    max="99"
+                    step="1"
+                  />
+                  <span className="ml-2 text-sm text-muted-foreground w-10">%</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="numberOfTrays">Number of Trays</Label>
                 <div className="flex items-center">
@@ -157,6 +189,19 @@ export function CalculationSettings({
                     step="1"
                   />
                   <span className="ml-2 text-sm text-muted-foreground w-10">trays</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Total Water to Remove</Label>
+                <div className="flex items-center">
+                  <Input 
+                    type="text"
+                    value={waterWeight.toFixed(3)}
+                    readOnly
+                    className="bg-muted"
+                  />
+                  <span className="ml-2 text-sm text-muted-foreground w-10">kg</span>
                 </div>
               </div>
             </div>
@@ -193,6 +238,7 @@ export function CalculationSettings({
                   value={settings.heatInputRate || ""}
                   onChange={(e) => handleSettingChange("heatInputRate", parseFloat(e.target.value))}
                   placeholder="1000"
+                  min="100"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">kJ/hr</span>
               </div>
@@ -212,6 +258,7 @@ export function CalculationSettings({
                       onChange={(e) => setTrayLength(parseFloat(e.target.value))}
                       placeholder="22.36"
                       step="0.1"
+                      min="1"
                     />
                     <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
                   </div>
@@ -227,6 +274,7 @@ export function CalculationSettings({
                       onChange={(e) => setTrayWidth(parseFloat(e.target.value))}
                       placeholder="22.36"
                       step="0.1"
+                      min="1"
                     />
                     <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
                   </div>
@@ -267,6 +315,32 @@ export function CalculationSettings({
                     Density exceeds 3 g/m², consider using more trays for better drying efficiency
                   </p>
                 )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="waterRatio">Water to Hash Ratio</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="w-64">Ratio of water to total hash weight</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex items-center">
+                  <Input
+                    id="waterRatio"
+                    type="text"
+                    value={(waterWeight / totalHashWeight).toFixed(2)}
+                    className="bg-muted"
+                    readOnly
+                  />
+                  <span className="ml-2 text-sm text-muted-foreground w-10">ratio</span>
+                </div>
               </div>
             </div>
           </TabsContent>

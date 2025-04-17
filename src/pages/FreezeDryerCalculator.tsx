@@ -16,7 +16,8 @@ import {
   SubTimePoint,
   normalizeTemperature,
   normalizePressure,
-  estimateHeatInputRate
+  estimateHeatInputRate,
+  calculateWaterWeight
 } from "@/utils/freezeDryerCalculations";
 import { InfoIcon } from "lucide-react";
 import { v4 as uuidv4 } from "@/utils/uuid";
@@ -69,7 +70,8 @@ export default function FreezeDryerCalculator() {
     iceWeight: 0.5,
     heatInputRate: Math.round(initialHeatRate),
     traySizeCm2: defaultTraySizeCm2,
-    numberOfTrays: defaultNumberOfTrays
+    numberOfTrays: defaultNumberOfTrays,
+    waterPercentage: 75 // Default water percentage
   });
   
   // Selected terpenes to display
@@ -90,6 +92,12 @@ export default function FreezeDryerCalculator() {
     });
   }, [steps, settings.iceWeight, settings.heatInputRate, settings.traySizeCm2, settings.numberOfTrays]);
   
+  // Calculate water weight based on hash per tray, number of trays, and water percentage
+  const waterWeight = useMemo(() => {
+    const totalHashWeight = (settings.hashPerTray || 0.15) * (settings.numberOfTrays || defaultNumberOfTrays);
+    return calculateWaterWeight(totalHashWeight, settings.waterPercentage || 75);
+  }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
+  
   // Check for potentially risky conditions
   const riskAssessment = useMemo(() => {
     if (!steps.length) return [];
@@ -98,12 +106,20 @@ export default function FreezeDryerCalculator() {
     
     // Check for high hash density
     const totalArea = (settings.traySizeCm2 || 0) * (settings.numberOfTrays || 1) / 100; // convert to m²
-    const hashDensity = settings.iceWeight && totalArea ? (settings.iceWeight * 1000) / totalArea : 0;
+    const hashDensity = settings.hashPerTray && totalArea ? (settings.hashPerTray * (settings.numberOfTrays || 1) * 1000) / totalArea : 0;
     
     if (hashDensity > 3) {
       risks.push({
         type: "density",
         message: `Hash density is ${hashDensity.toFixed(1)} g/m². Values above 3 g/m² may result in uneven drying.`
+      });
+    }
+    
+    // Check water content risks
+    if (settings.waterPercentage && settings.waterPercentage > 90) {
+      risks.push({
+        type: "water",
+        message: `Water content is ${settings.waterPercentage}%. Very high water content may extend drying time significantly.`
       });
     }
     
@@ -134,7 +150,7 @@ export default function FreezeDryerCalculator() {
     });
     
     return risks;
-  }, [steps, settings.iceWeight, settings.traySizeCm2, settings.numberOfTrays]);
+  }, [steps, settings.hashPerTray, settings.traySizeCm2, settings.numberOfTrays, settings.waterPercentage]);
   
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4">
@@ -261,6 +277,8 @@ export default function FreezeDryerCalculator() {
             <ResultSummary 
               progressCurve={progressCurve}
               displayUnit={displayUnit}
+              waterWeight={waterWeight}
+              waterPercentage={settings.waterPercentage}
             />
             
             <Card>

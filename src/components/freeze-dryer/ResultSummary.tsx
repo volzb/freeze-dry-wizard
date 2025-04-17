@@ -6,9 +6,11 @@ import { celsiusToFahrenheit } from "@/utils/terpeneData";
 interface ResultSummaryProps {
   progressCurve: SubTimePoint[];
   displayUnit: 'C' | 'F';
+  waterWeight?: number;
+  waterPercentage?: number;
 }
 
-export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps) {
+export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPercentage }: ResultSummaryProps) {
   if (!progressCurve.length) {
     return (
       <Card>
@@ -80,6 +82,20 @@ export function ResultSummary({ progressCurve, displayUnit }: ResultSummaryProps
             </p>
           </div>
         </div>
+        
+        {waterWeight && waterPercentage && (
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Water Content</p>
+              <p className="text-2xl font-bold">{waterPercentage}%</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Water Removed</p>
+              <p className="text-2xl font-bold">{waterWeight.toFixed(3)} kg</p>
+            </div>
+          </div>
+        )}
         
         {isOverDry && (
           <p className="text-xs text-amber-500 italic">

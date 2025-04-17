@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -19,6 +20,7 @@ export interface FreezeDryerSettings {
   trayLength?: number; // tray length in cm 
   trayWidth?: number; // tray width in cm
   hashPerTray?: number; // hash amount per tray in kg
+  waterPercentage?: number; // percentage of water in the hash
   chamberVolume?: number; // optional: freeze dryer chamber volume in liters
   condenserCapacity?: number; // optional: condenser capacity in kg of ice
 }
@@ -43,6 +45,11 @@ export function normalizePressure(pressure: number, unit: 'mBar' | 'Torr'): numb
 export function calculateSubTimeInHours(iceWeightKg: number, heatInputRateKJHr: number): number {
   if (heatInputRateKJHr <= 0) return 0;
   return (iceWeightKg * LATENT_HEAT_SUBLIMATION) / heatInputRateKJHr;
+}
+
+// Calculate water weight based on hash weight and water percentage
+export function calculateWaterWeight(hashWeightKg: number, waterPercentage: number): number {
+  return hashWeightKg * (waterPercentage / 100);
 }
 
 // Calculate heat input rate based on temperature, pressure, and surface area
