@@ -1,7 +1,7 @@
 
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
+import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep, normalizeTemperature } from "@/utils/freezeDryerCalculations";
 import { TooltipProps } from 'recharts/types/component/Tooltip';
 import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
@@ -16,89 +16,15 @@ interface TerpeneChartProps {
 export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: TerpeneChartProps) {
   // Process data to include terpene boiling points
   const chartData = useMemo(() => {
-    if (!dryingData.length) {
-      console.log("No drying data available for chart");
-      return [];
-    }
+    if (!dryingData.length) return [];
 
-    // Log input data for diagnostic purposes
-    console.log("Preparing chart data from:", { 
-      dryingDataPoints: dryingData.length,
-      steps: steps.length,
-      lastDryingPoint: dryingData[dryingData.length - 1]
-    });
-
-    const maxTime = dryingData[dryingData.length - 1]?.time || 0;
-    if (maxTime === 0) return dryingData;
-    
-    // Create data points with interpolation to ensure smooth chart
-    // Generate more points for smoother lines
-    const timePoints = new Set<number>();
-    
-    // Add all original time points
-    dryingData.forEach(point => timePoints.add(point.time));
-    
-    // Add regular interval points for smoother lines (many more points)
-    const intervalCount = Math.max(100, Math.ceil(maxTime * 10));
-    for (let i = 0; i <= intervalCount; i++) {
-      timePoints.add((maxTime * i) / intervalCount);
-    }
-    
-    // Convert to sorted array
-    const sortedTimePoints = Array.from(timePoints).sort((a, b) => a - b);
-    console.log(`Generated ${sortedTimePoints.length} time points for chart`);
-    
-    // Create interpolated data for each time point
-    return sortedTimePoints.map(time => {
-      // Find surrounding data points for interpolation
-      let prevPoint = dryingData[0];
-      let nextPoint = dryingData[0];
-      
-      for (let i = 0; i < dryingData.length - 1; i++) {
-        if (dryingData[i].time <= time && dryingData[i + 1].time >= time) {
-          prevPoint = dryingData[i];
-          nextPoint = dryingData[i + 1];
-          break;
-        }
-      }
-      
-      // If time is after the last point, use the last point
-      if (time > dryingData[dryingData.length - 1].time) {
-        prevPoint = dryingData[dryingData.length - 1];
-        nextPoint = dryingData[dryingData.length - 1];
-      }
-      
-      // Calculate weight for linear interpolation
-      let weight = 0;
-      if (nextPoint.time !== prevPoint.time) {
-        weight = (time - prevPoint.time) / (nextPoint.time - prevPoint.time);
-      }
-      
-      // Interpolate values
-      const temperature = prevPoint.temperature + 
-        (nextPoint.temperature - prevPoint.temperature) * weight;
-      const progress = prevPoint.progress + 
-        (nextPoint.progress - prevPoint.progress) * weight;
-      const pressure = prevPoint.pressure + 
-        (nextPoint.pressure - prevPoint.pressure) * weight;
-      
-      // Find the current step based on time
-      const currentStep = steps.findIndex((_, idx, array) => {
-        const stepEndTime = dryingData.find(p => p.step === idx)?.time || 0;
-        const nextStepEndTime = idx < array.length - 1 
-          ? dryingData.find(p => p.step === idx + 1)?.time || 0
-          : Infinity;
-        
-        return time <= nextStepEndTime;
-      });
-      
-      const step = currentStep >= 0 ? currentStep : steps.length - 1;
-      
+    // Transform points to include terpene boiling points
+    return dryingData.map(point => {
       // Calculate terpene boiling points at this pressure
       const terpenesAtPoint: Record<string, number> = {};
       terpenes.forEach((terpene) => {
         // Convert pressure from mbar to torr for calculation
-        const pressureTorr = pressure / 1.33322;
+        const pressureTorr = Math.max(0.001, point.pressure / 1.33322);
         let boilingTemp = calculateBoilingPoint(terpene, pressureTorr);
         
         // Convert to Fahrenheit if needed
@@ -111,23 +37,22 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       
       // Adjust temperature for display unit
       const displayTemp = displayUnit === 'F' 
-        ? celsiusToFahrenheit(temperature) 
-        : temperature;
+        ? celsiusToFahrenheit(point.temperature) 
+        : point.temperature;
       
       return {
-        time,
-        temperature,
+        time: point.time,
         displayTemp,
-        progress,
-        pressure,
-        step,
+        progress: point.progress,
+        pressure: point.pressure,
+        step: point.step,
         ...terpenesAtPoint
       };
     });
-  }, [dryingData, steps, displayUnit]);
+  }, [dryingData, displayUnit]);
 
-  // Generate temperature data points based on exact step timings
-  const temperatureData = useMemo(() => {
+  // Generate exact temperature step line data
+  const temperatureStepData = useMemo(() => {
     if (!steps.length) return [];
     
     const result = [];
@@ -143,7 +68,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     });
     
     // Add points for each step boundary
-    steps.forEach((step, index) => {
+    steps.forEach((step) => {
       // Convert step duration to hours
       const stepDurationHr = step.duration / 60;
       accumulatedTime += stepDurationHr;
@@ -158,28 +83,12 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         temperature: tempC,
         displayTemp: displayTemp
       });
-      
-      // If there's a next step, add a point for the temperature change
-      if (steps[index + 1]) {
-        const nextTempC = normalizeTemperature(
-          steps[index + 1].temperature, 
-          steps[index + 1].tempUnit
-        );
-        const nextDisplayTemp = displayUnit === 'F' ? celsiusToFahrenheit(nextTempC) : nextTempC;
-        
-        result.push({
-          time: accumulatedTime,
-          temperature: nextTempC,
-          displayTemp: nextDisplayTemp
-        });
-      }
     });
     
-    console.log("Generated temperature data points:", result);
     return result;
   }, [steps, displayUnit]);
 
-  // Generate tick values for time axis
+  // Generate time axis ticks with better distribution
   const timeAxisTicks = useMemo(() => {
     if (!chartData.length) return [0];
     
@@ -187,16 +96,9 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     const maxTime = chartData[chartData.length - 1]?.time || 0;
     if (maxTime === 0) return [0];
     
-    // Generate evenly spaced ticks (more ticks for better visibility)
-    const tickCount = 8; // Increased number of ticks
-    const ticks = [];
-    
-    for (let i = 0; i < tickCount; i++) {
-      ticks.push((maxTime * i) / (tickCount - 1));
-    }
-    
-    console.log("Time axis ticks:", ticks);
-    return ticks;
+    // Generate enough ticks for good readability
+    const tickCount = 10;
+    return Array.from({ length: tickCount }, (_, i) => (maxTime * i) / (tickCount - 1));
   }, [chartData]);
 
   // Custom tooltip component
@@ -241,17 +143,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     return null;
   };
 
-  // Filter terpenes based on selection
+  // Filter terpenes based on selection and group them
   const filteredTerpenes = terpenes.filter(t => showTerpenes.includes(t.name));
   
-  console.log("TerpeneChart render", { 
-    dataPoints: chartData.length,
-    steps: steps.length,
-    filteredTerpenes: filteredTerpenes.length,
-    temperaturePoints: temperatureData.length,
-    timeAxisTicks
-  });
-  
+  // Check if we have data to display
   if (chartData.length === 0) {
     return (
       <div className="w-full h-[500px] flex items-center justify-center border border-dashed border-muted-foreground rounded-lg">
@@ -260,21 +155,21 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     );
   }
 
-  // Format the time ticks with appropriate precision
+  // Format the time axis ticks
   const formatTimeTick = (value: number) => {
     if (value === 0) return "0";
     
-    // For very short time periods, show one decimal place
+    // For short times, show decimal
     if (chartData[chartData.length - 1]?.time < 1) {
       return value.toFixed(1);
     }
     
-    // For larger values, round appropriately
+    // For smaller values, round to 1 decimal
     if (value < 10) {
       return value.toFixed(1);
     }
     
-    // For very large values, round to whole numbers
+    // For larger values, round to whole numbers
     return Math.round(value).toString();
   };
 
@@ -333,7 +228,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <Line
             yAxisId="temp"
             type="stepAfter"
-            data={temperatureData}
+            data={temperatureStepData}
             dataKey="displayTemp"
             stroke="#33C3F0"
             strokeWidth={3}

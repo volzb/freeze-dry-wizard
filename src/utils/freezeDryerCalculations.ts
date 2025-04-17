@@ -68,7 +68,7 @@ export function estimateHeatInputRate(
   
   // Pressure factor - lower pressure decreases heat transfer
   // More significant effect at very low pressures
-  const normalizedPressure = Math.min(1000, pressureMbar);
+  const normalizedPressure = Math.max(0.1, Math.min(1000, pressureMbar));
   const pressureFactor = normalizedPressure <= 100 
     ? 0.5 + (normalizedPressure / 200) // More pronounced effect at very low pressures
     : 0.5 + (normalizedPressure / 2000) + 0.25; // Less pronounced effect at higher pressures
@@ -90,6 +90,20 @@ export interface SubTimePoint {
   pressure: number; // in mbar
 }
 
+// Helper to calculate exact time points for each drying step
+export function calculateStepTimePoints(steps: DryingStep[]): number[] {
+  const timePoints: number[] = [0]; // Start at time 0
+  let accumulatedTime = 0;
+  
+  steps.forEach(step => {
+    accumulatedTime += step.duration / 60; // Convert minutes to hours
+    timePoints.push(accumulatedTime);
+  });
+  
+  return timePoints;
+}
+
+// Calculate dense progress curve with many data points
 export function calculateProgressCurve(
   settings: FreezeDryerSettings
 ): SubTimePoint[] {
@@ -119,56 +133,76 @@ export function calculateProgressCurve(
   const totalShelfAreaM2 = ((settings.traySizeCm2 || 500) / 10000) * (settings.numberOfTrays || 1);
   console.log("Total shelf area:", totalShelfAreaM2, "m²");
 
-  let remainingIce = iceWeight;
-  let accumulatedTime = 0;
+  // Generate exact step time boundaries
+  const stepTimes = calculateStepTimePoints(steps);
+  const totalTime = stepTimes[stepTimes.length - 1];
+  
+  // Calculate with many points for a smoother curve
+  const numPoints = Math.max(200, steps.length * 50); // More points for a smooth curve
+  const timeStep = totalTime / (numPoints - 1);
+  
   const points: SubTimePoint[] = [];
+  let remainingIce = iceWeight;
   
   // Add starting point at time 0
+  const firstStep = steps[0];
+  const firstTempC = normalizeTemperature(firstStep.temperature, firstStep.tempUnit);
+  const firstPressureMbar = normalizePressure(firstStep.pressure, firstStep.pressureUnit);
+  
   points.push({
     time: 0,
     progress: 0,
     step: 0,
-    temperature: normalizeTemperature(steps[0].temperature, steps[0].tempUnit),
-    pressure: normalizePressure(steps[0].pressure, steps[0].pressureUnit),
+    temperature: firstTempC,
+    pressure: firstPressureMbar,
   });
   
-  // Process each step
-  steps.forEach((step, index) => {
+  // Generate data points with fine time resolution
+  for (let i = 1; i < numPoints; i++) {
+    const currentTime = i * timeStep;
+    
+    // Find current step
+    let currentStepIndex = 0;
+    for (let j = 1; j < stepTimes.length; j++) {
+      if (currentTime <= stepTimes[j]) {
+        currentStepIndex = j - 1;
+        break;
+      }
+    }
+    
+    const step = steps[currentStepIndex];
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
-    // Calculate heat rate based on current settings
+    // Time spent in this specific step
+    const previousTimePoint = points[points.length - 1];
+    const timeInStep = currentTime - previousTimePoint.time;
+    
+    // Calculate heat rate and sublimation for this time segment
     const heatRate = settings.heatInputRate || 
       estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
     
-    const stepDurationHr = step.duration / 60;
+    // Energy transferred during this time segment
+    const energyTransferred = heatRate * timeInStep; // kJ
     
-    // Energy transferred during this step
-    const energyTransferred = heatRate * stepDurationHr; // kJ
-    
-    // Ice sublimated during this step
+    // Ice sublimated during this time segment
     const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg
     remainingIce = Math.max(0, remainingIce - iceSublimated);
     
     // Calculate progress percentage
     const progress = ((iceWeight - remainingIce) / iceWeight) * 100;
     
-    console.log(`Step ${index + 1}: Ice remaining: ${remainingIce}kg, Progress: ${progress.toFixed(1)}%`);
-    
-    // Add point at the end of this step
-    accumulatedTime += stepDurationHr;
-    
-    // Add the end of step point with this step's temperature
+    // Add the point with this step's temperature
     points.push({
-      time: accumulatedTime,
+      time: currentTime,
       progress: progress,
-      step: index,
+      step: currentStepIndex,
       temperature: tempC,
       pressure: pressureMbar,
     });
-  });
+  }
   
-  console.log(`Final ice remaining: ${remainingIce}kg (${((remainingIce/iceWeight) * 100).toFixed(1)}% remains)`);
+  console.log(`Final ice remaining: ${remainingIce.toFixed(3)}kg (${((remainingIce/iceWeight) * 100).toFixed(1)}% remains)`);
   console.log("Final progress curve points:", points.length);
   if (points.length > 0) {
     console.log("Last point:", points[points.length - 1]);

@@ -1,153 +1,119 @@
-import { useState } from "react";
-import { CheckIcon, ChevronDown } from "lucide-react";
-import { terpenes, getTerpeneGroups, Terpene } from "@/utils/terpeneData";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+
+import { useEffect, useState } from "react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue,
+  SelectGroup,
+  SelectLabel
+} from "@/components/ui/select";
+import { terpenes, getTerpeneGroups } from "@/utils/terpeneData";
 
 interface TerpeneSelectorProps {
   selectedTerpenes: string[];
-  onChange: (selectedTerpenes: string[]) => void;
+  onChange: (selected: string[]) => void;
 }
 
 export function TerpeneSelector({ selectedTerpenes, onChange }: TerpeneSelectorProps) {
-  const [open, setOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState<'none' | 'all' | 'major' | 'custom'>('major');
   const terpeneGroups = getTerpeneGroups();
-  
-  const toggleTerpene = (terpene: string) => {
-    if (selectedTerpenes.includes(terpene)) {
-      onChange(selectedTerpenes.filter(t => t !== terpene));
-    } else {
-      onChange([...selectedTerpenes, terpene]);
-    }
-  };
-  
-  const selectAll = () => {
-    onChange(terpenes.map(t => t.name));
-  };
-  
-  const clearAll = () => {
-    onChange([]);
-  };
 
-  const selectGroup = (group: string) => {
-    const groupTerpeneNames = terpeneGroups[group].map(t => t.name);
-    
-    if (groupTerpeneNames.every(name => selectedTerpenes.includes(name))) {
-      onChange(selectedTerpenes.filter(name => !groupTerpeneNames.includes(name)));
+  // Initialize with major terpenes
+  useEffect(() => {
+    if (selectedTerpenes.length === 0) {
+      const majorTerpenes = terpeneGroups.major.map(t => t.name);
+      onChange(majorTerpenes);
+      setSelectionMode('major');
     } else {
-      const newSelected = [...selectedTerpenes];
+      // Determine the current selection mode
+      const allTerpeneNames = terpenes.map(t => t.name);
+      const majorTerpeneNames = terpeneGroups.major.map(t => t.name);
       
-      groupTerpeneNames.forEach(name => {
-        if (!newSelected.includes(name)) {
-          newSelected.push(name);
-        }
-      });
-      
-      onChange(newSelected);
+      if (selectedTerpenes.length === 0) {
+        setSelectionMode('none');
+      } else if (selectedTerpenes.length === allTerpeneNames.length) {
+        setSelectionMode('all');
+      } else if (
+        selectedTerpenes.length === majorTerpeneNames.length && 
+        majorTerpeneNames.every(name => selectedTerpenes.includes(name))
+      ) {
+        setSelectionMode('major');
+      } else {
+        setSelectionMode('custom');
+      }
     }
-  };
-  
-  const groupLabels: Record<string, string> = {
-    major: "Major Terpenes",
-    minor: "Minor Terpenes",
-    other: "Other Terpenes"
+  }, []);
+
+  const handleSelectionChange = (value: string) => {
+    if (value === 'all') {
+      onChange(terpenes.map(t => t.name));
+      setSelectionMode('all');
+    } else if (value === 'none') {
+      onChange([]);
+      setSelectionMode('none');
+    } else if (value === 'major') {
+      onChange(terpeneGroups.major.map(t => t.name));
+      setSelectionMode('major');
+    } else if (value === 'minor') {
+      onChange(terpeneGroups.minor.map(t => t.name));
+      setSelectionMode('minor');
+    } else {
+      // For specific terpene selections
+      const currentSelection = [...selectedTerpenes];
+      
+      if (currentSelection.includes(value)) {
+        onChange(currentSelection.filter(t => t !== value));
+      } else {
+        onChange([...currentSelection, value]);
+      }
+      
+      setSelectionMode('custom');
+    }
   };
   
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" className="w-full justify-between">
-          <span>Select Terpenes ({selectedTerpenes.length})</span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
-        <div className="p-2 flex items-center justify-between border-b">
-          <h4 className="font-medium text-sm">Terpenes</h4>
-          <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              className="h-8 px-2 text-xs" 
-              onClick={selectAll}
-            >
-              Select All
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="h-8 px-2 text-xs text-muted-foreground" 
-              onClick={clearAll}
-            >
-              Clear
-            </Button>
-          </div>
-        </div>
-        <ScrollArea className="h-80 overflow-auto">
-          <div className="p-2">
-            {Object.keys(terpeneGroups).map((group) => {
-              const groupTerpenes = terpeneGroups[group];
-              const allGroupSelected = groupTerpenes.every(t => selectedTerpenes.includes(t.name));
-              const someGroupSelected = groupTerpenes.some(t => selectedTerpenes.includes(t.name));
-              
-              return (
-                <div key={group} className="mb-4">
-                  <div 
-                    className={cn(
-                      "flex items-center space-x-2 rounded-sm px-2 py-2 mb-1 hover:bg-accent cursor-pointer",
-                      (allGroupSelected || someGroupSelected) && "bg-muted"
-                    )}
-                    onClick={() => selectGroup(group)}
-                  >
-                    <div 
-                      className={cn(
-                        "h-4 w-4 border rounded-sm flex items-center justify-center",
-                        allGroupSelected ? "bg-primary border-primary" : "border-primary/30"
-                      )}
-                    >
-                      {allGroupSelected && <CheckIcon className="h-3 w-3 text-primary-foreground" />}
-                    </div>
-                    <span className="font-medium">{groupLabels[group]} ({groupTerpenes.length})</span>
-                  </div>
-                  
-                  <div className="ml-4 space-y-1">
-                    {groupTerpenes.map((terpene) => {
-                      const isSelected = selectedTerpenes.includes(terpene.name);
-                      return (
-                        <div
-                          key={terpene.name}
-                          className={cn(
-                            "flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent cursor-pointer",
-                            isSelected && "bg-accent/50"
-                          )}
-                          onClick={() => toggleTerpene(terpene.name)}
-                        >
-                          <div 
-                            className={cn(
-                              "h-4 w-4 border rounded-sm flex items-center justify-center",
-                              isSelected ? "bg-primary border-primary" : "border-primary/30"
-                            )}
-                          >
-                            {isSelected && <CheckIcon className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span 
-                              className="block h-3 w-3 rounded-full" 
-                              style={{ backgroundColor: terpene.color }} 
-                            />
-                            <span className="text-sm">{terpene.name}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
+    <Select value={selectionMode} onValueChange={handleSelectionChange}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select terpenes to display" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Terpene Groups</SelectLabel>
+          <SelectItem value="all">All Terpenes</SelectItem>
+          <SelectItem value="major">Major Terpenes</SelectItem>
+          <SelectItem value="minor">Minor Terpenes</SelectItem>
+          <SelectItem value="none">No Terpenes</SelectItem>
+        </SelectGroup>
+        
+        <SelectGroup>
+          <SelectLabel>Major Terpenes</SelectLabel>
+          {terpeneGroups.major.map(terpene => (
+            <SelectItem key={terpene.name} value={terpene.name}>
+              {terpene.name} ({terpene.boilingPoint}°C)
+            </SelectItem>
+          ))}
+        </SelectGroup>
+        
+        <SelectGroup>
+          <SelectLabel>Minor Terpenes</SelectLabel>
+          {terpeneGroups.minor.map(terpene => (
+            <SelectItem key={terpene.name} value={terpene.name}>
+              {terpene.name} ({terpene.boilingPoint}°C)
+            </SelectItem>
+          ))}
+        </SelectGroup>
+        
+        <SelectGroup>
+          <SelectLabel>Other Terpenes</SelectLabel>
+          {terpeneGroups.other.map(terpene => (
+            <SelectItem key={terpene.name} value={terpene.name}>
+              {terpene.name} ({terpene.boilingPoint}°C)
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   );
 }
