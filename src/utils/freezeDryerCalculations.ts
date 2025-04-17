@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -131,38 +132,35 @@ export function calculateProgressCurve(
   
   const points: SubTimePoint[] = [];
   let remainingIce = iceWeight;
-  let lastHeatRate = 0;
+  
+  // Calculate heat rates for each step upfront
+  const baseHeatRates: number[] = [];
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const tempC = normalizeTemperature(step.temperature, step.tempUnit);
+    const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
+    
+    let stepHeatRate;
+    if (settings.heatingPowerWatts) {
+      // Use per-tray heating power calculation
+      const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
+      stepHeatRate = calculateHeatInputFromPower(
+        settings.heatingPowerWatts, 
+        settings.numberOfTrays || 1, 
+        efficiency
+      );
+    } else {
+      stepHeatRate = settings.heatInputRate || 
+        estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
+    }
+    baseHeatRates.push(stepHeatRate);
+  }
   
   // Add starting point at time 0
   const firstStep = steps[0];
   const firstTempC = normalizeTemperature(firstStep.temperature, firstStep.tempUnit);
   const firstPressureMbar = normalizePressure(firstStep.pressure, firstStep.pressureUnit);
   
-  // Calculate initial heat rate - considering the heating power per tray if provided
-  let initialHeatRate;
-  if (settings.heatingPowerWatts) {
-    // Use per-tray heating power calculation
-    const efficiency = estimateHeatTransferEfficiency(firstTempC, firstPressureMbar);
-    initialHeatRate = calculateHeatInputFromPower(
-      settings.heatingPowerWatts, 
-      settings.numberOfTrays || 1, 
-      efficiency
-    );
-  } else {
-    initialHeatRate = settings.heatInputRate || 
-      estimateHeatInputRate(firstTempC, firstPressureMbar, totalShelfAreaM2);
-  }
-  lastHeatRate = initialHeatRate;
-  
-  // Determine efficiency reduction factor
-  // This simulates how sublimation becomes less efficient over time
-  const efficiencyReductionFactor = 1.5; // Increase for more realistic slower progression
-  
-  // Calculate theoretical completion time (in hours)
-  const theoreticalCompletionTime = calculateSubTimeInHours(iceWeight, initialHeatRate);
-  console.log("Theoretical completion time:", theoreticalCompletionTime.toFixed(2), "hours");
-  
-  // Initialize the first point at time 0 before entering the loop
   points.push({
     time: 0,
     progress: 0,
@@ -171,7 +169,7 @@ export function calculateProgressCurve(
     pressure: firstPressureMbar,
   });
   
-  // Generate data points with fine time resolution, ensuring we include the full total time
+  // Generate data points with fine time resolution
   for (let i = 1; i <= numPoints; i++) {
     // Using <= ensures we include the last point exactly at totalTime
     const currentTime = i < numPoints ? i * timeStep : totalTime;
@@ -189,24 +187,21 @@ export function calculateProgressCurve(
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
-    // Time spent in this specific step
+    // Time spent in this specific time segment
     const previousTimePoint = points[points.length - 1];
-    const timeInStep = currentTime - previousTimePoint.time;
+    const timeInSegment = currentTime - previousTimePoint.time;
     
-    // Calculate heat rate for this step with a more realistic model
-    const baseHeatRate = settings.heatInputRate || 
-      estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
+    // Get base heat rate for this step
+    const baseHeatRate = baseHeatRates[currentStepIndex];
     
     // Apply diminishing returns as sublimation progresses
-    // The closer we get to 100% sublimation, the slower the process becomes
     const progressFactor = Math.max(0.2, 1 - Math.pow(previousTimePoint.progress / 100, 0.7));
     
     // Apply efficiency factor considering how heat transfer becomes less efficient as the material dries
     const effectiveHeatRate = baseHeatRate * progressFactor;
-    lastHeatRate = effectiveHeatRate;
     
     // Energy transferred during this time segment
-    const energyTransferred = effectiveHeatRate * timeInStep; // kJ
+    const energyTransferred = effectiveHeatRate * timeInSegment; // kJ
     
     // Ice sublimated during this time segment
     const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg

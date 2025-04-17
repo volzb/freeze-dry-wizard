@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -24,38 +25,55 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       stepDurations[index] = step.duration / 60; // Convert minutes to hours
     });
 
-    // First pass: Calculate total sublimation per step and step durations
-    const stepSublimationAmounts: Record<number, number> = {};
-    let lastProgress = 0;
-    let lastStepIdx = -1;
-    let lastTime = 0;
-
-    dryingData.forEach((point, idx) => {
-      // When step changes or at the last point
-      if (point.step !== lastStepIdx || idx === dryingData.length - 1) {
-        if (lastStepIdx >= 0) {
-          // Calculate progress made in this step
-          const progressInStep = point.progress - lastProgress;
-          stepSublimationAmounts[lastStepIdx] = progressInStep;
-        }
-        lastProgress = point.progress;
-        lastStepIdx = point.step;
-        lastTime = point.time;
-      }
+    // Determine step boundaries (end times)
+    const stepEndTimes: number[] = [];
+    let accumulatedTime = 0;
+    steps.forEach((step) => {
+      accumulatedTime += step.duration / 60; // Convert minutes to hours
+      stepEndTimes.push(accumulatedTime);
     });
 
-    // Calculate hourly sublimation rates for each step
+    // First pass: Calculate total sublimation per step
+    const stepSublimationAmounts: Record<number, number> = {};
     const stepSublimationRates: Record<number, number> = {};
-    Object.entries(stepSublimationAmounts).forEach(([stepIdx, amount]) => {
-      const index = parseInt(stepIdx);
-      const duration = stepDurations[index] || 1; // Avoid division by zero
-      // Rate is % of ice sublimated per hour in this step
-      stepSublimationRates[index] = amount / duration;
+    
+    // Initialize with 0 for all steps
+    steps.forEach((_, idx) => {
+      stepSublimationAmounts[idx] = 0;
+      stepSublimationRates[idx] = 0;
     });
     
+    // Calculate the total sublimation amount for each step
+    let lastProgress = 0;
+    let lastStepIdx = 0;
+    
+    dryingData.forEach((point, idx) => {
+      if (idx === 0) {
+        lastStepIdx = point.step;
+        return; // Skip first point
+      }
+      
+      // When step changes or at the last point
+      if (point.step !== lastStepIdx || idx === dryingData.length - 1) {
+        // Calculate progress made in this step
+        const progressInStep = point.progress - lastProgress;
+        stepSublimationAmounts[lastStepIdx] = progressInStep;
+        
+        // Calculate rate (% per hour)
+        const duration = stepDurations[lastStepIdx];
+        if (duration > 0) {
+          stepSublimationRates[lastStepIdx] = progressInStep / duration;
+        }
+        
+        lastProgress = point.progress;
+        lastStepIdx = point.step;
+      }
+    });
+    
+    console.log("Step sublimation amounts:", stepSublimationAmounts);
     console.log("Step sublimation rates per hour:", stepSublimationRates);
 
-    // Transform points to include terpene boiling points and dynamic sublimation progress
+    // Transform points to include terpene boiling points and proper sublimation rates
     return dryingData.map((point, idx) => {
       // Calculate terpene boiling points at this pressure
       const terpenesAtPoint: Record<string, number> = {};
@@ -81,36 +99,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       const stepIdx = point.step;
       const hourlyRate = stepSublimationRates[stepIdx] || 0;
       
-      // Calculate time-weighted progress based on rates
-      // This creates a more dynamic progress curve that reflects varying sublimation rates
-      let dynamicProgress = 0;
-      
-      // Sum the sublimation for each completed step
-      for (let i = 0; i < stepIdx; i++) {
-        dynamicProgress += stepSublimationAmounts[i] || 0;
-      }
-      
-      // Add partial sublimation for current step
-      if (idx > 0) {
-        const previousPoint = dryingData[idx - 1];
-        // If we're still in the same step as the previous point
-        if (previousPoint.step === stepIdx) {
-          const timeInCurrentStep = point.time - previousPoint.time;
-          const additionalProgress = hourlyRate * timeInCurrentStep;
-          dynamicProgress += additionalProgress;
-        } else {
-          // Just started this step, add nothing from current step yet
-          dynamicProgress += 0;
-        }
-      }
-      
       return {
         time: point.time,
         displayTemp,
-        // Original calculated progress from freezeDryerCalculations
-        originalProgress: point.progress,
-        // Use dynamically weighted progress for visualization
-        progress: Math.min(100, Math.max(0, point.progress)),
+        progress: point.progress,
         hourlyRate,
         pressure: point.pressure,
         step: point.step,
@@ -222,7 +214,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <p className="text-sm mb-1">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
           <p className="text-sm mb-1">{`Pressure: ${pointData.pressure ? Math.round(pointData.pressure) : 'N/A'} mBar`}</p>
           <p className="text-sm mb-1">{`Ice Sublimated: ${Math.round(progress)}%`}</p>
-          {currentStep !== null && hourlyRate > 0 && (
+          {currentStep !== null && (
             <p className="text-sm mb-1">{`Step ${currentStep} Rate: ${hourlyRate.toFixed(1)}% per hour`}</p>
           )}
           
@@ -345,7 +337,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
-          {/* Improved sublimation progress curve that reflects varying rates */}
+          {/* Sublimation progress curve */}
           <Line
             yAxisId="progress"
             type="monotone"
