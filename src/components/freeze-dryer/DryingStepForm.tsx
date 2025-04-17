@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +41,6 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
     onChange(updatedSteps);
   };
 
-  // Utility function to handle numeric inputs properly
   const handleNumericInput = (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number,
@@ -50,21 +48,26 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
     minValue: number,
     allowNegative: boolean = false
   ) => {
-    // Get the raw input value
     const inputValue = e.target.value;
     
-    // Check if the input is empty, just a negative sign, or a valid number
-    if (inputValue === "" || (allowNegative && inputValue === "-")) {
+    if (inputValue === "" || (allowNegative && inputValue === "-") || inputValue === "." || inputValue === "-.") {
       handleStepChange(index, field, inputValue);
       return;
     }
     
-    // Try to parse as a number
-    const parsedValue = parseFloat(inputValue);
+    const numericRegex = allowNegative ? /^-?\d*\.?\d*$/ : /^\d*\.?\d*$/;
+    if (!numericRegex.test(inputValue)) {
+      return;
+    }
     
-    // If it's a valid number that meets minimum requirements
-    if (!isNaN(parsedValue) && (parsedValue >= minValue || (allowNegative && parsedValue < 0))) {
-      handleStepChange(index, field, parsedValue);
+    if (inputValue.endsWith(".")) {
+      handleStepChange(index, field, inputValue);
+    } else {
+      const parsedValue = parseFloat(inputValue);
+      
+      if (!isNaN(parsedValue) && (parsedValue >= minValue || (allowNegative && parsedValue < 0))) {
+        handleStepChange(index, field, parsedValue);
+      }
     }
   };
 
