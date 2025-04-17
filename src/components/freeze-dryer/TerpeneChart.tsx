@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -275,7 +274,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           </div>
           <div className="flex flex-col items-center">
             <span className="text-amber-500 font-bold mb-1">Low</span>
-            <span>>100 mBar</span>
+            <span>{`>100 mBar`}</span>
           </div>
         </div>
       </div>
