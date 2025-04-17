@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -120,24 +119,25 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   const timeAxisTicks = useMemo(() => {
     if (!chartData.length) return [];
     
-    // Get unique time values, sorted
-    const uniqueTimes = Array.from(new Set(chartData.map(d => Math.round(d.time * 10) / 10)))
-      .sort((a, b) => a - b);
+    // Get the total time span from the data
+    const maxTime = chartData.length > 0 ? chartData[chartData.length - 1].time : 0;
     
-    // For very short timeframes, use more decimal precision
-    const totalTime = chartData[chartData.length - 1]?.time || 0;
-    const useDecimals = totalTime < 1;
+    // Create evenly distributed ticks (avoid duplicates and zero at the end)
+    const tickCount = 5; // Adjust as needed for readability
+    const ticks = [];
     
-    // Create evenly spaced ticks based on the data range
-    const maxTime = Math.max(...uniqueTimes);
-    const tickCount = Math.min(5, uniqueTimes.length); // Limit to 5 ticks maximum
+    // Always include 0 as the first tick
+    ticks.push(0);
     
-    if (tickCount <= 1) return [0]; // Only show 0 if there's only one time point
-    
-    const ticks: number[] = [];
-    for (let i = 0; i < tickCount; i++) {
+    // Calculate and add intermediate ticks
+    for (let i = 1; i < tickCount - 1; i++) {
       const tickValue = (maxTime * i) / (tickCount - 1);
       ticks.push(tickValue);
+    }
+    
+    // Add the max time as the last tick (if it's not already there)
+    if (maxTime > 0) {
+      ticks.push(maxTime);
     }
     
     return ticks;
@@ -205,6 +205,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
 
   // Format the time ticks with appropriate precision
   const formatTimeTick = (value: number) => {
+    if (value === 0) return "0";
+    
     // For very short time periods, show one decimal place
     if (chartData[chartData.length - 1]?.time < 1) {
       return value.toFixed(1);
@@ -286,6 +288,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             dot={false}
           />
           
+          {/* Ensure terpene lines are always displayed when they should be */}
           {filteredTerpenes.map((terpene) => (
             <Line
               key={terpene.name}
