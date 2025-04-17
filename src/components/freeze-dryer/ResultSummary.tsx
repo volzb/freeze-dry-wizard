@@ -30,6 +30,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   // Explicitly calculate completion percentage based on the last point's progress value
   const completedPercent = lastPoint.progress;
   const isOverDry = completedPercent > 100;
+  const isDryingIncomplete = completedPercent < 99; // Consider less than 99% as incomplete
   
   // Find highest temperature point
   const highestTempPoint = [...progressCurve].sort((a, b) => b.temperature - a.temperature)[0];
@@ -62,9 +63,9 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
           
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Water Removal</p>
-            <p className={`text-2xl font-bold ${isOverDry ? 'text-amber-500' : ''}`}>
+            <p className={`text-2xl font-bold ${isDryingIncomplete ? 'text-destructive' : isOverDry ? 'text-amber-500' : ''}`}>
               {Math.round(completedPercent)}%
-              {isOverDry && " (Over Dry)"}
+              {isDryingIncomplete ? " (Incomplete)" : isOverDry ? " (Over Dry)" : ""}
             </p>
           </div>
           
@@ -100,6 +101,13 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
         {isOverDry && (
           <p className="text-xs text-amber-500 italic">
             Program duration exceeds required drying time by {Math.round(completedPercent - 100)}%
+          </p>
+        )}
+        
+        {isDryingIncomplete && (
+          <p className="text-xs text-destructive italic">
+            Drying process will only be {Math.round(completedPercent)}% complete. 
+            Consider increasing step duration or adding more drying steps.
           </p>
         )}
       </CardContent>

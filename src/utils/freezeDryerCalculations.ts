@@ -168,27 +168,14 @@ export function calculateProgressCurve(
     });
   });
   
-  // If there's still ice remaining, estimate time to completion with last step settings
+  // Fixed: Only add the completion point if we've actually removed all the ice
+  // Otherwise, end at the actual calculated progress percentage
   if (remainingIce > 0 && steps.length > 0) {
     const lastStep = steps[steps.length - 1];
     const tempC = normalizeTemperature(lastStep.temperature, lastStep.tempUnit);
     const pressureMbar = normalizePressure(lastStep.pressure, lastStep.pressureUnit);
     
-    // Calculate heat rate based on current settings
-    const heatRate = settings.heatInputRate || 
-      estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
-    
-    // Additional time needed to sublimate remaining ice
-    const additionalTimeHr = (remainingIce * LATENT_HEAT_SUBLIMATION) / heatRate;
-    accumulatedTime += additionalTimeHr;
-    
-    points.push({
-      time: accumulatedTime,
-      progress: 100,
-      step: steps.length - 1,
-      temperature: tempC,
-      pressure: pressureMbar,
-    });
+    console.log(`Final ice remaining: ${remainingIce}kg (${((remainingIce/iceWeight) * 100).toFixed(1)}% remains)`);
   }
   
   console.log("Final progress curve points:", points.length);
