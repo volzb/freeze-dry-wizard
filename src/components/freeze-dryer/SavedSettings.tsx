@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChevronDown, Save, Trash2, Loader2 } from "lucide-react";
+import { ChevronDown, Save, Trash2, Loader2, Share2, Copy } from "lucide-react";
 import { FreezeDryerSettings, DryingStep } from "@/utils/freezeDryerCalculations";
 
 export type SavedSettingsRecord = {
@@ -49,13 +49,11 @@ export function SavedSettings({
   const [configName, setConfigName] = useState("");
   const { isAuthenticated, user, saveConfigurationToStorage, getConfigurationsFromStorage } = useAuth();
 
-  // Load saved configurations when component mounts and when auth state changes
   useEffect(() => {
     console.log("Auth state changed or component mounted, loading configurations. User:", user?.id || "anonymous");
     if (isAuthenticated && user) {
       loadSavedConfigurations();
     } else {
-      // Clear saved configs when not authenticated
       setSavedConfigs([]);
     }
   }, [isAuthenticated, user]);
@@ -67,7 +65,7 @@ export function SavedSettings({
     }
 
     setIsLoading(true);
-    try {      
+    try {
       console.log(`Loading configurations for user: ${user.id}`);
       
       const configs = await getConfigurationsFromStorage(user.id);
@@ -87,6 +85,27 @@ export function SavedSettings({
     }
   };
 
+  const copySettingsToClipboard = () => {
+    try {
+      const exportData = {
+        settings: currentSettings,
+        steps: currentSteps
+      };
+      
+      const jsonStr = JSON.stringify(exportData, null, 2);
+      
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        toast.success("Settings and steps copied to clipboard");
+      }).catch((err) => {
+        console.error("Failed to copy settings:", err);
+        toast.error("Failed to copy to clipboard");
+      });
+    } catch (error) {
+      console.error("Error preparing settings for clipboard:", error);
+      toast.error("Failed to copy settings");
+    }
+  };
+
   const handleSaveConfig = async () => {
     if (!configName.trim()) {
       toast.error("Please enter a name for your configuration");
@@ -101,37 +120,30 @@ export function SavedSettings({
     setIsLoading(true);
     
     try {
-      // Deep clone all current settings to ensure no references are stored
       const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
       const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
       
-      // Explicitly log hashPerTray value we're saving
       console.log("Current hashPerTray before save:", currentSettings.hashPerTray);
       
-      // Ensure hashPerTray is properly set in the settings copy
       if (currentSettings.hashPerTray !== undefined) {
         console.log("Setting explicit hashPerTray value for save:", currentSettings.hashPerTray);
         settingsCopy.hashPerTray = Number(currentSettings.hashPerTray);
       } else {
         console.log("Setting default hashPerTray value in save");
-        settingsCopy.hashPerTray = 0.15; // Default value
+        settingsCopy.hashPerTray = 0.15;
       }
       
-      // Force numeric conversion to ensure we have a proper number
       settingsCopy.hashPerTray = Number(settingsCopy.hashPerTray);
       
-      // Ensure waterPercentage is explicitly saved
       if (currentSettings.waterPercentage !== undefined) {
         settingsCopy.waterPercentage = Number(currentSettings.waterPercentage);
       } else {
-        settingsCopy.waterPercentage = 75; // Default value
+        settingsCopy.waterPercentage = 75;
       }
       
-      // Log what we're saving for debugging
       console.log("Saving settings with hashPerTray:", settingsCopy.hashPerTray);
       console.log("Full settings being saved:", settingsCopy);
       
-      // Create a new configuration
       const newConfig: SavedSettingsRecord = {
         id: crypto.randomUUID(),
         name: configName,
@@ -141,17 +153,13 @@ export function SavedSettings({
         updatedAt: new Date().toISOString(),
       };
 
-      // Add to the list
       const updatedConfigs = [...savedConfigs, newConfig];
       setSavedConfigs(updatedConfigs);
       
-      // Save to Supabase
       await saveConfigurationToStorage(user.id, updatedConfigs);
       
-      // Debug log to confirm what was saved
       console.log(`Updated configurations for ${user.id}:`, updatedConfigs);
 
-      // Reset and close dialog
       setConfigName("");
       setSaveDialogOpen(false);
       toast.success("Configuration saved successfully");
@@ -173,29 +181,24 @@ export function SavedSettings({
         return;
       }
       
-      // Deep clone the settings and steps to avoid reference issues
       const settingsCopy = JSON.parse(JSON.stringify(config.settings || {}));
       const stepsCopy = JSON.parse(JSON.stringify(config.steps || []));
       
-      // Ensure hashPerTray is present and properly converted to a number
       if (config.settings.hashPerTray !== undefined) {
         console.log("Loading saved hashPerTray value:", config.settings.hashPerTray);
         settingsCopy.hashPerTray = Number(config.settings.hashPerTray);
       } else {
         console.warn("hashPerTray is missing in saved configuration, using default");
-        settingsCopy.hashPerTray = 0.15; // Default value
+        settingsCopy.hashPerTray = 0.15;
       }
       
-      // Force numeric conversion to ensure we have a proper number
       settingsCopy.hashPerTray = Number(settingsCopy.hashPerTray);
       console.log("Final hashPerTray value after load processing:", settingsCopy.hashPerTray);
       
-      // Ensure waterPercentage is present
       if (config.settings.waterPercentage === undefined) {
-        settingsCopy.waterPercentage = 75; // Default value
+        settingsCopy.waterPercentage = 75;
       }
       
-      // Log full settings being loaded
       console.log("Full settings being loaded:", settingsCopy);
       
       onLoadSettings(settingsCopy, stepsCopy);
@@ -215,7 +218,6 @@ export function SavedSettings({
     setIsLoading(true);
     
     try {
-      // Get the current user ID
       const userId = user?.id;
       
       if (!userId) {
@@ -227,7 +229,6 @@ export function SavedSettings({
       const updatedConfigs = savedConfigs.filter(config => config.id !== id);
       setSavedConfigs(updatedConfigs);
       
-      // Save the updated configs to Supabase
       await saveConfigurationToStorage(userId, updatedConfigs);
       
       toast.success("Configuration deleted");
@@ -287,6 +288,16 @@ export function SavedSettings({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-1"
+          onClick={copySettingsToClipboard}
+        >
+          <Copy className="h-4 w-4" />
+          Copy Settings
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={savedConfigs.length === 0 || !isAuthenticated}>

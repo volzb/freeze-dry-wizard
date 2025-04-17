@@ -4,9 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, Download, Upload } from "lucide-react";
 import { DryingStep } from "@/utils/freezeDryerCalculations";
 import { v4 as uuidv4 } from "@/utils/uuid";
+import { toast } from "sonner";
 
 interface DryingStepFormProps {
   steps: DryingStep[];
@@ -71,19 +72,105 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
     }
   };
 
+  const exportSteps = () => {
+    const stepsJson = JSON.stringify(steps, null, 2);
+    const blob = new Blob([stepsJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'freeze_dryer_steps.json';
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    toast.success("Drying steps exported successfully");
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importedSteps = JSON.parse(event.target?.result as string);
+        
+        if (!Array.isArray(importedSteps)) {
+          throw new Error("Invalid format: Expected an array of steps");
+        }
+        
+        const processedSteps = importedSteps.map((step: any) => ({
+          ...step,
+          id: step.id || uuidv4(),
+          temperature: Number(step.temperature),
+          pressure: Number(step.pressure),
+          duration: Number(step.duration),
+          tempUnit: step.tempUnit || 'C',
+          pressureUnit: step.pressureUnit || 'mBar'
+        }));
+        
+        if (processedSteps.length > maxSteps) {
+          toast.warning(`Imported ${processedSteps.length} steps, but only the first ${maxSteps} will be used`);
+          onChange(processedSteps.slice(0, maxSteps));
+        } else {
+          onChange(processedSteps);
+          toast.success(`Imported ${processedSteps.length} drying steps`);
+        }
+      } catch (error) {
+        console.error("Error importing steps:", error);
+        toast.error("Failed to import steps: Invalid format");
+      }
+      
+      e.target.value = '';
+    };
+    
+    reader.readAsText(file);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Drying Steps</h3>
-        <Button 
-          onClick={addStep}
-          variant="outline" 
-          size="sm" 
-          className="text-primary"
-          disabled={steps.length >= maxSteps}
-        >
-          <Plus className="mr-1 h-4 w-4" /> Add Step
-        </Button>
+        <div className="flex space-x-2">
+          <input
+            type="file"
+            id="import-steps"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
+          <label htmlFor="import-steps">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="text-primary"
+              asChild
+            >
+              <span>
+                <Upload className="mr-1 h-4 w-4" /> Import
+              </span>
+            </Button>
+          </label>
+          
+          <Button 
+            onClick={exportSteps}
+            variant="outline" 
+            size="sm" 
+            className="text-primary"
+          >
+            <Download className="mr-1 h-4 w-4" /> Export
+          </Button>
+          
+          <Button 
+            onClick={addStep}
+            variant="outline" 
+            size="sm" 
+            className="text-primary"
+            disabled={steps.length >= maxSteps}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add Step
+          </Button>
+        </div>
       </div>
       
       {steps.length === 0 ? (
