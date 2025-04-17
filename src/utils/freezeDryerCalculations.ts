@@ -94,10 +94,23 @@ export function calculateProgressCurve(
   settings: FreezeDryerSettings
 ): SubTimePoint[] {
   const { steps, iceWeight } = settings;
-  if (!steps.length || iceWeight <= 0) return [];
+  
+  console.log("Running calculateProgressCurve with:", { 
+    stepsCount: steps?.length,
+    iceWeight: iceWeight
+  });
+  
+  if (!steps?.length || !iceWeight || iceWeight <= 0) {
+    console.warn("Invalid input for progress curve calculation:", { 
+      stepsValid: !!steps?.length,
+      iceWeightValid: iceWeight && iceWeight > 0 
+    });
+    return [];
+  }
 
   // Calculate total shelf area in m²
   const totalShelfAreaM2 = ((settings.traySizeCm2 || 500) / 10000) * (settings.numberOfTrays || 1);
+  console.log("Total shelf area:", totalShelfAreaM2, "m²");
 
   let remainingIce = iceWeight;
   let accumulatedTime = 0;

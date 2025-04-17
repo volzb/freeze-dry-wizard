@@ -3,8 +3,8 @@ import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
 import { SubTimePoint, DryingStep } from "@/utils/freezeDryerCalculations";
-import { Label } from "@/components/ui/label";
 import { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 interface TerpeneChartProps {
   dryingData: SubTimePoint[];
@@ -16,7 +16,12 @@ interface TerpeneChartProps {
 export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: TerpeneChartProps) {
   // Process data to include terpene boiling points at each step's pressure
   const chartData = useMemo(() => {
-    if (!dryingData.length) return [];
+    if (!dryingData.length) {
+      console.log("No drying data available for chart");
+      return [];
+    }
+    
+    console.log("Processing chart data", { dataPoints: dryingData.length, steps: steps.length });
     
     return dryingData.map((point) => {
       const terpenesAtPoint: Record<string, number> = {};
@@ -91,6 +96,21 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   };
 
   const filteredTerpenes = terpenes.filter(t => showTerpenes.includes(t.name));
+  
+  // Add console logs to help debug chart issues
+  console.log("TerpeneChart render", { 
+    dataPoints: chartData.length,
+    steps: steps.length,
+    filteredTerpenes: filteredTerpenes.length 
+  });
+  
+  if (chartData.length === 0) {
+    return (
+      <div className="w-full h-[500px] flex items-center justify-center border border-dashed border-muted-foreground rounded-lg">
+        <p className="text-muted-foreground">No drying data available. Please configure your drying steps properly.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -133,7 +153,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             height={50}
             wrapperStyle={{ 
               fontSize: '10px', 
-              marginTop: '20px'
+              marginTop: '20px',
+              paddingTop: '30px' // Added padding to prevent overlap with time labels
             }}
             iconSize={8}
           />
