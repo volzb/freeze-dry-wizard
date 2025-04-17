@@ -26,13 +26,52 @@ interface CalculationSettingsProps {
   onDisplayUnitChange: (unit: 'C' | 'F') => void;
 }
 
+// Define interface for freeze dryer model configuration
+interface FreezeDryerModel {
+  label: string;
+  trayLength?: number;
+  trayWidth?: number;
+  numberOfTrays?: number;
+  heatingPowerWatts?: number;
+}
+
 // Freeze dryer model configurations - heating power is per tray
-const freezeDryerModels = {
-  "custom": { label: "Custom" },
-  "harvest-right-small": { trayLength: 20, trayWidth: 20, numberOfTrays: 3, heatingPowerWatts: 167, label: "Harvest Right (Small)" },
-  "harvest-right-medium": { trayLength: 25, trayWidth: 25, numberOfTrays: 4, heatingPowerWatts: 225, label: "Harvest Right (Medium)" },
-  "harvest-right-large": { trayLength: 30, trayWidth: 30, numberOfTrays: 5, heatingPowerWatts: 240, label: "Harvest Right (Large)" },
-  "cryodry-cd8": { trayLength: 45, trayWidth: 20, numberOfTrays: 9, heatingPowerWatts: 167, label: "CryoDry CD8" },
+const freezeDryerModels: Record<string, FreezeDryerModel> = {
+  "custom": { 
+    label: "Custom", 
+    trayLength: undefined, 
+    trayWidth: undefined, 
+    numberOfTrays: undefined, 
+    heatingPowerWatts: undefined 
+  },
+  "harvest-right-small": { 
+    trayLength: 20, 
+    trayWidth: 20, 
+    numberOfTrays: 3, 
+    heatingPowerWatts: 167, 
+    label: "Harvest Right (Small)" 
+  },
+  "harvest-right-medium": { 
+    trayLength: 25, 
+    trayWidth: 25, 
+    numberOfTrays: 4, 
+    heatingPowerWatts: 225, 
+    label: "Harvest Right (Medium)" 
+  },
+  "harvest-right-large": { 
+    trayLength: 30, 
+    trayWidth: 30, 
+    numberOfTrays: 5, 
+    heatingPowerWatts: 240, 
+    label: "Harvest Right (Large)" 
+  },
+  "cryodry-cd8": { 
+    trayLength: 45, 
+    trayWidth: 20, 
+    numberOfTrays: 9, 
+    heatingPowerWatts: 167, 
+    label: "CryoDry CD8" 
+  },
 };
 
 export function CalculationSettings({ 
@@ -173,24 +212,24 @@ export function CalculationSettings({
     setSelectedModel(model);
     
     if (model !== "custom") {
-      const modelConfig = freezeDryerModels[model as keyof typeof freezeDryerModels];
+      const modelConfig = freezeDryerModels[model];
       if (!modelConfig) return;
       
       // Update state values
-      if ('trayLength' in modelConfig) setTrayLength(modelConfig.trayLength!);
-      if ('trayWidth' in modelConfig) setTrayWidth(modelConfig.trayWidth!);
-      if ('numberOfTrays' in modelConfig) setNumberOfTrays(modelConfig.numberOfTrays!);
-      if ('heatingPowerWatts' in modelConfig) setHeatingPowerWatts(modelConfig.heatingPowerWatts!);
+      if (modelConfig.trayLength) setTrayLength(modelConfig.trayLength);
+      if (modelConfig.trayWidth) setTrayWidth(modelConfig.trayWidth);
+      if (modelConfig.numberOfTrays) setNumberOfTrays(modelConfig.numberOfTrays);
+      if (modelConfig.heatingPowerWatts) setHeatingPowerWatts(modelConfig.heatingPowerWatts);
       
       // Update settings
-      if ('trayLength' in modelConfig) handleSettingChange("trayLength", modelConfig.trayLength);
-      if ('trayWidth' in modelConfig) handleSettingChange("trayWidth", modelConfig.trayWidth);
-      if ('numberOfTrays' in modelConfig) handleSettingChange("numberOfTrays", modelConfig.numberOfTrays);
-      if ('heatingPowerWatts' in modelConfig) handleSettingChange("heatingPowerWatts", modelConfig.heatingPowerWatts);
+      if (modelConfig.trayLength) handleSettingChange("trayLength", modelConfig.trayLength);
+      if (modelConfig.trayWidth) handleSettingChange("trayWidth", modelConfig.trayWidth);
+      if (modelConfig.numberOfTrays) handleSettingChange("numberOfTrays", modelConfig.numberOfTrays);
+      if (modelConfig.heatingPowerWatts) handleSettingChange("heatingPowerWatts", modelConfig.heatingPowerWatts);
       
       // Calculate tray area
-      if ('trayLength' in modelConfig && 'trayWidth' in modelConfig) {
-        const area = modelConfig.trayLength! * modelConfig.trayWidth!;
+      if (modelConfig.trayLength && modelConfig.trayWidth) {
+        const area = modelConfig.trayLength * modelConfig.trayWidth;
         handleSettingChange("traySizeCm2", area);
       }
     }
@@ -228,17 +267,21 @@ export function CalculationSettings({
           
           {selectedModel !== "custom" && (
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">
-                {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].numberOfTrays} Trays
-              </Badge>
-              {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].trayLength && (
+              {freezeDryerModels[selectedModel].numberOfTrays && (
                 <Badge variant="outline">
-                  {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].trayLength} × {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].trayWidth} cm Trays
+                  {freezeDryerModels[selectedModel].numberOfTrays} Trays
                 </Badge>
               )}
-              <Badge variant="outline">
-                {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].heatingPowerWatts} Watts/Tray
-              </Badge>
+              {freezeDryerModels[selectedModel].trayLength && freezeDryerModels[selectedModel].trayWidth && (
+                <Badge variant="outline">
+                  {freezeDryerModels[selectedModel].trayLength} × {freezeDryerModels[selectedModel].trayWidth} cm Trays
+                </Badge>
+              )}
+              {freezeDryerModels[selectedModel].heatingPowerWatts && (
+                <Badge variant="outline">
+                  {freezeDryerModels[selectedModel].heatingPowerWatts} Watts/Tray
+                </Badge>
+              )}
             </div>
           )}
           
