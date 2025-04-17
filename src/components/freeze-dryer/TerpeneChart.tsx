@@ -256,29 +256,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
 
   return (
     <div className="w-full">
-      {/* Visual indicator for pressure-sublimation relationship */}
-      <div className="mb-4 p-3 bg-muted rounded-md text-sm">
-        <p className="font-medium mb-1">Pressure & Sublimation Efficiency:</p>
-        <div className="grid grid-cols-4 gap-2 text-center text-xs">
-          <div className="flex flex-col items-center">
-            <span className="text-green-500 font-bold mb-1">High</span>
-            <span>0.1-1 mBar</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-lime-500 font-bold mb-1">Good</span>
-            <span>1-10 mBar</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-yellow-500 font-bold mb-1">Medium</span>
-            <span>10-100 mBar</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-amber-500 font-bold mb-1">Low</span>
-            <span>{`>100 mBar`}</span>
-          </div>
-        </div>
-      </div>
-      
       <ResponsiveContainer width="100%" height={500}>
         <LineChart
           data={chartData}
