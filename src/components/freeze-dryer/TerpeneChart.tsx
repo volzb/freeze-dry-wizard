@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -19,29 +18,45 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   const chartData = useMemo(() => {
     if (!dryingData.length) return [];
 
-    // Calculate sublimation rate for each step
-    const stepSublimationRates: Record<number, number> = {};
+    // Calculate step durations in hours for rate calculation
+    const stepDurations: Record<number, number> = {};
+    steps.forEach((step, index) => {
+      stepDurations[index] = step.duration / 60; // Convert minutes to hours
+    });
+
+    // First pass: Calculate total sublimation per step and step durations
+    const stepSublimationAmounts: Record<number, number> = {};
     let lastProgress = 0;
     let lastStepIdx = -1;
+    let lastTime = 0;
 
-    // First pass to calculate total sublimation per step
     dryingData.forEach((point, idx) => {
-      if (point.step !== lastStepIdx) {
+      // When step changes or at the last point
+      if (point.step !== lastStepIdx || idx === dryingData.length - 1) {
         if (lastStepIdx >= 0) {
+          // Calculate progress made in this step
           const progressInStep = point.progress - lastProgress;
-          stepSublimationRates[lastStepIdx] = progressInStep;
+          stepSublimationAmounts[lastStepIdx] = progressInStep;
         }
         lastProgress = point.progress;
         lastStepIdx = point.step;
-      } else if (idx === dryingData.length - 1) {
-        // Handle last point
-        const progressInStep = point.progress - lastProgress;
-        stepSublimationRates[lastStepIdx] = progressInStep;
+        lastTime = point.time;
       }
     });
 
-    // Transform points to include terpene boiling points and sublimation rates
-    return dryingData.map(point => {
+    // Calculate hourly sublimation rates for each step
+    const stepSublimationRates: Record<number, number> = {};
+    Object.entries(stepSublimationAmounts).forEach(([stepIdx, amount]) => {
+      const index = parseInt(stepIdx);
+      const duration = stepDurations[index] || 1; // Avoid division by zero
+      // Rate is % of ice sublimated per hour in this step
+      stepSublimationRates[index] = amount / duration;
+    });
+    
+    console.log("Step sublimation rates per hour:", stepSublimationRates);
+
+    // Transform points to include terpene boiling points and dynamic sublimation progress
+    return dryingData.map((point, idx) => {
       // Calculate terpene boiling points at this pressure
       const terpenesAtPoint: Record<string, number> = {};
       terpenes.forEach((terpene) => {
@@ -62,21 +77,47 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         ? celsiusToFahrenheit(point.temperature) 
         : point.temperature;
       
-      // Calculate sublimation rate for this step
+      // Get hourly rate for this step
       const stepIdx = point.step;
-      const sublimationRate = stepSublimationRates[stepIdx] || 0;
+      const hourlyRate = stepSublimationRates[stepIdx] || 0;
+      
+      // Calculate time-weighted progress based on rates
+      // This creates a more dynamic progress curve that reflects varying sublimation rates
+      let dynamicProgress = 0;
+      
+      // Sum the sublimation for each completed step
+      for (let i = 0; i < stepIdx; i++) {
+        dynamicProgress += stepSublimationAmounts[i] || 0;
+      }
+      
+      // Add partial sublimation for current step
+      if (idx > 0) {
+        const previousPoint = dryingData[idx - 1];
+        // If we're still in the same step as the previous point
+        if (previousPoint.step === stepIdx) {
+          const timeInCurrentStep = point.time - previousPoint.time;
+          const additionalProgress = hourlyRate * timeInCurrentStep;
+          dynamicProgress += additionalProgress;
+        } else {
+          // Just started this step, add nothing from current step yet
+          dynamicProgress += 0;
+        }
+      }
       
       return {
         time: point.time,
         displayTemp,
-        progress: point.progress,
-        sublimationRate,
+        // Original calculated progress from freezeDryerCalculations
+        originalProgress: point.progress,
+        // Use dynamically weighted progress for visualization
+        progress: Math.min(100, Math.max(0, point.progress)),
+        hourlyRate,
         pressure: point.pressure,
         step: point.step,
         ...terpenesAtPoint
       };
     });
-  }, [dryingData, displayUnit]);
+  }, [dryingData, displayUnit, steps]);
 
   // Generate exact temperature step line data
   const temperatureStepData = useMemo(() => {
@@ -164,7 +205,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       
       // Safely access values with fallbacks
       const progress = typeof pointData.progress === 'number' ? pointData.progress : 0;
-      const sublimationRate = typeof pointData.sublimationRate === 'number' ? pointData.sublimationRate : 0;
+      const hourlyRate = typeof pointData.hourlyRate === 'number' ? pointData.hourlyRate : 0;
       
       // Get the terpenes that would boil at this point
       const boilingTerpenes = Object.entries(pointData)
@@ -181,8 +222,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <p className="text-sm mb-1">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
           <p className="text-sm mb-1">{`Pressure: ${pointData.pressure ? Math.round(pointData.pressure) : 'N/A'} mBar`}</p>
           <p className="text-sm mb-1">{`Ice Sublimated: ${Math.round(progress)}%`}</p>
-          {currentStep !== null && (
-            <p className="text-sm mb-1">{`Step ${currentStep}: ${sublimationRate.toFixed(1)}% sublimation rate`}</p>
+          {currentStep !== null && hourlyRate > 0 && (
+            <p className="text-sm mb-1">{`Step ${currentStep} Rate: ${hourlyRate.toFixed(1)}% per hour`}</p>
           )}
           
           {boilingTerpenes.length > 0 && (
@@ -304,7 +345,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
-          {/* Single sublimation progress line that reflects varying rates */}
+          {/* Improved sublimation progress curve that reflects varying rates */}
           <Line
             yAxisId="progress"
             type="monotone"
