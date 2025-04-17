@@ -67,10 +67,13 @@ export default function FreezeDryerCalculator() {
   ]);
   
   // Default tray size (typical lab freeze dryer tray)
-  const defaultTraySizeCm2 = 500; // 500 cm² (e.g., 22.4cm × 22.4cm)
+  const defaultTrayLength = 22.36; // 22.36 cm
+  const defaultTrayWidth = 22.36; // 22.36 cm
+  const defaultTraySizeCm2 = defaultTrayLength * defaultTrayWidth; // 500 cm²
   const defaultNumberOfTrays = 3;
   const defaultHashPerTray = 0.15; // Default hash per tray in kg
   const defaultWaterPercentage = 75; // Default water percentage
+  const defaultHeatingPowerWatts = 250; // Default heating power in watts per tray
   
   // Calculate initial heat input rate based on defaults
   const initialHeatRate = estimateHeatInputRate(
@@ -84,9 +87,12 @@ export default function FreezeDryerCalculator() {
     iceWeight: 0.5,
     heatInputRate: Math.round(initialHeatRate),
     traySizeCm2: defaultTraySizeCm2,
+    trayLength: defaultTrayLength,
+    trayWidth: defaultTrayWidth,
     numberOfTrays: defaultNumberOfTrays,
     waterPercentage: defaultWaterPercentage,
-    hashPerTray: defaultHashPerTray // Explicitly set the default hashPerTray
+    hashPerTray: defaultHashPerTray,
+    heatingPowerWatts: defaultHeatingPowerWatts
   });
   
   // Selected terpenes to display
@@ -110,17 +116,13 @@ export default function FreezeDryerCalculator() {
         savedSettings.hashPerTray = Number(savedSettings.hashPerTray);
       }
       
-      console.log("Saved hashPerTray value (after number conversion):", savedSettings.hashPerTray);
-      
       // Create a deep copy of saved settings to avoid reference issues
       const savedSettingsCopy = JSON.parse(JSON.stringify(savedSettings));
       
       // Ensure hashPerTray is explicitly handled and converted to a number
       if (savedSettingsCopy.hashPerTray !== undefined) {
         savedSettingsCopy.hashPerTray = Number(savedSettingsCopy.hashPerTray);
-        console.log("Using saved hashPerTray:", savedSettingsCopy.hashPerTray);
       } else {
-        console.log("No hashPerTray in saved settings, using default");
         savedSettingsCopy.hashPerTray = defaultHashPerTray;
       }
       
@@ -129,8 +131,18 @@ export default function FreezeDryerCalculator() {
         savedSettingsCopy.waterPercentage = defaultWaterPercentage;
       }
       
-      console.log("Complete settings after prep:", savedSettingsCopy);
-      console.log("Final hashPerTray value to be set:", savedSettingsCopy.hashPerTray);
+      // Ensure trayLength and trayWidth are explicitly handled
+      if (savedSettingsCopy.trayLength === undefined) {
+        savedSettingsCopy.trayLength = defaultTrayLength;
+      }
+      if (savedSettingsCopy.trayWidth === undefined) {
+        savedSettingsCopy.trayWidth = defaultTrayWidth;
+      }
+      
+      // Ensure heatingPowerWatts is explicitly handled
+      if (savedSettingsCopy.heatingPowerWatts === undefined) {
+        savedSettingsCopy.heatingPowerWatts = defaultHeatingPowerWatts;
+      }
       
       // Make sure steps have IDs
       const completeSteps = savedSteps.map(step => ({
@@ -155,24 +167,31 @@ export default function FreezeDryerCalculator() {
       iceWeight: settings.iceWeight || 0,
       heatInputRate: settings.heatInputRate || 0,
       traySizeCm2: settings.traySizeCm2 || defaultTraySizeCm2,
-      numberOfTrays: settings.numberOfTrays || defaultNumberOfTrays
-    });
-  }, [steps, settings.iceWeight, settings.heatInputRate, settings.traySizeCm2, settings.numberOfTrays]);
+      numberOfTrays: settings.numberOfTrays || defaultNumberOfTrays,
+      trayLength: settings.trayLength || defaultTrayLength,
+      trayWidth: settings.trayWidth || defaultTrayWidth,
+      hashPerTray: settings.hashPerTray || defaultHashPerTray,
+      waterPercentage: settings.waterPercentage || defaultWaterPercentage,
+      heatingPowerWatts: settings.heatingPowerWatts || defaultHeatingPowerWatts
+    } as FreezeDryerSettings);
+  }, [
+    steps, 
+    settings.iceWeight, 
+    settings.heatInputRate, 
+    settings.traySizeCm2, 
+    settings.numberOfTrays,
+    settings.trayLength,
+    settings.trayWidth,
+    settings.hashPerTray,
+    settings.waterPercentage,
+    settings.heatingPowerWatts
+  ]);
   
   // Calculate water weight based on hash per tray, number of trays, and water percentage
   const waterWeight = useMemo(() => {
-    // Ensure hashPerTray has a value
-    console.log("Settings in waterWeight calculation:", settings);
-    console.log("hashPerTray value in calculation:", settings.hashPerTray);
-    
     const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultHashPerTray;
     const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultNumberOfTrays);
     const waterPercentageValue = settings.waterPercentage !== undefined ? settings.waterPercentage : defaultWaterPercentage;
-    
-    // Log values for debugging
-    console.log("Hash per tray used in calculation:", hashPerTrayValue);
-    console.log("Water percentage used in calculation:", waterPercentageValue);
-    console.log("Total hash weight:", totalHashWeight);
     
     return calculateWaterWeight(totalHashWeight, waterPercentageValue);
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
