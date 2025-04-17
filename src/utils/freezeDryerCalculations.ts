@@ -158,6 +158,18 @@ export function calculateProgressCurve(
       temperature: tempC,
       pressure: pressureMbar,
     });
+    
+    // Add a point at the end of this step showing temperature drops to 0
+    // Only add this if there's a next step or if this is the last step
+    if (index < steps.length - 1 || remainingIce <= 0) {
+      points.push({
+        time: accumulatedTime,
+        progress: progress,
+        step: index,
+        temperature: 0, // Temperature drops to 0 after step is complete
+        pressure: 0,    // Pressure also drops to 0
+      });
+    }
   });
   
   // If there's still ice remaining, estimate time to completion with last step settings
@@ -180,6 +192,15 @@ export function calculateProgressCurve(
       step: steps.length - 1,
       temperature: tempC,
       pressure: pressureMbar,
+    });
+    
+    // Add final point with temperature and pressure at 0
+    points.push({
+      time: accumulatedTime,
+      progress: 100,
+      step: steps.length - 1,
+      temperature: 0, // Temperature drops to 0 after process is complete
+      pressure: 0,    // Pressure also drops to 0
     });
   }
   
