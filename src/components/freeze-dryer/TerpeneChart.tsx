@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -76,8 +75,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         time: point.time,
         displayTemp,
         progress: point.progress,
-        sublimationRate: sublimationRate,
-        accumulatedSublimation: accumulatedSublimation, // Add accumulated sublimation rate
+        sublimationRate,
+        accumulatedSublimation,
         pressure: point.pressure,
         step: point.step,
         ...terpenesAtPoint
@@ -168,8 +167,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       // Get current step temperature
       const stepTemp = pointData.displayTemp;
       const currentStep = pointData.step + 1; // Adding 1 for human-readable step number
-      const sublimationRate = pointData.sublimationRate;
-      const accumulatedSublimation = pointData.accumulatedSublimation;
+      
+      // Safely access sublimation rates with fallbacks
+      const sublimationRate = typeof pointData.sublimationRate === 'number' ? pointData.sublimationRate : 0;
+      const accumulatedSublimation = typeof pointData.accumulatedSublimation === 'number' ? pointData.accumulatedSublimation : 0;
       
       // Get the terpenes that would boil at this point
       const boilingTerpenes = Object.entries(pointData)
