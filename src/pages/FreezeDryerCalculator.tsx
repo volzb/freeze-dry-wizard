@@ -23,10 +23,7 @@ import {
 import { InfoIcon } from "lucide-react";
 import { v4 as uuidv4 } from "@/utils/uuid";
 
-// Default values for the calculator - these will be used as initial values
-// and will update when the user saves their settings to localStorage
 const defaultSettings = {
-  // Default tray dimensions (typical lab freeze dryer tray)
   trayLength: 45, // 45 cm
   trayWidth: 20, // 20 cm
   traySizeCm2: 45 * 20, // 900 cm²
@@ -37,7 +34,6 @@ const defaultSettings = {
   iceWeight: 1.25 // Will be recalculated based on hash and water percentage
 };
 
-// Try to load saved defaults from localStorage
 const loadSavedDefaults = (): Partial<FreezeDryerSettings> => {
   try {
     const savedDefaultsString = localStorage.getItem('freezeDryerDefaults');
@@ -52,7 +48,6 @@ const loadSavedDefaults = (): Partial<FreezeDryerSettings> => {
   return defaultSettings;
 };
 
-// Save current settings as defaults
 const saveAsDefaults = (settings: Partial<FreezeDryerSettings>) => {
   try {
     localStorage.setItem('freezeDryerDefaults', JSON.stringify(settings));
@@ -63,25 +58,20 @@ const saveAsDefaults = (settings: Partial<FreezeDryerSettings>) => {
 };
 
 export default function FreezeDryerCalculator() {
-  // Temperature unit for display
   const [displayUnit, setDisplayUnit] = useState<'C' | 'F'>('C');
   const { isAuthenticated, user } = useAuth();
   
-  // Reference to savedSettings component for reloading
   const [savedSettingsKey, setSavedSettingsKey] = useState<number>(0);
   
-  // Load saved defaults when component mounts
   const initialSettings = useMemo(() => loadSavedDefaults(), []);
   
-  // Initialize heat input rate based on first step and loaded defaults
   const initialHeatRate = useMemo(() => estimateHeatInputRate(
     -30, // Initial temperature from first step
     200, // Initial pressure from first step
     ((initialSettings.traySizeCm2 || defaultSettings.traySizeCm2) / 10000) * 
-    (initialSettings.numberOfTrays || defaultSettings.numberOfTrays) // Convert to m²
+    (initialSettings.numberOfTrays || defaultSettings.numberOfTrays)
   ), [initialSettings]);
   
-  // Drying steps
   const [steps, setSteps] = useState<DryingStep[]>([
     {
       id: uuidv4(),
@@ -109,7 +99,6 @@ export default function FreezeDryerCalculator() {
     }
   ]);
   
-  // Calculation settings
   const [settings, setSettings] = useState<Partial<FreezeDryerSettings>>({
     iceWeight: initialSettings.iceWeight || defaultSettings.iceWeight,
     heatInputRate: initialSettings.heatInputRate || Math.round(initialHeatRate),
@@ -122,27 +111,21 @@ export default function FreezeDryerCalculator() {
     heatingPowerWatts: initialSettings.heatingPowerWatts || defaultSettings.heatingPowerWatts
   });
   
-  // Force reload of saved settings when authentication state changes
   useEffect(() => {
-    // Increment key to force component remount/reload when auth state changes
     setSavedSettingsKey(prev => prev + 1);
     console.log("Auth state changed in calculator, triggering saved settings reload");
   }, [isAuthenticated, user]);
   
-  // Save current settings as defaults when they change
   useEffect(() => {
-    // Only save after initial mount to avoid overwriting with empty values
     if (Object.keys(settings).length > 0) {
       saveAsDefaults(settings);
     }
   }, [settings]);
   
-  // Selected terpenes to display
   const [selectedTerpenes, setSelectedTerpenes] = useState<string[]>(
     terpenes.slice(0, 5).map(t => t.name)
   );
   
-  // Load settings and steps
   const handleLoadSavedSettings = (savedSettings: Partial<FreezeDryerSettings>, savedSteps: DryingStep[]) => {
     try {
       console.log("Loading saved settings:", savedSettings);
@@ -153,27 +136,22 @@ export default function FreezeDryerCalculator() {
         return;
       }
       
-      // Force hashPerTray to be a number and log it
       if (savedSettings.hashPerTray !== undefined) {
         savedSettings.hashPerTray = Number(savedSettings.hashPerTray);
       }
       
-      // Create a deep copy of saved settings to avoid reference issues
       const savedSettingsCopy = JSON.parse(JSON.stringify(savedSettings));
       
-      // Ensure hashPerTray is explicitly handled and converted to a number
       if (savedSettingsCopy.hashPerTray !== undefined) {
         savedSettingsCopy.hashPerTray = Number(savedSettingsCopy.hashPerTray);
       } else {
         savedSettingsCopy.hashPerTray = defaultSettings.hashPerTray;
       }
       
-      // Ensure waterPercentage is explicitly handled
       if (savedSettingsCopy.waterPercentage === undefined) {
         savedSettingsCopy.waterPercentage = defaultSettings.waterPercentage;
       }
       
-      // Ensure trayLength and trayWidth are explicitly handled
       if (savedSettingsCopy.trayLength === undefined) {
         savedSettingsCopy.trayLength = defaultSettings.trayLength;
       }
@@ -181,29 +159,24 @@ export default function FreezeDryerCalculator() {
         savedSettingsCopy.trayWidth = defaultSettings.trayWidth;
       }
       
-      // Ensure heatingPowerWatts is explicitly handled
       if (savedSettingsCopy.heatingPowerWatts === undefined) {
         savedSettingsCopy.heatingPowerWatts = defaultSettings.heatingPowerWatts;
       }
       
-      // Make sure steps have IDs
       const completeSteps = savedSteps.map(step => ({
         ...step,
         id: step.id || uuidv4()
       }));
       
-      // Update settings state with the complete settings
       setSettings(savedSettingsCopy);
       setSteps(completeSteps);
       
-      // Save these loaded settings as new defaults
       saveAsDefaults(savedSettingsCopy);
     } catch (error) {
       console.error("Error loading saved settings:", error);
     }
   };
   
-  // Calculate progress curve data
   const progressCurve = useMemo(() => {
     if (!steps.length || !settings.iceWeight) return [] as SubTimePoint[];
     
@@ -232,7 +205,6 @@ export default function FreezeDryerCalculator() {
     settings.heatingPowerWatts
   ]);
   
-  // Calculate water weight based on hash per tray, number of trays, and water percentage
   const waterWeight = useMemo(() => {
     const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultSettings.hashPerTray;
     const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultSettings.numberOfTrays);
@@ -241,7 +213,6 @@ export default function FreezeDryerCalculator() {
     return calculateWaterWeight(totalHashWeight, waterPercentageValue);
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
   
-  // Update ice weight when water weight calculation changes
   useEffect(() => {
     setSettings(prevSettings => ({
       ...prevSettings,
@@ -249,24 +220,11 @@ export default function FreezeDryerCalculator() {
     }));
   }, [waterWeight]);
   
-  // Check for potentially risky conditions
   const riskAssessment = useMemo(() => {
     if (!steps.length) return [];
     
     const risks = [];
     
-    // Check for high hash density
-    const totalArea = (settings.traySizeCm2 || 0) * (settings.numberOfTrays || 1) / 100; // convert to m²
-    const hashDensity = settings.hashPerTray && totalArea ? (settings.hashPerTray * (settings.numberOfTrays || 1) * 1000) / totalArea : 0;
-    
-    if (hashDensity > 3) {
-      risks.push({
-        type: "density",
-        message: `Hash density is ${hashDensity.toFixed(1)} g/m². Values above 3 g/m² may result in uneven drying.`
-      });
-    }
-    
-    // Check water content risks
     if (settings.waterPercentage && settings.waterPercentage > 90) {
       risks.push({
         type: "water",
@@ -274,15 +232,11 @@ export default function FreezeDryerCalculator() {
       });
     }
     
-    // Check temperature and pressure risks
     steps.forEach((step, index) => {
       const tempC = normalizeTemperature(step.temperature, step.tempUnit);
       const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
       
-      // High temperature risk (above 30°C)
       const tempRisk = tempC > 30;
-      
-      // Low pressure risk (below 50 mBar)
       const pressureRisk = pressureMbar < 50;
       
       if (tempRisk || pressureRisk) {
