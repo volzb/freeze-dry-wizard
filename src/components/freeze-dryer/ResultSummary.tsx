@@ -42,7 +42,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   // Find lowest pressure point
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
   
-  // Debug information to verify data
+  // Debug information to verify data and force re-render with correct data
   console.log("ResultSummary - Last Point:", lastPoint);
   console.log("ResultSummary - Completion %:", completedPercent);
   console.log("ResultSummary - Water Weight:", waterWeight);

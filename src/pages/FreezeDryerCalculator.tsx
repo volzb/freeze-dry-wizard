@@ -213,24 +213,35 @@ export default function FreezeDryerCalculator() {
     return calculatedWaterWeight;
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
   
-  const [chartUpdateCounter, setChartUpdateCounter] = useState<number>(0);
-  
+  // Force update iceWeight whenever waterWeight changes
   useEffect(() => {
-    setChartUpdateCounter(prev => prev + 1);
-    console.log("Forcing chart update due to settings change", { waterWeight, numberOfTrays: settings.numberOfTrays });
-  }, [waterWeight, settings.numberOfTrays, settings.hashPerTray, settings.waterPercentage, settings.heatingPowerWatts]);
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      iceWeight: waterWeight
+    }));
+  }, [waterWeight]);
+  
+  // Explicitly create a state for force updating charts
+  const [chartUpdateKey, setChartUpdateKey] = useState<number>(0);
+  
+  // Force chart update whenever relevant settings change
+  useEffect(() => {
+    setChartUpdateKey(prev => prev + 1);
+  }, [waterWeight, settings.numberOfTrays, settings.heatingPowerWatts]);
   
   const progressCurve = useMemo(() => {
     if (!steps.length || waterWeight <= 0) return [] as SubTimePoint[];
     
-    const uniqueKey = `${waterWeight.toFixed(5)}-${settings.numberOfTrays || 0}-${settings.heatingPowerWatts || 0}-${chartUpdateCounter}`;
+    // Include all key dependencies in the unique key string
+    const uniqueKey = `${waterWeight.toFixed(5)}-${settings.numberOfTrays || 0}-${settings.heatingPowerWatts || 0}-${chartUpdateKey}`;
     
     console.log("Recalculating progress curve with key:", uniqueKey);
     console.log("Current water weight:", waterWeight, "kg");
     
+    // Create a deep copy of settings to ensure it's not affected by reference issues
     const calculationSettings: FreezeDryerSettings = {
       steps: [...steps],
-      iceWeight: waterWeight,
+      iceWeight: waterWeight, // Use the latest waterWeight directly
       heatInputRate: settings.heatInputRate || 0,
       traySizeCm2: settings.traySizeCm2 || defaultSettings.traySizeCm2,
       numberOfTrays: settings.numberOfTrays || defaultSettings.numberOfTrays,
@@ -253,7 +264,8 @@ export default function FreezeDryerCalculator() {
     settings.hashPerTray,
     settings.waterPercentage,
     settings.heatingPowerWatts,
-    chartUpdateCounter
+    forceUpdateKey,
+    chartUpdateKey // Add explicit chart update key
   ]);
   
   const riskAssessment = useMemo(() => {
@@ -303,15 +315,16 @@ export default function FreezeDryerCalculator() {
     });
     
     return risks;
-  }, [steps, settings.waterPercentage, progressCurve]);
+  }, [steps, settings.hashPerTray, settings.traySizeCm2, settings.numberOfTrays, settings.waterPercentage, progressCurve]);
   
   const [terpeneGuideUnit, setTerpeneGuideUnit] = useState<'C' | 'F'>('C');
   
+  // Log for debugging
   console.log("FreezeDryerCalculator render with:", {
     waterWeight,
     numberOfTrays: settings.numberOfTrays,
     progressCurveLength: progressCurve.length,
-    chartUpdateCounter
+    chartUpdateKey
   });
   
   return (
@@ -373,7 +386,7 @@ export default function FreezeDryerCalculator() {
                   </div>
                   
                   <TerpeneChart 
-                    key={`terpene-chart-${chartUpdateCounter}`}
+                    key={`chart-${chartUpdateKey}-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
                     dryingData={progressCurve}
                     steps={steps}
                     displayUnit={displayUnit}
@@ -404,7 +417,7 @@ export default function FreezeDryerCalculator() {
           
           <div className="space-y-6">
             <ResultSummary 
-              key={`result-summary-${chartUpdateCounter}`}
+              key={`summary-${chartUpdateKey}-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
               progressCurve={progressCurve}
               displayUnit={displayUnit}
               waterWeight={waterWeight}
