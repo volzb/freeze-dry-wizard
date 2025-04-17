@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSupabaseInitialized } from "@/lib/supabase";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,6 +18,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const supabaseAvailable = isSupabaseInitialized();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +44,16 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!supabaseAvailable && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Authentication Unavailable</AlertTitle>
+              <AlertDescription>
+                Supabase credentials are not configured. Please set up proper environment variables.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -73,7 +87,7 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || !supabaseAvailable}
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>

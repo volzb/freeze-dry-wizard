@@ -1,17 +1,22 @@
 
 import { createClient } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 // Replace these with your actual Supabase URL and anon key
-// If environment variables aren't available, use fallback values for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://your-project-id.supabase.co";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "your-anon-key";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
-// Ensure we have valid values for the client
-if (!supabaseUrl.includes("supabase.co") || supabaseAnonKey === "your-anon-key") {
-  console.warn("Using placeholder Supabase credentials. Please set proper environment variables.");
+// Check if the credentials are available
+const hasValidCredentials = supabaseUrl && supabaseAnonKey;
+
+if (!hasValidCredentials) {
+  console.warn("Missing Supabase credentials. Authentication features will not work.");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create the Supabase client only if we have valid credentials
+export const supabase = hasValidCredentials 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 // Define database types
 export type FreezeDryerConfig = {
@@ -22,4 +27,9 @@ export type FreezeDryerConfig = {
   steps: any[];
   created_at: string;
   updated_at: string;
+};
+
+// Helper function to check if Supabase is correctly initialized
+export const isSupabaseInitialized = () => {
+  return !!supabase;
 };

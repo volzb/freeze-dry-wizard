@@ -1,6 +1,5 @@
-
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseInitialized } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
@@ -30,6 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   
   useEffect(() => {
+    if (!isSupabaseInitialized()) {
+      console.warn("Supabase is not initialized. Authentication features will not work.");
+      return;
+    }
+
     // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
@@ -79,6 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveConfigurationToStorage = async (userId: string, configurations: any[]) => {
+    if (!isSupabaseInitialized()) {
+      toast.error("Authentication is not available. Please set up Supabase credentials.");
+      return;
+    }
+
     try {
       if (!userId || userId === 'anonymous') {
         console.log("Not saving configurations for anonymous user");
@@ -140,6 +149,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getConfigurationsFromStorage = async (userId: string) => {
+    if (!isSupabaseInitialized()) {
+      toast.error("Authentication is not available. Please set up Supabase credentials.");
+      return [];
+    }
+
     try {
       if (!userId || userId === 'anonymous') {
         console.log("Not loading configurations for anonymous user");
@@ -199,6 +213,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
+    if (!isSupabaseInitialized()) {
+      toast.error("Authentication is not available. Please set up Supabase credentials.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -220,6 +239,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const loginWithApple = async () => {
+    if (!isSupabaseInitialized()) {
+      toast.error("Authentication is not available. Please set up Supabase credentials.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
@@ -242,6 +266,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const register = async (email: string, password: string, name: string) => {
+    if (!isSupabaseInitialized()) {
+      toast.error("Authentication is not available. Please set up Supabase credentials.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -268,6 +297,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    if (!isSupabaseInitialized()) {
+      toast.error("Authentication is not available. Please set up Supabase credentials.");
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signOut();
       

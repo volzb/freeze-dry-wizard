@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSupabaseInitialized } from "@/lib/supabase";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -16,6 +19,7 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { register } = useAuth();
+  const supabaseAvailable = isSupabaseInitialized();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +45,16 @@ export default function Register() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!supabaseAvailable && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Authentication Unavailable</AlertTitle>
+              <AlertDescription>
+                Supabase credentials are not configured. Please set up proper environment variables.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
@@ -77,7 +91,7 @@ export default function Register() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || !supabaseAvailable}
             >
               {isLoading ? "Creating account..." : "Create account"}
             </Button>
@@ -95,4 +109,3 @@ export default function Register() {
     </div>
   );
 }
-
