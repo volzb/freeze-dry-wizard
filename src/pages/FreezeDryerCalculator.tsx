@@ -37,7 +37,7 @@ const defaultSettings = {
 
 const defaultDryingSteps: DryingStep[] = [
   {
-    id: uuidv4(),
+    id: "61521471-d2bc-4f08-a723-4512a48599da",
     temperature: -20,
     pressure: 0.1,
     duration: 300,
@@ -45,7 +45,7 @@ const defaultDryingSteps: DryingStep[] = [
     pressureUnit: 'mBar' as 'mBar' | 'Torr'
   },
   {
-    id: uuidv4(),
+    id: "5d37bf6e-061b-481a-a620-ef7856c1f3a1",
     temperature: -10,
     pressure: 0.25,
     duration: 180,
@@ -53,10 +53,26 @@ const defaultDryingSteps: DryingStep[] = [
     pressureUnit: 'mBar' as 'mBar' | 'Torr'
   },
   {
-    id: uuidv4(),
+    id: "85c4f7e4-f38f-4a99-be17-dc5840eb9952",
     temperature: 3,
     pressure: 0.23,
     duration: 180,
+    tempUnit: 'C' as 'C' | 'F',
+    pressureUnit: 'mBar' as 'mBar' | 'Torr'
+  },
+  {
+    id: "0c819d88-3f11-440b-94d6-830eeb5d1004",
+    temperature: 4,
+    pressure: 3,
+    duration: 60,
+    tempUnit: 'C' as 'C' | 'F',
+    pressureUnit: 'mBar' as 'mBar' | 'Torr'
+  },
+  {
+    id: "ad16ed28-921f-4995-a7aa-1c6f1ec00f0f",
+    temperature: 5,
+    pressure: 0.2,
+    duration: 60,
     tempUnit: 'C' as 'C' | 'F',
     pressureUnit: 'mBar' as 'mBar' | 'Torr'
   }
