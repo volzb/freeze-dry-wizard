@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -135,6 +134,19 @@ export function CalculationSettings({
     onSettingsChange(updatedSettings);
   };
   
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<number | ''>>) => {
+    const value = e.target.value;
+    if (value === '') {
+      setter('');
+    } else {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        setter(numValue);
+      }
+    }
+  };
+  
   // Calculate summarized values
   const totalHashWeight = (hashPerTray !== '' && numberOfTrays !== '') ? hashPerTray * numberOfTrays : 0;
   const totalWaterWeight = (hashPerTray !== '' && waterPercentage !== '' && numberOfTrays !== '') ? 
@@ -162,10 +174,9 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="trayLength"
-                  type="text"
-                  value={formatNumber(trayLength)}
-                  readOnly
-                  className="bg-muted cursor-not-allowed"
+                  type="number"
+                  value={trayLength === '' ? '' : trayLength}
+                  onChange={(e) => handleInputChange(e, setTrayLength)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
               </div>
@@ -176,10 +187,9 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="trayWidth"
-                  type="text"
-                  value={formatNumber(trayWidth)}
-                  readOnly
-                  className="bg-muted cursor-not-allowed"
+                  type="number"
+                  value={trayWidth === '' ? '' : trayWidth}
+                  onChange={(e) => handleInputChange(e, setTrayWidth)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
               </div>
@@ -192,10 +202,9 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="numberOfTrays"
-                  type="text"
-                  value={numberOfTrays !== '' ? String(numberOfTrays) : '0'}
-                  readOnly
-                  className="bg-muted cursor-not-allowed"
+                  type="number"
+                  value={numberOfTrays === '' ? '' : numberOfTrays}
+                  onChange={(e) => handleInputChange(e, setNumberOfTrays)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">trays</span>
               </div>
@@ -206,10 +215,9 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="heatingPowerWatts"
-                  type="text"
-                  value={heatingPowerWatts !== '' ? String(heatingPowerWatts) : '0'}
-                  readOnly
-                  className="bg-muted cursor-not-allowed"
+                  type="number"
+                  value={heatingPowerWatts === '' ? '' : heatingPowerWatts}
+                  onChange={(e) => handleInputChange(e, setHeatingPowerWatts)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-16">watts</span>
               </div>
@@ -226,10 +234,10 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="hashPerTray"
-                  type="text"
-                  value={formatNumber(hashPerTray)}
-                  readOnly
-                  className="bg-muted cursor-not-allowed"
+                  type="number"
+                  value={hashPerTray === '' ? '' : hashPerTray}
+                  onChange={(e) => handleInputChange(e, setHashPerTray)}
+                  step="0.01"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">kg</span>
               </div>
@@ -240,10 +248,9 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="waterPercentage"
-                  type="text"
-                  value={waterPercentage !== '' ? String(waterPercentage) : '0'}
-                  readOnly
-                  className="bg-muted cursor-not-allowed"
+                  type="number"
+                  value={waterPercentage === '' ? '' : waterPercentage}
+                  onChange={(e) => handleInputChange(e, setWaterPercentage)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">%</span>
               </div>
