@@ -19,3 +19,23 @@ export type FreezeDryerConfig = {
 export const isSupabaseInitialized = () => {
   return !!supabase;
 };
+
+// Create a SQL migration first to ensure the table exists
+export const ensureFreezeDryerConfigTable = async () => {
+  try {
+    // Check if the table exists
+    const { error } = await supabase
+      .from('freeze_dryer_configs')
+      .select('id')
+      .limit(1);
+    
+    // If there's no error, the table exists
+    if (!error) return true;
+    
+    console.log("freeze_dryer_configs table may not exist");
+    return false;
+  } catch (e) {
+    console.error("Error checking freeze_dryer_configs table:", e);
+    return false;
+  }
+};
