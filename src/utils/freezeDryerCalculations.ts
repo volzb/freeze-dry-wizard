@@ -101,6 +101,9 @@ export function calculateProgressCurve(
   console.log("Calculating Progress Curve", { 
     stepsCount: steps?.length,
     iceWeight: iceWeight,
+    numberOfTrays: settings.numberOfTrays,
+    hashPerTray: settings.hashPerTray,
+    waterPercentage: settings.waterPercentage,
     steps: steps.map(step => ({
       temperature: step.temperature,
       tempUnit: step.tempUnit,

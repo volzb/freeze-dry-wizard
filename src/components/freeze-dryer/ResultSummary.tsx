@@ -41,9 +41,14 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   // Find lowest pressure point
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
   
-  // Debug information to verify data
+  // Debug information to verify data and force re-render with correct data
   console.log("ResultSummary - Last Point:", lastPoint);
   console.log("ResultSummary - Completion %:", completedPercent);
+  console.log("ResultSummary - Water Weight:", waterWeight);
+  
+  // Calculate the actual water weight removed based on completion percentage
+  const actualWaterRemoved = waterWeight !== undefined ? 
+    (waterWeight * (completedPercent / 100)) : undefined;
   
   return (
     <Card>
@@ -93,7 +98,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
             
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Water Removed</p>
-              <p className="text-2xl font-bold">{waterWeight.toFixed(3)} kg</p>
+              <p className="text-2xl font-bold">{actualWaterRemoved !== undefined ? actualWaterRemoved.toFixed(3) : '0'} kg</p>
             </div>
           </div>
         )}
