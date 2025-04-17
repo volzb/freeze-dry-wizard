@@ -202,34 +202,6 @@ export default function FreezeDryerCalculator() {
     }
   };
   
-  const progressCurve = useMemo(() => {
-    if (!steps.length || !settings.iceWeight) return [] as SubTimePoint[];
-    
-    return calculateProgressCurve({
-      steps,
-      iceWeight: settings.iceWeight || 0,
-      heatInputRate: settings.heatInputRate || 0,
-      traySizeCm2: settings.traySizeCm2 || defaultSettings.traySizeCm2,
-      numberOfTrays: settings.numberOfTrays || defaultSettings.numberOfTrays,
-      trayLength: settings.trayLength || defaultSettings.trayLength,
-      trayWidth: settings.trayWidth || defaultSettings.trayWidth,
-      hashPerTray: settings.hashPerTray || defaultSettings.hashPerTray,
-      waterPercentage: settings.waterPercentage || defaultSettings.waterPercentage,
-      heatingPowerWatts: settings.heatingPowerWatts || defaultSettings.heatingPowerWatts
-    } as FreezeDryerSettings);
-  }, [
-    steps, 
-    settings.iceWeight, 
-    settings.heatInputRate, 
-    settings.traySizeCm2, 
-    settings.numberOfTrays,
-    settings.trayLength,
-    settings.trayWidth,
-    settings.hashPerTray,
-    settings.waterPercentage,
-    settings.heatingPowerWatts
-  ]);
-  
   const waterWeight = useMemo(() => {
     const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultSettings.hashPerTray;
     const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultSettings.numberOfTrays);
@@ -244,6 +216,34 @@ export default function FreezeDryerCalculator() {
       iceWeight: waterWeight
     }));
   }, [waterWeight]);
+  
+  const progressCurve = useMemo(() => {
+    if (!steps.length || waterWeight <= 0) return [] as SubTimePoint[];
+    
+    return calculateProgressCurve({
+      steps,
+      iceWeight: waterWeight,
+      heatInputRate: settings.heatInputRate || 0,
+      traySizeCm2: settings.traySizeCm2 || defaultSettings.traySizeCm2,
+      numberOfTrays: settings.numberOfTrays || defaultSettings.numberOfTrays,
+      trayLength: settings.trayLength || defaultSettings.trayLength,
+      trayWidth: settings.trayWidth || defaultSettings.trayWidth,
+      hashPerTray: settings.hashPerTray || defaultSettings.hashPerTray,
+      waterPercentage: settings.waterPercentage || defaultSettings.waterPercentage,
+      heatingPowerWatts: settings.heatingPowerWatts || defaultSettings.heatingPowerWatts
+    } as FreezeDryerSettings);
+  }, [
+    steps, 
+    waterWeight,
+    settings.heatInputRate, 
+    settings.traySizeCm2, 
+    settings.numberOfTrays,
+    settings.trayLength,
+    settings.trayWidth,
+    settings.hashPerTray,
+    settings.waterPercentage,
+    settings.heatingPowerWatts
+  ]);
   
   const riskAssessment = useMemo(() => {
     if (!steps.length) return [];
