@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,10 @@ export default function Login() {
       // In a real app, this would send the credentials to a backend
       // For now, we'll simulate a successful login
       setTimeout(() => {
+        const userId = crypto.randomUUID();
+        
         login({
-          id: crypto.randomUUID(),
+          id: userId,
           email,
           name: email.split('@')[0],
           authProvider: 'email'
@@ -47,8 +50,10 @@ export default function Login() {
     try {
       // Simulated Apple login
       setTimeout(() => {
+        const userId = crypto.randomUUID();
+        
         login({
-          id: crypto.randomUUID(),
+          id: userId,
           name: "Apple User",
           authProvider: 'apple'
         });

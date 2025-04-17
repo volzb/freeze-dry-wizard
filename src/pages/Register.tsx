@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,10 @@ export default function Register() {
       // In a real app, this would create a new account in the backend
       // For now, we'll simulate a successful registration
       setTimeout(() => {
+        const userId = crypto.randomUUID();
+        
         login({
-          id: crypto.randomUUID(),
+          id: userId,
           email,
           name,
           authProvider: 'email'
@@ -48,8 +51,10 @@ export default function Register() {
     try {
       // Simulated Apple signup
       setTimeout(() => {
+        const userId = crypto.randomUUID();
+        
         login({
-          id: crypto.randomUUID(),
+          id: userId,
           name: "Apple User",
           authProvider: 'apple'
         });

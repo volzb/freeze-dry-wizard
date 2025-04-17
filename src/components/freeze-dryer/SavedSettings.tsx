@@ -38,6 +38,9 @@ interface SavedSettingsProps {
   onLoadSettings: (settings: Partial<FreezeDryerSettings>, steps: DryingStep[]) => void;
 }
 
+// Key used to store freeze dryer configurations in localStorage
+const STORAGE_PREFIX = 'freezedryer-configs-';
+
 export function SavedSettings({
   currentSettings,
   currentSteps,
@@ -51,18 +54,23 @@ export function SavedSettings({
 
   // Load saved configurations from localStorage
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const savedConfigsStr = localStorage.getItem(`freezedryer-configs-${user.id}`);
-      if (savedConfigsStr) {
-        try {
-          const configs = JSON.parse(savedConfigsStr);
-          setSavedConfigs(configs);
-        } catch (error) {
-          console.error("Error loading saved configurations:", error);
-        }
+    // Load configurations regardless of user being logged in
+    loadSavedConfigurations();
+  }, [isAuthenticated, user]);
+
+  const loadSavedConfigurations = () => {
+    const userId = user?.id || 'anonymous';
+    const savedConfigsStr = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
+    
+    if (savedConfigsStr) {
+      try {
+        const configs = JSON.parse(savedConfigsStr);
+        setSavedConfigs(configs);
+      } catch (error) {
+        console.error("Error loading saved configurations:", error);
       }
     }
-  }, [isAuthenticated, user]);
+  };
 
   const handleSaveConfig = () => {
     if (!configName.trim()) {
@@ -85,10 +93,11 @@ export function SavedSettings({
     const updatedConfigs = [...savedConfigs, newConfig];
     setSavedConfigs(updatedConfigs);
 
-    // Save to localStorage
-    if (user) {
-      localStorage.setItem(`freezedryer-configs-${user.id}`, JSON.stringify(updatedConfigs));
-    }
+    // Get the current user ID or use 'anonymous' for non-authenticated sessions
+    const userId = user?.id || 'anonymous';
+    
+    // Save to localStorage using the appropriate key
+    localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(updatedConfigs));
 
     // Reset and close dialog
     setConfigName("");
@@ -106,10 +115,11 @@ export function SavedSettings({
     const updatedConfigs = savedConfigs.filter(config => config.id !== id);
     setSavedConfigs(updatedConfigs);
     
-    // Save to localStorage
-    if (user) {
-      localStorage.setItem(`freezedryer-configs-${user.id}`, JSON.stringify(updatedConfigs));
-    }
+    // Get the current user ID or use 'anonymous' for non-authenticated sessions
+    const userId = user?.id || 'anonymous';
+    
+    // Save the updated configs to localStorage
+    localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(updatedConfigs));
     
     toast.success("Configuration deleted");
   };

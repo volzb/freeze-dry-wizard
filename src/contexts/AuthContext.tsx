@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // We're not going to delete saved configurations when logging out
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('user');
