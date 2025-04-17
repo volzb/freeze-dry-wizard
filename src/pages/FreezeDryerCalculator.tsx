@@ -385,6 +385,9 @@ export default function FreezeDryerCalculator() {
               <CardContent className="p-4">
                 <div className="text-sm space-y-1">
                   <p className="font-semibold">Terpene Boiling Points (at atmospheric pressure):</p>
+                  <p className="text-muted-foreground text-xs mb-2">
+                    All temperatures are measured at standard atmospheric pressure (1013.25 mbar)
+                  </p>
                   <ul className="space-y-1 text-sm">
                     {terpenes.map((terpene) => (
                       <li key={terpene.name} className="flex justify-between items-center">
