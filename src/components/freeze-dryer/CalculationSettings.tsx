@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   FreezeDryerSettings, 
   calculateWaterWeight 
@@ -21,15 +20,11 @@ import { Badge } from "@/components/ui/badge";
 interface CalculationSettingsProps {
   settings: Partial<FreezeDryerSettings>;
   onSettingsChange: (settings: Partial<FreezeDryerSettings>) => void;
-  displayUnit: 'C' | 'F';
-  onDisplayUnitChange: (unit: 'C' | 'F') => void;
 }
 
 export function CalculationSettings({ 
   settings, 
-  onSettingsChange,
-  displayUnit,
-  onDisplayUnitChange
+  onSettingsChange 
 }: CalculationSettingsProps) {
   
   const [trayLength, setTrayLength] = useState<number>(settings.trayLength || 22.36);
@@ -41,6 +36,14 @@ export function CalculationSettings({
   
   // Update local state when settings change (e.g., when loading saved config)
   useEffect(() => {
+    if (settings.trayLength !== undefined) {
+      setTrayLength(settings.trayLength);
+    }
+    
+    if (settings.trayWidth !== undefined) {
+      setTrayWidth(settings.trayWidth);
+    }
+    
     if (settings.hashPerTray !== undefined) {
       const numericValue = Number(settings.hashPerTray);
       if (!isNaN(numericValue)) {
@@ -58,14 +61,6 @@ export function CalculationSettings({
     
     if (settings.numberOfTrays !== undefined) {
       setNumberOfTrays(settings.numberOfTrays);
-    }
-    
-    if (settings.trayLength !== undefined) {
-      setTrayLength(settings.trayLength);
-    }
-    
-    if (settings.trayWidth !== undefined) {
-      setTrayWidth(settings.trayWidth);
     }
   }, [settings]);
   
@@ -96,15 +91,8 @@ export function CalculationSettings({
   
   // Calculate heat input rate based on heating power
   useEffect(() => {
-    const tempC = 
-      settings.steps && settings.steps.length > 0 
-        ? settings.steps[0].temperature
-        : 20;
-        
-    const pressureMbar = 
-      settings.steps && settings.steps.length > 0 
-        ? settings.steps[0].pressure
-        : 300;
+    const tempC = 20; // Default temperature
+    const pressureMbar = 300; // Default pressure
     
     // Update heating power
     handleSettingChange("heatingPowerWatts", heatingPowerWatts);
@@ -120,11 +108,7 @@ export function CalculationSettings({
     );
     handleSettingChange("heatInputRate", Math.round(heatRate));
     
-  }, [
-    heatingPowerWatts,
-    numberOfTrays,
-    settings.steps,
-  ]);
+  }, [heatingPowerWatts, numberOfTrays]);
   
   const handleSettingChange = (field: keyof FreezeDryerSettings, value: any) => {
     // Ensure value is valid
@@ -360,26 +344,6 @@ export function CalculationSettings({
               </div>
             </div>
           </div>
-        </div>
-        
-        <Separator />
-        
-        <div className="space-y-2">
-          <Label>Temperature Display Unit</Label>
-          <RadioGroup 
-            value={displayUnit} 
-            onValueChange={(value) => onDisplayUnitChange(value as 'C' | 'F')} 
-            className="flex space-x-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="C" id="celsius" />
-              <Label htmlFor="celsius">Celsius (°C)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="F" id="fahrenheit" />
-              <Label htmlFor="fahrenheit">Fahrenheit (°F)</Label>
-            </div>
-          </RadioGroup>
         </div>
       </CardContent>
     </Card>
