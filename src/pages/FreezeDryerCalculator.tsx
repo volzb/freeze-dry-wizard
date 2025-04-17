@@ -96,14 +96,19 @@ export default function FreezeDryerCalculator() {
         return;
       }
       
-      // Log the hashPerTray value specifically
-      console.log("Saved hashPerTray value:", savedSettings.hashPerTray);
+      // Force hashPerTray to be a number and log it
+      if (savedSettings.hashPerTray !== undefined) {
+        savedSettings.hashPerTray = Number(savedSettings.hashPerTray);
+      }
+      
+      console.log("Saved hashPerTray value (after number conversion):", savedSettings.hashPerTray);
       
       // Create a deep copy of saved settings to avoid reference issues
-      const savedSettingsCopy = structuredClone(savedSettings);
+      const savedSettingsCopy = JSON.parse(JSON.stringify(savedSettings));
       
-      // Ensure hashPerTray is explicitly handled
+      // Ensure hashPerTray is explicitly handled and converted to a number
       if (savedSettingsCopy.hashPerTray !== undefined) {
+        savedSettingsCopy.hashPerTray = Number(savedSettingsCopy.hashPerTray);
         console.log("Using saved hashPerTray:", savedSettingsCopy.hashPerTray);
       } else {
         console.log("No hashPerTray in saved settings, using default");

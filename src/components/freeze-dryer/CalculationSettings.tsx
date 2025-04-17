@@ -39,14 +39,17 @@ export function CalculationSettings({
   const [selectedModel, setSelectedModel] = useState<string>("custom");
   const [trayLength, setTrayLength] = useState<number>(22.36);
   const [trayWidth, setTrayWidth] = useState<number>(22.36);
-  const [hashPerTray, setHashPerTray] = useState<number>(settings.hashPerTray || 0.15); // Initialize from settings
-  const [waterPercentage, setWaterPercentage] = useState<number>(settings.waterPercentage || 75); // Initialize from settings
+  const [hashPerTray, setHashPerTray] = useState<number>(settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : 0.15);
+  const [waterPercentage, setWaterPercentage] = useState<number>(settings.waterPercentage || 75);
   
   // Update local state when settings change (e.g., when loading saved config)
   useEffect(() => {
     if (settings.hashPerTray !== undefined) {
-      console.log("Updating hashPerTray from settings:", settings.hashPerTray);
-      setHashPerTray(settings.hashPerTray);
+      const numericValue = Number(settings.hashPerTray);
+      console.log("Updating hashPerTray from settings:", settings.hashPerTray, "as number:", numericValue);
+      if (!isNaN(numericValue)) {
+        setHashPerTray(numericValue);
+      }
     }
     
     if (settings.waterPercentage !== undefined) {
@@ -94,6 +97,12 @@ export function CalculationSettings({
     if (value === null || value === undefined || (typeof value === 'number' && isNaN(value))) {
       console.error(`Invalid value for ${field}:`, value);
       return;
+    }
+    
+    // Handle numeric conversion for specific fields
+    if (field === 'hashPerTray') {
+      value = Number(value);
+      console.log(`Converting ${field} to number:`, value);
     }
     
     // Log the change for debugging
@@ -190,7 +199,10 @@ export function CalculationSettings({
                     onChange={(e) => {
                       const value = parseFloat(e.target.value);
                       console.log("Setting hashPerTray to:", value);
-                      setHashPerTray(value);
+                      if (!isNaN(value)) {
+                        setHashPerTray(value);
+                        handleSettingChange("hashPerTray", value);
+                      }
                     }}
                     placeholder="0.15"
                     step="0.05"
@@ -207,7 +219,11 @@ export function CalculationSettings({
                     id="waterPercentage"
                     type="number"
                     value={waterPercentage || ""}
-                    onChange={(e) => setWaterPercentage(parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      setWaterPercentage(value);
+                      handleSettingChange("waterPercentage", value);
+                    }}
                     placeholder="75"
                     min="1"
                     max="99"

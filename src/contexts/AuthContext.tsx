@@ -57,8 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           config.settings = {};
         }
         
-        // Explicitly ensure hashPerTray exists for each configuration
+        // Explicitly ensure hashPerTray exists for each configuration and is a number
         if (config.settings.hashPerTray !== undefined) {
+          // Convert to number to ensure consistent type
+          config.settings.hashPerTray = Number(config.settings.hashPerTray);
           // Explicitly log the hashPerTray value before saving
           console.log(`Config '${config.name}' hashPerTray before save:`, config.settings.hashPerTray);
         } else {
@@ -111,8 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Log the hashPerTray value we're loading
           console.log(`Loading hashPerTray for config '${fullConfig.name}':`, fullConfig.settings.hashPerTray);
           
-          // Ensure hashPerTray exists
-          if (fullConfig.settings.hashPerTray === undefined) {
+          // Ensure hashPerTray exists and is a number
+          if (fullConfig.settings.hashPerTray !== undefined) {
+            fullConfig.settings.hashPerTray = Number(fullConfig.settings.hashPerTray);
+          } else {
             console.log(`Setting default hashPerTray for config '${fullConfig.name}' during load`);
             fullConfig.settings.hashPerTray = 0.15;
           }

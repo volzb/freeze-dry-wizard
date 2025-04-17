@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,18 +84,24 @@ export function SavedSettings({
       const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
       const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
       
-      // Explicitly ensure hashPerTray is saved
+      // Explicitly log hashPerTray value we're saving
+      console.log("Current hashPerTray before save:", currentSettings.hashPerTray);
+      
+      // Ensure hashPerTray is properly set in the settings copy
       if (currentSettings.hashPerTray !== undefined) {
-        console.log("Saving explicit hashPerTray value:", currentSettings.hashPerTray);
-        settingsCopy.hashPerTray = currentSettings.hashPerTray;
+        console.log("Setting explicit hashPerTray value for save:", currentSettings.hashPerTray);
+        settingsCopy.hashPerTray = Number(currentSettings.hashPerTray);
       } else {
         console.log("Setting default hashPerTray value in save");
         settingsCopy.hashPerTray = 0.15; // Default value
       }
       
+      // Force numeric conversion to ensure we have a proper number
+      settingsCopy.hashPerTray = Number(settingsCopy.hashPerTray);
+      
       // Ensure waterPercentage is explicitly saved
       if (currentSettings.waterPercentage !== undefined) {
-        settingsCopy.waterPercentage = currentSettings.waterPercentage;
+        settingsCopy.waterPercentage = Number(currentSettings.waterPercentage);
       } else {
         settingsCopy.waterPercentage = 75; // Default value
       }
@@ -154,14 +161,18 @@ export function SavedSettings({
       const settingsCopy = JSON.parse(JSON.stringify(config.settings || {}));
       const stepsCopy = JSON.parse(JSON.stringify(config.steps || []));
       
-      // Ensure hashPerTray is present
+      // Ensure hashPerTray is present and properly converted to a number
       if (config.settings.hashPerTray !== undefined) {
         console.log("Loading saved hashPerTray value:", config.settings.hashPerTray);
-        settingsCopy.hashPerTray = config.settings.hashPerTray;
+        settingsCopy.hashPerTray = Number(config.settings.hashPerTray);
       } else {
         console.warn("hashPerTray is missing in saved configuration, using default");
         settingsCopy.hashPerTray = 0.15; // Default value
       }
+      
+      // Force numeric conversion to ensure we have a proper number
+      settingsCopy.hashPerTray = Number(settingsCopy.hashPerTray);
+      console.log("Final hashPerTray value after load processing:", settingsCopy.hashPerTray);
       
       // Ensure waterPercentage is present
       if (config.settings.waterPercentage === undefined) {
