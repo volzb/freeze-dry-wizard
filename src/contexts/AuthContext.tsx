@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (anonymousSettings) {
         // Save anonymous settings to the user's storage
         localStorage.setItem(`freezedryer-configs-${userId}`, anonymousSettings);
+        console.log('Migrated anonymous settings to user account', userId);
       }
     } catch (error) {
       console.error('Error migrating anonymous settings:', error);

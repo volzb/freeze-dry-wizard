@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -52,26 +52,31 @@ export function SavedSettings({
   const [configName, setConfigName] = useState("");
   const { isAuthenticated, user } = useAuth();
 
-  // Load saved configurations from localStorage
+  // Load saved configurations from localStorage when component mounts and when auth state changes
   useEffect(() => {
+    console.log("Auth state changed, loading configurations. User:", user?.id || "anonymous");
     loadSavedConfigurations();
   }, [isAuthenticated, user]);
 
   const loadSavedConfigurations = () => {
     // Get the current user ID or use 'anonymous' for non-authenticated sessions
     const userId = user?.id || 'anonymous';
+    const storageKey = `${STORAGE_PREFIX}${userId}`;
     
-    const savedConfigsStr = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
+    console.log(`Loading configurations from ${storageKey}`);
+    const savedConfigsStr = localStorage.getItem(storageKey);
     
     if (savedConfigsStr) {
       try {
         const configs = JSON.parse(savedConfigsStr);
+        console.log(`Found ${configs.length} saved configurations`);
         setSavedConfigs(configs);
       } catch (error) {
         console.error("Error loading saved configurations:", error);
         setSavedConfigs([]);
       }
     } else {
+      console.log("No saved configurations found");
       setSavedConfigs([]);
     }
   };
@@ -141,6 +146,9 @@ export function SavedSettings({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Save Configuration</DialogTitle>
+              <DialogDescription>
+                Save your current freeze dryer settings to access them later.
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <Label htmlFor="configName">Configuration Name</Label>
