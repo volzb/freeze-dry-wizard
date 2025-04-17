@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Apple } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,7 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, loginWithApple } = useAuth();
+  const { login } = useAuth();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,19 +30,6 @@ export default function Login() {
     }
   };
 
-  const handleAppleLogin = async () => {
-    setIsLoading(true);
-
-    try {
-      await loginWithApple();
-      // Navigation will happen after the OAuth redirect
-    } catch (error) {
-      console.error("Apple login error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="container flex items-center justify-center min-h-screen py-10">
       <Card className="w-full max-w-md">
@@ -54,27 +40,6 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            variant="outline"
-            className="w-full border-gray-300"
-            onClick={handleAppleLogin}
-            disabled={isLoading}
-          >
-            <Apple className="mr-2 h-4 w-4" />
-            Sign in with Apple
-          </Button>
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
