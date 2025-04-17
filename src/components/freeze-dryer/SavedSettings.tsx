@@ -38,9 +38,6 @@ interface SavedSettingsProps {
   onLoadSettings: (settings: Partial<FreezeDryerSettings>, steps: DryingStep[]) => void;
 }
 
-// Key used to store freeze dryer configurations in localStorage
-const STORAGE_PREFIX = 'freezedryer-configs-';
-
 export function SavedSettings({
   currentSettings,
   currentSteps,
@@ -52,9 +49,9 @@ export function SavedSettings({
   const [configName, setConfigName] = useState("");
   const { isAuthenticated, user, saveConfigurationToStorage, getConfigurationsFromStorage } = useAuth();
 
-  // Load saved configurations from localStorage when component mounts and when auth state changes
+  // Load saved configurations when component mounts and when auth state changes
   useEffect(() => {
-    console.log("Auth state changed, loading configurations. User:", user?.id || "anonymous");
+    console.log("Auth state changed or component mounted, loading configurations. User:", user?.id || "anonymous");
     loadSavedConfigurations();
   }, [isAuthenticated, user]);
 
@@ -66,10 +63,10 @@ export function SavedSettings({
     const configs = getConfigurationsFromStorage(userId);
     
     if (configs && configs.length > 0) {
-      console.log(`Found ${configs.length} saved configurations`);
+      console.log(`Found ${configs.length} saved configurations for ${userId}`);
       setSavedConfigs(configs);
     } else {
-      console.log("No saved configurations found");
+      console.log(`No saved configurations found for ${userId}`);
       setSavedConfigs([]);
     }
   };
@@ -98,6 +95,8 @@ export function SavedSettings({
     // Get the current user ID or use 'anonymous' for non-authenticated sessions
     const userId = user?.id || 'anonymous';
     
+    console.log(`Saving configuration "${configName}" for user ${userId}`);
+    
     // Save to localStorage using the appropriate key
     saveConfigurationToStorage(userId, updatedConfigs);
 
@@ -109,6 +108,7 @@ export function SavedSettings({
   };
 
   const handleLoadConfig = (config: SavedSettingsRecord) => {
+    console.log(`Loading configuration: ${config.name}`);
     onLoadSettings(config.settings, config.steps);
     toast.success(`Loaded settings: ${config.name}`);
   };
@@ -119,6 +119,8 @@ export function SavedSettings({
     
     // Get the current user ID or use 'anonymous' for non-authenticated sessions
     const userId = user?.id || 'anonymous';
+    
+    console.log(`Deleting configuration for user ${userId}`);
     
     // Save the updated configs to localStorage
     saveConfigurationToStorage(userId, updatedConfigs);
