@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -142,6 +143,11 @@ export function CalculationSettings({
     (trayLength * trayWidth) * numberOfTrays : 0;
   const hashDensity = totalHashWeight > 0 && totalArea > 0 ? (totalHashWeight * 1000) / (totalArea / 100) : 0;
   
+  // Helper function to safely format numbers with toFixed
+  const formatNumber = (value: number | '', decimals: number = 2): string => {
+    return typeof value === 'number' ? value.toFixed(decimals) : '0';
+  };
+  
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
@@ -157,7 +163,7 @@ export function CalculationSettings({
                 <Input
                   id="trayLength"
                   type="text"
-                  value={trayLength.toFixed(2)}
+                  value={formatNumber(trayLength)}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                 />
@@ -171,7 +177,7 @@ export function CalculationSettings({
                 <Input
                   id="trayWidth"
                   type="text"
-                  value={trayWidth.toFixed(2)}
+                  value={formatNumber(trayWidth)}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                 />
@@ -187,7 +193,7 @@ export function CalculationSettings({
                 <Input
                   id="numberOfTrays"
                   type="text"
-                  value={numberOfTrays}
+                  value={numberOfTrays !== '' ? String(numberOfTrays) : '0'}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                 />
@@ -201,14 +207,15 @@ export function CalculationSettings({
                 <Input
                   id="heatingPowerWatts"
                   type="text"
-                  value={heatingPowerWatts}
+                  value={heatingPowerWatts !== '' ? String(heatingPowerWatts) : '0'}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-16">watts</span>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                <p>Total heating power: {(heatingPowerWatts * numberOfTrays).toFixed(0)} watts</p>
+                <p>Total heating power: {heatingPowerWatts !== '' && numberOfTrays !== '' ? 
+                  (heatingPowerWatts * numberOfTrays).toFixed(0) : '0'} watts</p>
               </div>
             </div>
           </div>
@@ -220,7 +227,7 @@ export function CalculationSettings({
                 <Input
                   id="hashPerTray"
                   type="text"
-                  value={hashPerTray.toFixed(2)}
+                  value={formatNumber(hashPerTray)}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                 />
@@ -234,7 +241,7 @@ export function CalculationSettings({
                 <Input
                   id="waterPercentage"
                   type="text"
-                  value={waterPercentage}
+                  value={waterPercentage !== '' ? String(waterPercentage) : '0'}
                   readOnly
                   className="bg-muted cursor-not-allowed"
                 />
@@ -320,8 +327,8 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="heatInputRate"
-                  type="number"
-                  value={settings.heatInputRate || ""}
+                  type="text"
+                  value={settings.heatInputRate || "0"}
                   className="bg-muted"
                   readOnly
                 />
