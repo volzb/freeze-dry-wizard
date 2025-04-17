@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -93,10 +94,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
 
   return (
     <div className="w-full">
-      <ResponsiveContainer width="100%" height={450}>
+      <ResponsiveContainer width="100%" height={500}>
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis 
@@ -129,10 +130,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <Tooltip content={<CustomTooltip />} />
           <Legend 
             verticalAlign="bottom" 
-            height={36}
+            height={50}
             wrapperStyle={{ 
               fontSize: '10px', 
-              marginTop: '10px'
+              marginTop: '20px'
             }}
             iconSize={8}
           />
