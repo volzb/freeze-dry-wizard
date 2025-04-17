@@ -60,6 +60,8 @@ export default function FreezeDryerCalculator() {
   // Default tray size (typical lab freeze dryer tray)
   const defaultTraySizeCm2 = 500; // 500 cm² (e.g., 22.4cm × 22.4cm)
   const defaultNumberOfTrays = 3;
+  const defaultHashPerTray = 0.15; // Default hash per tray in kg
+  const defaultWaterPercentage = 75; // Default water percentage
   
   // Calculate initial heat input rate based on defaults
   const initialHeatRate = estimateHeatInputRate(
@@ -74,8 +76,8 @@ export default function FreezeDryerCalculator() {
     heatInputRate: Math.round(initialHeatRate),
     traySizeCm2: defaultTraySizeCm2,
     numberOfTrays: defaultNumberOfTrays,
-    waterPercentage: 75, // Default water percentage
-    hashPerTray: 0.15 // Default hash per tray
+    waterPercentage: defaultWaterPercentage,
+    hashPerTray: defaultHashPerTray // Explicitly set the default hashPerTray
   });
   
   // Selected terpenes to display
@@ -94,16 +96,27 @@ export default function FreezeDryerCalculator() {
         return;
       }
       
+      // Log the hashPerTray value specifically
+      console.log("Saved hashPerTray value:", savedSettings.hashPerTray);
+      
+      // Create a deep copy of saved settings to avoid reference issues
+      const savedSettingsCopy = JSON.parse(JSON.stringify(savedSettings));
+      
       // Ensure all required settings are present
       const completeSettings = {
         ...settings, // Keep current default values
-        ...JSON.parse(JSON.stringify(savedSettings)), // Override with saved settings (deep clone)
+        ...savedSettingsCopy, // Override with saved settings
         // Explicitly set these values to ensure they're present
-        hashPerTray: savedSettings.hashPerTray !== undefined ? savedSettings.hashPerTray : 0.15,
-        waterPercentage: savedSettings.waterPercentage !== undefined ? savedSettings.waterPercentage : 75
+        hashPerTray: savedSettingsCopy.hashPerTray !== undefined 
+          ? savedSettingsCopy.hashPerTray 
+          : defaultHashPerTray,
+        waterPercentage: savedSettingsCopy.waterPercentage !== undefined 
+          ? savedSettingsCopy.waterPercentage 
+          : defaultWaterPercentage
       };
       
       console.log("Complete settings after merge:", completeSettings);
+      console.log("Final hashPerTray value:", completeSettings.hashPerTray);
       
       // Make sure steps have IDs
       const completeSteps = savedSteps.map(step => ({
@@ -133,8 +146,17 @@ export default function FreezeDryerCalculator() {
   
   // Calculate water weight based on hash per tray, number of trays, and water percentage
   const waterWeight = useMemo(() => {
-    const totalHashWeight = (settings.hashPerTray || 0.15) * (settings.numberOfTrays || defaultNumberOfTrays);
-    return calculateWaterWeight(totalHashWeight, settings.waterPercentage || 75);
+    // Ensure hashPerTray has a value
+    const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultHashPerTray;
+    const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultNumberOfTrays);
+    const waterPercentageValue = settings.waterPercentage !== undefined ? settings.waterPercentage : defaultWaterPercentage;
+    
+    // Log values for debugging
+    console.log("Hash per tray used in calculation:", hashPerTrayValue);
+    console.log("Water percentage used in calculation:", waterPercentageValue);
+    console.log("Total hash weight:", totalHashWeight);
+    
+    return calculateWaterWeight(totalHashWeight, waterPercentageValue);
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
   
   // Update ice weight when water weight calculation changes

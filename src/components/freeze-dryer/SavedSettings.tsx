@@ -84,10 +84,23 @@ export function SavedSettings({
       const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
       const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
       
-      // Ensure hashPerTray is explicitly saved
-      if (settingsCopy.hashPerTray === undefined) {
-        settingsCopy.hashPerTray = currentSettings.hashPerTray || 0.15;
+      // Explicitly ensure hashPerTray is saved
+      if (settingsCopy.hashPerTray === undefined && currentSettings.hashPerTray !== undefined) {
+        settingsCopy.hashPerTray = currentSettings.hashPerTray;
+      } else if (settingsCopy.hashPerTray === undefined) {
+        settingsCopy.hashPerTray = 0.15; // Default value
       }
+      
+      // Ensure waterPercentage is explicitly saved
+      if (settingsCopy.waterPercentage === undefined && currentSettings.waterPercentage !== undefined) {
+        settingsCopy.waterPercentage = currentSettings.waterPercentage;
+      } else if (settingsCopy.waterPercentage === undefined) {
+        settingsCopy.waterPercentage = 75; // Default value
+      }
+      
+      // Log what we're saving for debugging
+      console.log("Saving settings with hashPerTray:", settingsCopy.hashPerTray);
+      console.log("Full settings being saved:", settingsCopy);
       
       // Create a new configuration
       const newConfig: SavedSettingsRecord = {
@@ -142,8 +155,19 @@ export function SavedSettings({
       
       // Ensure hashPerTray is present
       if (settingsCopy.hashPerTray === undefined) {
+        console.warn("hashPerTray is missing in saved configuration, using default");
         settingsCopy.hashPerTray = 0.15; // Default value
+      } else {
+        console.log("Loaded hashPerTray value:", settingsCopy.hashPerTray);
       }
+      
+      // Ensure waterPercentage is present
+      if (settingsCopy.waterPercentage === undefined) {
+        settingsCopy.waterPercentage = 75; // Default value
+      }
+      
+      // Log full settings being loaded
+      console.log("Full settings being loaded:", settingsCopy);
       
       onLoadSettings(settingsCopy, stepsCopy);
       toast.success(`Loaded settings: ${config.name}`);

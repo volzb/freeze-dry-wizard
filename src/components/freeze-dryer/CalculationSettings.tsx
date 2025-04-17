@@ -40,8 +40,20 @@ export function CalculationSettings({
   const [selectedModel, setSelectedModel] = useState<string>("custom");
   const [trayLength, setTrayLength] = useState<number>(22.36);
   const [trayWidth, setTrayWidth] = useState<number>(22.36);
-  const [hashPerTray, setHashPerTray] = useState<number>(0.15);
-  const [waterPercentage, setWaterPercentage] = useState<number>(75); // Default water percentage
+  const [hashPerTray, setHashPerTray] = useState<number>(settings.hashPerTray || 0.15); // Initialize from settings
+  const [waterPercentage, setWaterPercentage] = useState<number>(settings.waterPercentage || 75); // Initialize from settings
+  
+  // Update local state when settings change (e.g., when loading saved config)
+  useEffect(() => {
+    if (settings.hashPerTray !== undefined && settings.hashPerTray !== hashPerTray) {
+      console.log("Updating hashPerTray from settings:", settings.hashPerTray);
+      setHashPerTray(settings.hashPerTray);
+    }
+    
+    if (settings.waterPercentage !== undefined && settings.waterPercentage !== waterPercentage) {
+      setWaterPercentage(settings.waterPercentage);
+    }
+  }, [settings.hashPerTray, settings.waterPercentage]);
   
   // Calculate area when length or width changes
   useEffect(() => {
@@ -54,12 +66,20 @@ export function CalculationSettings({
     const totalHashWeight = hashPerTray * (settings.numberOfTrays || 1);
     const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
     
+    // Log values to debug
+    console.log("hashPerTray in effect:", hashPerTray);
+    console.log("calculated water weight:", waterWeight);
+    
+    // Update settings with these values
     handleSettingChange("hashPerTray", hashPerTray);
     handleSettingChange("waterPercentage", waterPercentage);
     handleSettingChange("iceWeight", waterWeight);
   }, [hashPerTray, waterPercentage, settings.numberOfTrays]);
   
   const handleSettingChange = (field: keyof FreezeDryerSettings, value: any) => {
+    // Log the change for debugging
+    console.log(`Changing setting ${field} to:`, value);
+    
     const updatedSettings = {
       ...settings,
       [field]: value
@@ -148,7 +168,11 @@ export function CalculationSettings({
                     id="hashPerTray"
                     type="number"
                     value={hashPerTray || ""}
-                    onChange={(e) => setHashPerTray(parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      console.log("Setting hashPerTray to:", value);
+                      setHashPerTray(value);
+                    }}
                     placeholder="0.15"
                     step="0.05"
                     min="0.01"
