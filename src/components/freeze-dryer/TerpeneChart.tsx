@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -53,6 +54,67 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       };
     });
   }, [dryingData, displayUnit]);
+
+  // Generate temperature data points based on exact step timings
+  const temperatureData = useMemo(() => {
+    if (!steps.length) return [];
+    
+    const result = [];
+    let accumulatedTime = 0;
+    
+    // Add starting point
+    result.push({
+      time: 0,
+      temperature: normalizeTemperature(steps[0].temperature, steps[0].tempUnit),
+      displayTemp: displayUnit === 'F' 
+        ? celsiusToFahrenheit(normalizeTemperature(steps[0].temperature, steps[0].tempUnit)) 
+        : normalizeTemperature(steps[0].temperature, steps[0].tempUnit)
+    });
+    
+    // Add points for each step boundary
+    steps.forEach((step, index) => {
+      // Convert step duration to hours
+      const stepDurationHr = step.duration / 60;
+      accumulatedTime += stepDurationHr;
+      
+      // Temperature for this step (already normalized in Celsius)
+      const tempC = normalizeTemperature(step.temperature, step.tempUnit);
+      const displayTemp = displayUnit === 'F' ? celsiusToFahrenheit(tempC) : tempC;
+      
+      // Add a point at the end of this step
+      result.push({
+        time: accumulatedTime,
+        temperature: tempC,
+        displayTemp: displayTemp
+      });
+      
+      // If there's a next step, add a point for the temperature change
+      if (steps[index + 1]) {
+        const nextTempC = normalizeTemperature(
+          steps[index + 1].temperature, 
+          steps[index + 1].tempUnit
+        );
+        const nextDisplayTemp = displayUnit === 'F' ? celsiusToFahrenheit(nextTempC) : nextTempC;
+        
+        result.push({
+          time: accumulatedTime,
+          temperature: nextTempC,
+          displayTemp: nextDisplayTemp
+        });
+      }
+    });
+    
+    console.log("Generated temperature data points:", result);
+    return result;
+  }, [steps, displayUnit]);
+  
+  // Helper function to normalize temperature
+  function normalizeTemperature(temperature: number, unit: 'C' | 'F'): number {
+    if (unit === 'F') {
+      return (temperature - 32) * 5/9; // Convert to Celsius
+    }
+    return temperature;
+  }
 
   // Generate custom tick values for the time axis to avoid duplicates
   const timeAxisTicks = useMemo(() => {
@@ -129,7 +191,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   console.log("TerpeneChart render", { 
     dataPoints: chartData.length,
     steps: steps.length,
-    filteredTerpenes: filteredTerpenes.length 
+    filteredTerpenes: filteredTerpenes.length,
+    temperaturePoints: temperatureData.length
   });
   
   if (chartData.length === 0) {
@@ -200,14 +263,17 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             iconSize={8}
           />
           
+          {/* Separate temperature line with exact step durations */}
           <Line
             yAxisId="temp"
             type="stepAfter"
+            data={temperatureData}
             dataKey="displayTemp"
             stroke="#33C3F0"
             strokeWidth={3}
             name={`Temperature (°${displayUnit})`}
             dot={false}
+            connectNulls={true}
           />
           
           <Line
