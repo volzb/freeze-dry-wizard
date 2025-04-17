@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         
         // Ensure hashPerTray is properly set
-        if (configData.settings.hashPerTray !== undefined) {
+        if (configData.settings && typeof configData.settings === 'object' && 'hashPerTray' in configData.settings) {
           configData.settings.hashPerTray = Number(configData.settings.hashPerTray);
           console.log(`Saving hashPerTray for config '${config.name}':`, configData.settings.hashPerTray);
         }
@@ -185,19 +185,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           record.settings = {};
         }
         
+        // Type assertion for the settings object
+        const settings = record.settings as Record<string, any>;
+        
         // Ensure hashPerTray exists and is a number
-        if (record.settings.hashPerTray !== undefined) {
-          record.settings.hashPerTray = Number(record.settings.hashPerTray);
-          console.log(`Loaded hashPerTray for config '${record.name}':`, record.settings.hashPerTray);
+        if ('hashPerTray' in settings) {
+          settings.hashPerTray = Number(settings.hashPerTray);
+          console.log(`Loaded hashPerTray for config '${record.name}':`, settings.hashPerTray);
         } else {
           console.log(`Setting default hashPerTray for config '${record.name}' during load`);
-          record.settings.hashPerTray = 0.15;
+          settings.hashPerTray = 0.15;
         }
         
         return {
           id: record.id,
           name: record.name,
-          settings: record.settings,
+          settings: settings,
           steps: record.steps || [],
           createdAt: record.created_at,
           updatedAt: record.updated_at
