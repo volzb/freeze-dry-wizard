@@ -117,7 +117,7 @@ export function calculateProgressCurve(
   const points: SubTimePoint[] = [];
   const totalEnergy = iceWeight * LATENT_HEAT_SUBLIMATION; // kJ
   
-  // Add starting point
+  // Add starting point at time 0
   points.push({
     time: 0,
     progress: 0,
@@ -149,8 +149,10 @@ export function calculateProgressCurve(
     
     console.log(`Step ${index + 1}: Ice remaining: ${remainingIce}kg, Progress: ${progress.toFixed(1)}%`);
     
+    // Add point at the end of this step
     accumulatedTime += stepDurationHr;
     
+    // Add the end of step point with this step's temperature
     points.push({
       time: accumulatedTime,
       progress: progress,
@@ -184,7 +186,9 @@ export function calculateProgressCurve(
   }
   
   console.log("Final progress curve points:", points.length);
-  console.log("Last point:", points[points.length - 1]);
+  if (points.length > 0) {
+    console.log("Last point:", points[points.length - 1]);
+  }
   
   return points;
 }

@@ -21,7 +21,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       return [];
     }
     
-    console.log("Processing chart data", { dataPoints: dryingData.length, steps: steps.length });
+    console.log("Processing chart data", { 
+      dataPoints: dryingData.length, 
+      steps: steps.length 
+    });
     
     return dryingData.map((point) => {
       const terpenesAtPoint: Record<string, number> = {};
