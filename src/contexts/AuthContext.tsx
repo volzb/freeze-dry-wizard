@@ -1,7 +1,10 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
-type User = {
+type AuthUser = {
   id: string;
   email?: string;
   name?: string;
@@ -9,202 +12,278 @@ type User = {
 };
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
-  logout: () => void;
-  saveConfigurationToStorage: (userId: string, configurations: any[]) => void;
-  getConfigurationsFromStorage: (userId: string) => any[];
+  login: (email: string, password: string) => Promise<void>;
+  loginWithApple: () => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
+  saveConfigurationToStorage: (userId: string, configurations: any[]) => Promise<void>;
+  getConfigurationsFromStorage: (userId: string) => Promise<any[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_PREFIX = 'freezedryer-configs-';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [session, setSession] = useState<Session | null>(null);
   
   useEffect(() => {
-    // Check localStorage for existing user session
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-        console.log("Restored user session from localStorage:", parsedUser.id);
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('user');
+    // Set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        console.log("Supabase auth event:", event);
+        setSession(currentSession);
+        
+        if (currentSession && currentSession.user) {
+          const supabaseUser = currentSession.user;
+          const authUser: AuthUser = {
+            id: supabaseUser.id,
+            email: supabaseUser.email || undefined,
+            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+            authProvider: (supabaseUser.app_metadata.provider === 'apple' ? 'apple' : 'email') as 'email' | 'apple',
+          };
+          setUser(authUser);
+          setIsAuthenticated(true);
+          console.log("User authenticated:", authUser);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+          console.log("User signed out");
+        }
       }
-    }
+    );
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (initialSession && initialSession.user) {
+        const supabaseUser = initialSession.user;
+        const authUser: AuthUser = {
+          id: supabaseUser.id,
+          email: supabaseUser.email || undefined,
+          name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+          authProvider: (supabaseUser.app_metadata.provider === 'apple' ? 'apple' : 'email') as 'email' | 'apple',
+        };
+        setUser(authUser);
+        setIsAuthenticated(true);
+        setSession(initialSession);
+        console.log("Initial session loaded:", authUser);
+      }
+    });
+
+    // Clean up the subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const saveConfigurationToStorage = (userId: string, configurations: any[]) => {
+  const saveConfigurationToStorage = async (userId: string, configurations: any[]) => {
     try {
-      const key = `${STORAGE_PREFIX}${userId}`;
+      if (!userId || userId === 'anonymous') {
+        console.log("Not saving configurations for anonymous user");
+        return;
+      }
+
+      console.log(`Saving ${configurations.length} configurations for user ${userId}`);
       
       // Make a deep copy to ensure we don't store any references
       const configsCopy = JSON.parse(JSON.stringify(configurations));
       
-      // Log before saving to verify complete data
-      console.log(`Saving configurations for ${userId}:`, configsCopy);
-      
-      // Ensure all required settings fields are present in each configuration
-      configsCopy.forEach((config: any) => {
-        if (!config.settings) {
-          config.settings = {};
+      // Process each configuration for saving to Supabase
+      for (const config of configsCopy) {
+        const configData = {
+          user_id: userId,
+          name: config.name,
+          settings: config.settings || {},
+          steps: config.steps || [],
+        };
+        
+        // Ensure hashPerTray is properly set
+        if (configData.settings.hashPerTray !== undefined) {
+          configData.settings.hashPerTray = Number(configData.settings.hashPerTray);
+          console.log(`Saving hashPerTray for config '${config.name}':`, configData.settings.hashPerTray);
         }
         
-        // Explicitly ensure hashPerTray exists for each configuration and is a number
-        if (config.settings.hashPerTray !== undefined) {
-          // Convert to number to ensure consistent type
-          config.settings.hashPerTray = Number(config.settings.hashPerTray);
-          // Explicitly log the hashPerTray value before saving
-          console.log(`Config '${config.name}' hashPerTray before save:`, config.settings.hashPerTray);
+        // Check if this is an existing configuration or a new one
+        if (config.id && config.id !== 'new') {
+          // Update existing configuration
+          const { error } = await supabase
+            .from('freeze_dryer_configs')
+            .update(configData)
+            .eq('id', config.id)
+            .eq('user_id', userId);
+            
+          if (error) {
+            console.error("Error updating configuration:", error);
+            throw error;
+          }
         } else {
-          console.log(`Setting default hashPerTray for config '${config.name}'`);
-          config.settings.hashPerTray = 0.15; // Default value
+          // Insert new configuration
+          const { error } = await supabase
+            .from('freeze_dryer_configs')
+            .insert(configData);
+            
+          if (error) {
+            console.error("Error inserting configuration:", error);
+            throw error;
+          }
+        }
+      }
+      
+      console.log(`Successfully saved ${configurations.length} configurations for user ${userId}`);
+    } catch (error) {
+      console.error('Error saving configurations to Supabase:', error);
+      toast.error("Failed to save configurations");
+      throw error;
+    }
+  };
+
+  const getConfigurationsFromStorage = async (userId: string) => {
+    try {
+      if (!userId || userId === 'anonymous') {
+        console.log("Not loading configurations for anonymous user");
+        return [];
+      }
+
+      console.log(`Loading configurations for user: ${userId}`);
+      
+      const { data, error } = await supabase
+        .from('freeze_dryer_configs')
+        .select('*')
+        .eq('user_id', userId);
+        
+      if (error) {
+        console.error("Error fetching configurations:", error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.log(`No configurations found for user ${userId}`);
+        return [];
+      }
+      
+      // Map Supabase data to the expected format
+      const configurations = data.map(record => {
+        // Ensure settings object exists
+        if (!record.settings) {
+          record.settings = {};
         }
         
-        // Ensure other important settings have defaults
-        if (config.settings.waterPercentage === undefined) {
-          config.settings.waterPercentage = 75;
+        // Ensure hashPerTray exists and is a number
+        if (record.settings.hashPerTray !== undefined) {
+          record.settings.hashPerTray = Number(record.settings.hashPerTray);
+          console.log(`Loaded hashPerTray for config '${record.name}':`, record.settings.hashPerTray);
+        } else {
+          console.log(`Setting default hashPerTray for config '${record.name}' during load`);
+          record.settings.hashPerTray = 0.15;
+        }
+        
+        return {
+          id: record.id,
+          name: record.name,
+          settings: record.settings,
+          steps: record.steps || [],
+          createdAt: record.created_at,
+          updatedAt: record.updated_at
+        };
+      });
+      
+      console.log(`Retrieved ${configurations.length} configurations for user ${userId}:`, configurations);
+      return configurations;
+    } catch (error) {
+      console.error(`Error retrieving configurations from Supabase for ${userId}:`, error);
+      toast.error("Failed to load configurations");
+      return [];
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Login error:", error.message);
+        toast.error(error.message);
+        throw error;
+      }
+
+      console.log("Login successful:", data);
+      toast.success("Login successful!");
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
+  };
+  
+  const loginWithApple = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: window.location.origin + '/calculator'
         }
       });
       
-      // Stringify and save to localStorage
-      localStorage.setItem(key, JSON.stringify(configsCopy));
-      console.log(`Saved ${configurations.length} configurations for user ${userId} to ${key}:`, configsCopy);
-      
-      // Verify what was actually saved
-      const savedConfigs = localStorage.getItem(key);
-      if (savedConfigs) {
-        const parsed = JSON.parse(savedConfigs);
-        parsed.forEach((config: any) => {
-          console.log(`Verified saved config '${config.name}' hashPerTray:`, config.settings.hashPerTray);
-        });
+      if (error) {
+        console.error("Apple login error:", error.message);
+        toast.error(error.message);
+        throw error;
       }
-    } catch (error) {
-      console.error('Error saving configurations to storage:', error);
-    }
-  };
-
-  const getConfigurationsFromStorage = (userId: string) => {
-    try {
-      const key = `${STORAGE_PREFIX}${userId}`;
-      const configs = localStorage.getItem(key);
-      console.log(`Looking for configurations in ${key}`);
       
-      if (configs) {
-        const parsedConfigs = JSON.parse(configs);
-        
-        // Verify all configuration objects have required fields
-        const validatedConfigs = parsedConfigs.map((config: any) => {
-          // Create a deep copy
-          const fullConfig = JSON.parse(JSON.stringify(config));
-          
-          // Ensure settings object exists
-          if (!fullConfig.settings) {
-            fullConfig.settings = {};
-          }
-          
-          // Log the hashPerTray value we're loading
-          console.log(`Loading hashPerTray for config '${fullConfig.name}':`, fullConfig.settings.hashPerTray);
-          
-          // Ensure hashPerTray exists and is a number
-          if (fullConfig.settings.hashPerTray !== undefined) {
-            fullConfig.settings.hashPerTray = Number(fullConfig.settings.hashPerTray);
-          } else {
-            console.log(`Setting default hashPerTray for config '${fullConfig.name}' during load`);
-            fullConfig.settings.hashPerTray = 0.15;
-          }
-          
-          // Ensure waterPercentage exists
-          if (fullConfig.settings.waterPercentage === undefined) {
-            fullConfig.settings.waterPercentage = 75;
-          }
-          
-          return fullConfig;
-        });
-        
-        console.log(`Retrieved ${validatedConfigs.length} configurations for user ${userId}:`, validatedConfigs);
-        return validatedConfigs;
-      } else {
-        console.log(`No configurations found for user ${userId} at key ${key}`);
-      }
+      console.log("Apple login initiated:", data);
     } catch (error) {
-      console.error(`Error retrieving configurations from storage for ${userId}:`, error);
+      console.error("Apple login failed:", error);
+      throw error;
     }
-    return [];
-  };
-
-  const login = (userData: User) => {
-    console.log("Login called with user:", userData);
-    
-    if (!userData || !userData.id) {
-      console.error("Login attempted with invalid user data:", userData);
-      return;
-    }
-    
-    setUser(userData);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(userData));
-    
-    // Ensure any previously anonymous saved settings are migrated to the user account
-    migrateAnonymousSettings(userData.id);
   };
   
-  const migrateAnonymousSettings = (userId: string) => {
+  const register = async (email: string, password: string, name: string) => {
     try {
-      const anonymousKey = `${STORAGE_PREFIX}anonymous`;
-      const userKey = `${STORAGE_PREFIX}${userId}`;
-      
-      console.log(`Attempting to migrate settings from ${anonymousKey} to ${userKey}`);
-      const anonymousSettings = localStorage.getItem(anonymousKey);
-      
-      if (anonymousSettings) {
-        // Check if user already has settings
-        const existingUserSettings = localStorage.getItem(userKey);
-        
-        if (!existingUserSettings) {
-          // Save anonymous settings to the user's storage
-          localStorage.setItem(userKey, anonymousSettings);
-          console.log('Successfully migrated anonymous settings to user account', userId);
-          
-          // Verify migration was successful
-          const migratedSettings = localStorage.getItem(userKey);
-          if (migratedSettings) {
-            const parsedSettings = JSON.parse(migratedSettings);
-            console.log('Verified migrated settings:', parsedSettings);
-          }
-        } else {
-          console.log('User already has settings, no migration needed');
-          console.log('Existing user settings:', JSON.parse(existingUserSettings));
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
         }
-      } else {
-        console.log('No anonymous settings found to migrate');
+      });
+
+      if (error) {
+        console.error("Registration error:", error.message);
+        toast.error(error.message);
+        throw error;
       }
-      
-      // Verify all settings in local storage for debugging
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(STORAGE_PREFIX)) {
-          console.log(`Found storage key: ${key}`);
-        }
-      }
+
+      console.log("Registration successful:", data);
+      toast.success("Account created successfully!");
     } catch (error) {
-      console.error('Error migrating anonymous settings:', error);
+      console.error("Registration failed:", error);
+      throw error;
     }
   };
 
-  const logout = () => {
-    // We're not going to delete saved configurations when logging out
-    console.log("Logging out user:", user?.id);
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Logout error:", error.message);
+        toast.error(error.message);
+        throw error;
+      }
+      
+      // State will be updated by the auth listener
+      console.log("Logout successful");
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      throw error;
+    }
   };
 
   return (
@@ -212,6 +291,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, 
       isAuthenticated, 
       login, 
+      loginWithApple,
+      register,
       logout,
       saveConfigurationToStorage,
       getConfigurationsFromStorage

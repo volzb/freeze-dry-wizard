@@ -5,12 +5,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, User } from "lucide-react";
 
 export function NavBar() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   
-  const handleLogout = () => {
-    logout();
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   return (
@@ -28,15 +32,18 @@ export function NavBar() {
           </Link>
           
           {isAuthenticated ? (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut size={16} />
-              <span>Logout</span>
-            </Button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">{user?.name || user?.email}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </Button>
+            </div>
           ) : (
             <Button 
               variant="outline" 

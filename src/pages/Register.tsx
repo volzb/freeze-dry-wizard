@@ -16,31 +16,18 @@ export default function Register() {
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register, loginWithApple } = useAuth();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // In a real app, this would create a new account in the backend
-      // For now, we'll simulate a successful registration
-      setTimeout(() => {
-        const userId = crypto.randomUUID();
-        
-        login({
-          id: userId,
-          email,
-          name,
-          authProvider: 'email'
-        });
-        
-        toast.success("Account created successfully!");
-        setIsLoading(false);
-        navigate("/calculator");
-      }, 1500);
+      await register(email, password, name);
+      navigate("/calculator");
     } catch (error) {
-      toast.error("Registration failed. Please try again.");
+      console.error("Registration error:", error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -49,22 +36,11 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      // Simulated Apple signup
-      setTimeout(() => {
-        const userId = crypto.randomUUID();
-        
-        login({
-          id: userId,
-          name: "Apple User",
-          authProvider: 'apple'
-        });
-        
-        toast.success("Apple ID signup successful!");
-        setIsLoading(false);
-        navigate("/calculator");
-      }, 1500);
+      await loginWithApple();
+      // Navigation will happen after the OAuth redirect
     } catch (error) {
-      toast.error("Apple signup failed. Please try again.");
+      console.error("Apple signup error:", error);
+    } finally {
       setIsLoading(false);
     }
   };

@@ -15,31 +15,18 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithApple } = useAuth();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // In a real app, this would send the credentials to a backend
-      // For now, we'll simulate a successful login
-      setTimeout(() => {
-        const userId = crypto.randomUUID();
-        
-        login({
-          id: userId,
-          email,
-          name: email.split('@')[0],
-          authProvider: 'email'
-        });
-        
-        toast.success("Login successful!");
-        setIsLoading(false);
-        navigate("/calculator");
-      }, 1500);
+      await login(email, password);
+      navigate("/calculator");
     } catch (error) {
-      toast.error("Login failed. Please try again.");
+      console.error("Login error:", error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -48,22 +35,11 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // Simulated Apple login
-      setTimeout(() => {
-        const userId = crypto.randomUUID();
-        
-        login({
-          id: userId,
-          name: "Apple User",
-          authProvider: 'apple'
-        });
-        
-        toast.success("Apple ID login successful!");
-        setIsLoading(false);
-        navigate("/calculator");
-      }, 1500);
+      await loginWithApple();
+      // Navigation will happen after the OAuth redirect
     } catch (error) {
-      toast.error("Apple login failed. Please try again.");
+      console.error("Apple login error:", error);
+    } finally {
       setIsLoading(false);
     }
   };

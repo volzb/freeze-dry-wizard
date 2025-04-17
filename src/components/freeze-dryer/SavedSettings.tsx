@@ -55,25 +55,44 @@ export function SavedSettings({
     loadSavedConfigurations();
   }, [isAuthenticated, user]);
 
-  const loadSavedConfigurations = () => {
-    // Get the current user ID or use 'anonymous' for non-authenticated sessions
-    const userId = user?.id || 'anonymous';
-    
-    console.log(`Loading configurations for user: ${userId}`);
-    const configs = getConfigurationsFromStorage(userId);
-    
-    if (configs && configs.length > 0) {
-      console.log(`Found ${configs.length} saved configurations for ${userId}`);
-      setSavedConfigs(configs);
-    } else {
-      console.log(`No saved configurations found for ${userId}`);
-      setSavedConfigs([]);
+  const loadSavedConfigurations = async () => {
+    setIsLoading(true);
+    try {
+      // Get the current user ID or use 'anonymous' for non-authenticated sessions
+      const userId = user?.id || 'anonymous';
+      
+      console.log(`Loading configurations for user: ${userId}`);
+      
+      if (userId === 'anonymous' && !isAuthenticated) {
+        toast.error("Please login to save and load settings");
+        return;
+      }
+      
+      const configs = await getConfigurationsFromStorage(userId);
+      
+      if (configs && configs.length > 0) {
+        console.log(`Found ${configs.length} saved configurations for ${userId}`);
+        setSavedConfigs(configs);
+      } else {
+        console.log(`No saved configurations found for ${userId}`);
+        setSavedConfigs([]);
+      }
+    } catch (error) {
+      console.error("Error loading configurations:", error);
+      toast.error("Failed to load configurations");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     if (!configName.trim()) {
       toast.error("Please enter a name for your configuration");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error("Please login to save settings");
       return;
     }
 
@@ -120,8 +139,12 @@ export function SavedSettings({
         updatedAt: new Date().toISOString(),
       };
 
-      // Get the current user ID or use 'anonymous' for non-authenticated sessions
-      const userId = user?.id || 'anonymous';
+      // Get the current user ID
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
       
       console.log(`Saving configuration "${configName}" for user ${userId}`, newConfig);
       
@@ -129,8 +152,8 @@ export function SavedSettings({
       const updatedConfigs = [...savedConfigs, newConfig];
       setSavedConfigs(updatedConfigs);
       
-      // Save to localStorage using the appropriate key
-      saveConfigurationToStorage(userId, updatedConfigs);
+      // Save to Supabase
+      await saveConfigurationToStorage(userId, updatedConfigs);
       
       // Debug log to confirm what was saved
       console.log(`Updated configurations for ${userId}:`, updatedConfigs);
@@ -190,23 +213,36 @@ export function SavedSettings({
     }
   };
 
-  const handleDeleteConfig = (id: string) => {
+  const handleDeleteConfig = async (id: string) => {
+    if (!isAuthenticated) {
+      toast.error("Please login to delete settings");
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
-      // Get the current user ID or use 'anonymous' for non-authenticated sessions
-      const userId = user?.id || 'anonymous';
+      // Get the current user ID
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
       
       console.log(`Deleting configuration for user ${userId} with id ${id}`);
       
       const updatedConfigs = savedConfigs.filter(config => config.id !== id);
       setSavedConfigs(updatedConfigs);
       
-      // Save the updated configs to localStorage
-      saveConfigurationToStorage(userId, updatedConfigs);
+      // Save the updated configs to Supabase
+      await saveConfigurationToStorage(userId, updatedConfigs);
       
       toast.success("Configuration deleted");
     } catch (error) {
       console.error("Error deleting configuration:", error);
       toast.error("Failed to delete configuration");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -215,7 +251,12 @@ export function SavedSettings({
       <div className="flex gap-2 flex-wrap">
         <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              disabled={!isAuthenticated}
+            >
               <Save className="h-4 w-4" />
               Save Current Settings
             </Button>
@@ -255,7 +296,7 @@ export function SavedSettings({
         </Dialog>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild disabled={savedConfigs.length === 0}>
+          <DropdownMenuTrigger asChild disabled={savedConfigs.length === 0 || !isAuthenticated}>
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               Load Settings
               <ChevronDown className="h-4 w-4" />
@@ -287,7 +328,13 @@ export function SavedSettings({
         </DropdownMenu>
       </div>
       
-      {savedConfigs.length === 0 && (
+      {!isAuthenticated && (
+        <p className="text-sm text-muted-foreground">
+          Please <Link to="/login" className="text-primary hover:underline">login</Link> to save and load settings
+        </p>
+      )}
+      
+      {isAuthenticated && savedConfigs.length === 0 && (
         <p className="text-sm text-muted-foreground">No saved configurations</p>
       )}
     </div>
