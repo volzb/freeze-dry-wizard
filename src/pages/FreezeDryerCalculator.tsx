@@ -268,6 +268,23 @@ export default function FreezeDryerCalculator() {
           </p>
         </div>
         
+        {riskAssessment.length > 0 && (
+          <Alert variant="destructive">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>Potential Issues Detected</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                {riskAssessment.map((risk, idx) => (
+                  <li key={idx}>
+                    {risk.type === "step" ? `Step ${(risk as any).stepIndex + 1}: ` : ""}
+                    {risk.message}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid gap-6 md:grid-cols-3">
           <div className="space-y-6 md:col-span-2">
             <Card>
@@ -365,22 +382,6 @@ export default function FreezeDryerCalculator() {
               </CardContent>
             </Card>
             
-            {riskAssessment.length > 0 && (
-              <Alert variant="destructive">
-                <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Potential Issues Detected</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    {riskAssessment.map((risk, idx) => (
-                      <li key={idx}>
-                        {risk.type === "step" ? `Step ${(risk as any).stepIndex + 1}: ` : ""}
-                        {risk.message}
-                      </li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
           
           <div className="space-y-6">
