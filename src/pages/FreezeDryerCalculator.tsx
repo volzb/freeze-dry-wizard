@@ -40,7 +40,7 @@ const defaultDryingSteps = [
     temperature: -20,
     pressure: 0.1,
     duration: 300,
-    tempUnit: 'C',
+    tempUnit: 'C' as 'C' | 'F',
     pressureUnit: 'mBar'
   },
   {
@@ -48,7 +48,7 @@ const defaultDryingSteps = [
     temperature: -10,
     pressure: 0.25,
     duration: 180,
-    tempUnit: 'C',
+    tempUnit: 'C' as 'C' | 'F',
     pressureUnit: 'mBar'
   },
   {
@@ -56,7 +56,7 @@ const defaultDryingSteps = [
     temperature: 3,
     pressure: 0.23,
     duration: 180,
-    tempUnit: 'C',
+    tempUnit: 'C' as 'C' | 'F',
     pressureUnit: 'mBar'
   }
 ];

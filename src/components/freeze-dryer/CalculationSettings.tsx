@@ -96,7 +96,8 @@ export function CalculationSettings({
       const totalHashWeight = hashPerTray * numberOfTrays;
       const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
       
-      handleSettingChange("hashPerTray", hashPerTray);
+      // Use toFixed(2) to ensure 2 decimal places for hashPerTray
+      handleSettingChange("hashPerTray", Number(hashPerTray.toString()));
       handleSettingChange("waterPercentage", waterPercentage);
       handleSettingChange("iceWeight", waterWeight);
     }
@@ -244,7 +245,7 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="hashPerTray"
-                  type="text"
+                  type="number"
                   value={hashPerTray === '' ? '' : hashPerTray.toString()}
                   onChange={(e) => handleInputChange(e, setHashPerTray)}
                   step="0.01"
@@ -320,11 +321,6 @@ export function CalculationSettings({
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-16">g/m²</span>
               </div>
-              {hashDensity > 3 && (
-                <p className="text-xs text-amber-500">
-                  Density exceeds 3 g/m², consider using more trays for better drying efficiency
-                </p>
-              )}
             </div>
             
             <div className="space-y-2">

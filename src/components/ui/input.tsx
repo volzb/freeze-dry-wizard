@@ -5,6 +5,12 @@ import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
+    // Add default step for number inputs that need decimal precision
+    const inputProps = type === "number" ? { 
+      step: props.step || "0.01", 
+      ...props 
+    } : props;
+
     return (
       <input
         type={type}
@@ -15,7 +21,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        {...props}
+        {...inputProps}
       />
     )
   }
