@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,15 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   FreezeDryerSettings, 
-  estimateHeatInputRate, 
   calculateWaterWeight 
 } from "@/utils/freezeDryerCalculations";
+import { 
+  estimateHeatInputRate, 
+  calculateHeatInputFromPower,
+  estimateHeatTransferEfficiency 
+} from "@/utils/heatTransferCalculations";
 import { Separator } from "@/components/ui/separator";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CalculationSettingsProps {
   settings: Partial<FreezeDryerSettings>;
@@ -25,8 +31,11 @@ interface CalculationSettingsProps {
 
 // Freeze dryer model configurations
 const freezeDryerModels = {
-  "cryodry-cd8": { traySizeCm2: 900, numberOfTrays: 9, label: "CryoDry CD8", width: 20, length: 45 },
-  "custom": { traySizeCm2: 500, numberOfTrays: 3, label: "Custom", width: 22.36, length: 22.36 }
+  "cryodry-cd8": { traySizeCm2: 900, numberOfTrays: 9, heatingPowerWatts: 1500, label: "CryoDry CD8", width: 20, length: 45 },
+  "harvest-right-small": { traySizeCm2: 400, numberOfTrays: 3, heatingPowerWatts: 500, label: "Harvest Right (Small)", width: 20, length: 20 },
+  "harvest-right-medium": { traySizeCm2: 625, numberOfTrays: 4, heatingPowerWatts: 900, label: "Harvest Right (Medium)", width: 25, length: 25 },
+  "harvest-right-large": { traySizeCm2: 900, numberOfTrays: 5, heatingPowerWatts: 1200, label: "Harvest Right (Large)", width: 30, length: 30 },
+  "custom": { traySizeCm2: 500, numberOfTrays: 3, heatingPowerWatts: 750, label: "Custom", width: 22.36, length: 22.36 }
 };
 
 export function CalculationSettings({ 
@@ -41,6 +50,7 @@ export function CalculationSettings({
   const [trayWidth, setTrayWidth] = useState<number>(22.36);
   const [hashPerTray, setHashPerTray] = useState<number>(settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : 0.15);
   const [waterPercentage, setWaterPercentage] = useState<number>(settings.waterPercentage || 75);
+  const [useHeatingPower, setUseHeatingPower] = useState<boolean>(settings.heatingPowerWatts !== undefined);
   
   // Update local state when settings change (e.g., when loading saved config)
   useEffect(() => {
@@ -54,6 +64,10 @@ export function CalculationSettings({
     
     if (settings.waterPercentage !== undefined) {
       setWaterPercentage(settings.waterPercentage);
+    }
+    
+    if (settings.heatingPowerWatts !== undefined) {
+      setUseHeatingPower(true);
     }
     
     // Update selectedModel if traySizeCm2 and numberOfTrays match a predefined model
@@ -92,6 +106,39 @@ export function CalculationSettings({
     }
   }, [hashPerTray, waterPercentage, settings.numberOfTrays]);
   
+  // Calculate heat input rate when related parameters change
+  useEffect(() => {
+    const tempC = 
+      settings.steps && settings.steps.length > 0 
+        ? settings.steps[0].temperature
+        : 20;
+        
+    const pressureMbar = 
+      settings.steps && settings.steps.length > 0 
+        ? settings.steps[0].pressure
+        : 300;
+    
+    if (useHeatingPower && settings.heatingPowerWatts) {
+      // Calculate efficiency based on temperature and pressure
+      const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
+      
+      // Calculate heat input rate from heating power and efficiency
+      const heatRate = calculateHeatInputFromPower(settings.heatingPowerWatts, efficiency);
+      handleSettingChange("heatInputRate", Math.round(heatRate));
+    } else {
+      // Calculate based on traditional method
+      const totalShelfAreaM2 = ((settings.traySizeCm2 || 500) / 10000) * (settings.numberOfTrays || 1);
+      const heatRate = estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
+      handleSettingChange("heatInputRate", Math.round(heatRate));
+    }
+  }, [
+    settings.steps, 
+    settings.traySizeCm2, 
+    settings.numberOfTrays, 
+    settings.heatingPowerWatts, 
+    useHeatingPower
+  ]);
+  
   const handleSettingChange = (field: keyof FreezeDryerSettings, value: any) => {
     // Ensure value is valid
     if (value === null || value === undefined || (typeof value === 'number' && isNaN(value))) {
@@ -100,7 +147,7 @@ export function CalculationSettings({
     }
     
     // Handle numeric conversion for specific fields
-    if (field === 'hashPerTray') {
+    if (field === 'hashPerTray' || field === 'heatingPowerWatts') {
       value = Number(value);
       console.log(`Converting ${field} to number:`, value);
     }
@@ -112,17 +159,6 @@ export function CalculationSettings({
       ...settings,
       [field]: value
     };
-    
-    if (field === "numberOfTrays" || field === "traySizeCm2") {
-      const tempC = settings.steps?.[0]?.temperature || 20;
-      const pressureMbar = settings.steps?.[0]?.pressure || 300;
-      const calculatedHeatRate = estimateHeatInputRate(
-        tempC,
-        pressureMbar,
-        (updatedSettings.traySizeCm2 || 0) / 10000 * (updatedSettings.numberOfTrays || 1)
-      );
-      updatedSettings.heatInputRate = Math.round(calculatedHeatRate);
-    }
     
     onSettingsChange(updatedSettings);
   };
@@ -136,6 +172,7 @@ export function CalculationSettings({
       setTrayWidth(modelConfig.width);
       handleSettingChange("traySizeCm2", modelConfig.traySizeCm2);
       handleSettingChange("numberOfTrays", modelConfig.numberOfTrays);
+      handleSettingChange("heatingPowerWatts", modelConfig.heatingPowerWatts);
     }
   };
   
@@ -169,6 +206,9 @@ export function CalculationSettings({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="harvest-right-small">Harvest Right (Small)</SelectItem>
+                  <SelectItem value="harvest-right-medium">Harvest Right (Medium)</SelectItem>
+                  <SelectItem value="harvest-right-large">Harvest Right (Large)</SelectItem>
                   <SelectItem value="cryodry-cd8">CryoDry CD8</SelectItem>
                 </SelectContent>
               </Select>
@@ -184,6 +224,9 @@ export function CalculationSettings({
                 </Badge>
                 <Badge variant="outline">
                   {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].traySizeCm2} cm² Per Tray
+                </Badge>
+                <Badge variant="outline">
+                  {freezeDryerModels[selectedModel as keyof typeof freezeDryerModels].heatingPowerWatts} Watts
                 </Badge>
               </div>
             )}
@@ -278,6 +321,63 @@ export function CalculationSettings({
               </div>
             </div>
             
+            <div className="flex items-center space-x-2 py-2">
+              <Checkbox 
+                id="useHeatingPower" 
+                checked={useHeatingPower} 
+                onCheckedChange={(checked) => {
+                  setUseHeatingPower(checked === true);
+                  // If turning off, remove heating power from settings
+                  if (checked === false && settings.heatingPowerWatts !== undefined) {
+                    const { heatingPowerWatts, ...rest } = settings;
+                    onSettingsChange(rest);
+                  }
+                }}
+              />
+              <Label 
+                htmlFor="useHeatingPower" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Use heating element power for accurate calculations
+              </Label>
+            </div>
+            
+            {useHeatingPower && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="heatingPowerWatts">Heating Element Power</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="w-64">The total electrical power of the heating elements in your freeze dryer</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex items-center">
+                  <Input
+                    id="heatingPowerWatts"
+                    type="number"
+                    value={settings.heatingPowerWatts || ""}
+                    onChange={(e) => handleSettingChange("heatingPowerWatts", parseFloat(e.target.value))}
+                    placeholder="750"
+                    min="100"
+                    step="50"
+                  />
+                  <span className="ml-2 text-sm text-muted-foreground w-10">watts</span>
+                </div>
+                {settings.heatingPowerWatts && (
+                  <div className="text-xs text-muted-foreground">
+                    <p>Estimated efficiency: {(estimateHeatTransferEfficiency(
+                      settings.steps?.[0]?.temperature || -20,
+                      settings.steps?.[0]?.pressure || 200
+                    ) * 100).toFixed(1)}%</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <div className="flex items-center gap-1">
                 <Label htmlFor="heatInputRate">Heat Input Rate</Label>
@@ -286,7 +386,11 @@ export function CalculationSettings({
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="w-64">Auto-calculated based on tray size, number of trays, and initial temperature/pressure settings</p>
+                    <p className="w-64">
+                      {useHeatingPower 
+                        ? "Calculated based on heating element power, adjusted for temperature and pressure efficiency"
+                        : "Auto-calculated based on tray size, number of trays, temperature and pressure"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -296,6 +400,8 @@ export function CalculationSettings({
                   type="number"
                   value={settings.heatInputRate || ""}
                   onChange={(e) => handleSettingChange("heatInputRate", parseFloat(e.target.value))}
+                  className={useHeatingPower ? "bg-muted" : ""}
+                  readOnly={useHeatingPower}
                   placeholder="1000"
                   min="100"
                 />

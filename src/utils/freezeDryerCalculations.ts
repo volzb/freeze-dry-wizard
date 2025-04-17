@@ -1,4 +1,3 @@
-
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -23,6 +22,7 @@ export interface FreezeDryerSettings {
   waterPercentage?: number; // percentage of water in the hash
   chamberVolume?: number; // optional: freeze dryer chamber volume in liters
   condenserCapacity?: number; // optional: condenser capacity in kg of ice
+  heatingPowerWatts?: number; // heating element power in watts
 }
 
 // Convert temperature based on unit
@@ -52,47 +52,17 @@ export function calculateWaterWeight(hashWeightKg: number, waterPercentage: numb
   return hashWeightKg * (waterPercentage / 100);
 }
 
+// Import heat transfer calculations
+import { estimateHeatInputRate as calculateHeatInput } from './heatTransferCalculations';
+
 // Calculate heat input rate based on temperature, pressure, and surface area
+// Re-export the function for backward compatibility
 export function estimateHeatInputRate(
   temperatureC: number,
   pressureMbar: number,
-  totalShelfAreaM2: number = 0.5 // Total shelf area in m²
+  totalShelfAreaM2: number = 0.5
 ): number {
-  // Base rate per square meter at reference conditions
-  const baseRatePerM2 = 800; // Base heat transfer rate in kJ/hr/m²
-  
-  // Temperature factor - higher temperature increases heat transfer
-  // Normalized for -40°C to +20°C range
-  const normalizedTemp = Math.max(-40, Math.min(20, temperatureC));
-  const tempFactor = 1 + (normalizedTemp + 40) / 60;
-  
-  // Pressure factor - lower pressure decreases heat transfer
-  // More significant effect at very low pressures
-  const normalizedPressure = Math.max(0.1, Math.min(1000, pressureMbar));
-  
-  // Modified pressure factor with more realistic scaling
-  // Very low pressures significantly reduce heat transfer efficiency
-  let pressureFactor;
-  if (normalizedPressure <= 1) {
-    // Severe reduction at extremely low pressures (vacuum levels)
-    pressureFactor = 0.2 + (normalizedPressure * 0.3);
-  } else if (normalizedPressure <= 10) {
-    // Gradual improvement as pressure increases
-    pressureFactor = 0.5 + (normalizedPressure * 0.05);
-  } else if (normalizedPressure <= 100) {
-    // Less pronounced effect at medium-low pressures
-    pressureFactor = 0.7 + (normalizedPressure / 500);
-  } else {
-    // High pressures have less impact on transfer efficiency
-    pressureFactor = 0.9 + (normalizedPressure / 10000);
-  }
-  
-  // Thermal conductivity factor
-  // This could be expanded with actual material properties in a more complex model
-  const conductivityFactor = 1.0;
-  
-  // Surface area factor - directly proportional to heat transfer
-  return baseRatePerM2 * tempFactor * pressureFactor * conductivityFactor * totalShelfAreaM2;
+  return calculateHeatInput(temperatureC, pressureMbar, totalShelfAreaM2);
 }
 
 // Calculate the sublimation progress over time for each drying step
