@@ -59,16 +59,20 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     let accumulatedTime = 0;
     
     // Add starting point
+    const firstStepTempC = normalizeTemperature(steps[0].temperature, steps[0].tempUnit);
+    const firstStepDisplayTemp = displayUnit === 'F' 
+      ? celsiusToFahrenheit(firstStepTempC) 
+      : firstStepTempC;
+      
     result.push({
       time: 0,
-      temperature: normalizeTemperature(steps[0].temperature, steps[0].tempUnit),
-      displayTemp: displayUnit === 'F' 
-        ? celsiusToFahrenheit(normalizeTemperature(steps[0].temperature, steps[0].tempUnit)) 
-        : normalizeTemperature(steps[0].temperature, steps[0].tempUnit)
+      temperature: firstStepTempC,
+      displayTemp: firstStepDisplayTemp
     });
     
     // Add points for each step boundary
-    steps.forEach((step) => {
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
       // Convert step duration to hours
       const stepDurationHr = step.duration / 60;
       accumulatedTime += stepDurationHr;
@@ -83,7 +87,21 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         temperature: tempC,
         displayTemp: displayTemp
       });
-    });
+      
+      // If not the last step, add another point at this time with the next step's temperature
+      // This creates the step-like visualization
+      if (i < steps.length - 1) {
+        const nextStep = steps[i + 1];
+        const nextTempC = normalizeTemperature(nextStep.temperature, nextStep.tempUnit);
+        const nextDisplayTemp = displayUnit === 'F' ? celsiusToFahrenheit(nextTempC) : nextTempC;
+        
+        result.push({
+          time: accumulatedTime,
+          temperature: nextTempC,
+          displayTemp: nextDisplayTemp
+        });
+      }
+    }
     
     return result;
   }, [steps, displayUnit]);
@@ -238,7 +256,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           {/* Temperature line showing exact step changes */}
           <Line
             yAxisId="temp"
-            type="stepAfter"
+            type="linear"
             data={temperatureStepData}
             dataKey="displayTemp"
             stroke="#33C3F0"
