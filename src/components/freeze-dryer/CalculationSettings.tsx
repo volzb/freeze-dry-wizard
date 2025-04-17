@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -157,15 +156,10 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="trayLength"
-                  type="number"
-                  value={trayLength}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setTrayLength(val === '' ? '' : parseFloat(val));
-                  }}
-                  placeholder="22.36"
-                  step="0.1"
-                  min="1"
+                  type="text"
+                  value={trayLength.toFixed(2)}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
               </div>
@@ -176,15 +170,10 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="trayWidth"
-                  type="number"
-                  value={trayWidth}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setTrayWidth(val === '' ? '' : parseFloat(val));
-                  }}
-                  placeholder="22.36"
-                  step="0.1"
-                  min="1"
+                  type="text"
+                  value={trayWidth.toFixed(2)}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
               </div>
@@ -197,15 +186,10 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="numberOfTrays"
-                  type="number"
+                  type="text"
                   value={numberOfTrays}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNumberOfTrays(val === '' ? '' : parseInt(val));
-                  }}
-                  placeholder="3"
-                  min="1"
-                  step="1"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">trays</span>
               </div>
@@ -216,21 +200,15 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="heatingPowerWatts"
-                  type="number"
+                  type="text"
                   value={heatingPowerWatts}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setHeatingPowerWatts(val === '' ? '' : parseFloat(val));
-                  }}
-                  placeholder="250"
-                  min="50"
-                  step="10"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-16">watts</span>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                <p>Total heating power: {(heatingPowerWatts !== '' && numberOfTrays !== '') ? 
-                  (heatingPowerWatts * numberOfTrays).toFixed(0) : "0"} watts</p>
+                <p>Total heating power: {(heatingPowerWatts * numberOfTrays).toFixed(0)} watts</p>
               </div>
             </div>
           </div>
@@ -241,15 +219,10 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="hashPerTray"
-                  type="number"
-                  value={hashPerTray}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setHashPerTray(val === '' ? '' : parseFloat(val));
-                  }}
-                  placeholder="0.15"
-                  step="0.05"
-                  min="0.01"
+                  type="text"
+                  value={hashPerTray.toFixed(2)}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">kg</span>
               </div>
@@ -260,16 +233,10 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="waterPercentage"
-                  type="number"
+                  type="text"
                   value={waterPercentage}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setWaterPercentage(val === '' ? '' : parseFloat(val));
-                  }}
-                  placeholder="75"
-                  min="1"
-                  max="99"
-                  step="1"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">%</span>
               </div>
