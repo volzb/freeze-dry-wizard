@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   FreezeDryerSettings, 
@@ -26,54 +25,6 @@ interface CalculationSettingsProps {
   onDisplayUnitChange: (unit: 'C' | 'F') => void;
 }
 
-// Define interface for freeze dryer model configuration
-interface FreezeDryerModel {
-  label: string;
-  trayLength?: number;
-  trayWidth?: number;
-  numberOfTrays?: number;
-  heatingPowerWatts?: number;
-}
-
-// Freeze dryer model configurations - heating power is per tray
-const freezeDryerModels: Record<string, FreezeDryerModel> = {
-  "custom": { 
-    label: "Custom", 
-    trayLength: undefined, 
-    trayWidth: undefined, 
-    numberOfTrays: undefined, 
-    heatingPowerWatts: undefined 
-  },
-  "harvest-right-small": { 
-    trayLength: 20, 
-    trayWidth: 20, 
-    numberOfTrays: 3, 
-    heatingPowerWatts: 167, 
-    label: "Harvest Right (Small)" 
-  },
-  "harvest-right-medium": { 
-    trayLength: 25, 
-    trayWidth: 25, 
-    numberOfTrays: 4, 
-    heatingPowerWatts: 225, 
-    label: "Harvest Right (Medium)" 
-  },
-  "harvest-right-large": { 
-    trayLength: 30, 
-    trayWidth: 30, 
-    numberOfTrays: 5, 
-    heatingPowerWatts: 240, 
-    label: "Harvest Right (Large)" 
-  },
-  "cryodry-cd8": { 
-    trayLength: 45, 
-    trayWidth: 20, 
-    numberOfTrays: 9, 
-    heatingPowerWatts: 167, 
-    label: "CryoDry CD8" 
-  },
-};
-
 export function CalculationSettings({ 
   settings, 
   onSettingsChange,
@@ -81,7 +32,6 @@ export function CalculationSettings({
   onDisplayUnitChange
 }: CalculationSettingsProps) {
   
-  const [selectedModel, setSelectedModel] = useState<string>("custom");
   const [trayLength, setTrayLength] = useState<number>(settings.trayLength || 22.36);
   const [trayWidth, setTrayWidth] = useState<number>(settings.trayWidth || 22.36);
   const [hashPerTray, setHashPerTray] = useState<number>(settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : 0.15);
@@ -116,18 +66,6 @@ export function CalculationSettings({
     
     if (settings.trayWidth !== undefined) {
       setTrayWidth(settings.trayWidth);
-    }
-    
-    // Update selectedModel if tray dimensions match a predefined model
-    if (settings.trayLength && settings.trayWidth && settings.numberOfTrays) {
-      Object.entries(freezeDryerModels).forEach(([key, model]) => {
-        if (key !== "custom" && 
-            model.trayLength === settings.trayLength && 
-            model.trayWidth === settings.trayWidth && 
-            model.numberOfTrays === settings.numberOfTrays) {
-          setSelectedModel(key);
-        }
-      });
     }
   }, [settings]);
   
@@ -208,33 +146,6 @@ export function CalculationSettings({
     onSettingsChange(updatedSettings);
   };
   
-  const handleModelChange = (model: string) => {
-    setSelectedModel(model);
-    
-    if (model !== "custom") {
-      const modelConfig = freezeDryerModels[model];
-      if (!modelConfig) return;
-      
-      // Update state values
-      if (modelConfig.trayLength) setTrayLength(modelConfig.trayLength);
-      if (modelConfig.trayWidth) setTrayWidth(modelConfig.trayWidth);
-      if (modelConfig.numberOfTrays) setNumberOfTrays(modelConfig.numberOfTrays);
-      if (modelConfig.heatingPowerWatts) setHeatingPowerWatts(modelConfig.heatingPowerWatts);
-      
-      // Update settings
-      if (modelConfig.trayLength) handleSettingChange("trayLength", modelConfig.trayLength);
-      if (modelConfig.trayWidth) handleSettingChange("trayWidth", modelConfig.trayWidth);
-      if (modelConfig.numberOfTrays) handleSettingChange("numberOfTrays", modelConfig.numberOfTrays);
-      if (modelConfig.heatingPowerWatts) handleSettingChange("heatingPowerWatts", modelConfig.heatingPowerWatts);
-      
-      // Calculate tray area
-      if (modelConfig.trayLength && modelConfig.trayWidth) {
-        const area = modelConfig.trayLength * modelConfig.trayWidth;
-        handleSettingChange("traySizeCm2", area);
-      }
-    }
-  };
-  
   // Calculate summarized values
   const totalHashWeight = hashPerTray * numberOfTrays;
   const totalWaterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
@@ -249,42 +160,6 @@ export function CalculationSettings({
         </div>
         
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="freezeDryerModel">Freeze Dryer Model</Label>
-            <Select value={selectedModel} onValueChange={handleModelChange}>
-              <SelectTrigger id="freezeDryerModel">
-                <SelectValue placeholder="Select Model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="custom">Custom</SelectItem>
-                <SelectItem value="harvest-right-small">Harvest Right (Small)</SelectItem>
-                <SelectItem value="harvest-right-medium">Harvest Right (Medium)</SelectItem>
-                <SelectItem value="harvest-right-large">Harvest Right (Large)</SelectItem>
-                <SelectItem value="cryodry-cd8">CryoDry CD8</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {selectedModel !== "custom" && (
-            <div className="flex flex-wrap gap-2">
-              {freezeDryerModels[selectedModel].numberOfTrays && (
-                <Badge variant="outline">
-                  {freezeDryerModels[selectedModel].numberOfTrays} Trays
-                </Badge>
-              )}
-              {freezeDryerModels[selectedModel].trayLength && freezeDryerModels[selectedModel].trayWidth && (
-                <Badge variant="outline">
-                  {freezeDryerModels[selectedModel].trayLength} × {freezeDryerModels[selectedModel].trayWidth} cm Trays
-                </Badge>
-              )}
-              {freezeDryerModels[selectedModel].heatingPowerWatts && (
-                <Badge variant="outline">
-                  {freezeDryerModels[selectedModel].heatingPowerWatts} Watts/Tray
-                </Badge>
-              )}
-            </div>
-          )}
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="trayLength">Tray Length</Label>
