@@ -14,11 +14,32 @@ interface TerpeneChartProps {
 }
 
 export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: TerpeneChartProps) {
-  // Process data to include terpene boiling points
+  // Process data to include terpene boiling points and calculate sublimation rates per step
   const chartData = useMemo(() => {
     if (!dryingData.length) return [];
 
-    // Transform points to include terpene boiling points
+    // Calculate sublimation rate for each step
+    const stepSublimationRates: Record<number, number> = {};
+    let lastProgress = 0;
+    let lastStepIdx = -1;
+
+    // First pass to calculate total sublimation per step
+    dryingData.forEach((point, idx) => {
+      if (point.step !== lastStepIdx) {
+        if (lastStepIdx >= 0) {
+          const progressInStep = point.progress - lastProgress;
+          stepSublimationRates[lastStepIdx] = progressInStep;
+        }
+        lastProgress = point.progress;
+        lastStepIdx = point.step;
+      } else if (idx === dryingData.length - 1) {
+        // Handle last point
+        const progressInStep = point.progress - lastProgress;
+        stepSublimationRates[lastStepIdx] = progressInStep;
+      }
+    });
+
+    // Transform points to include terpene boiling points and sublimation rates
     return dryingData.map(point => {
       // Calculate terpene boiling points at this pressure
       const terpenesAtPoint: Record<string, number> = {};
@@ -40,10 +61,14 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         ? celsiusToFahrenheit(point.temperature) 
         : point.temperature;
       
+      // Get sublimation rate for this step
+      const sublimationRate = stepSublimationRates[point.step] || 0;
+      
       return {
         time: point.time,
         displayTemp,
         progress: point.progress,
+        sublimationRate: sublimationRate,
         pressure: point.pressure,
         step: point.step,
         ...terpenesAtPoint
@@ -133,6 +158,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       
       // Get current step temperature
       const stepTemp = pointData.displayTemp;
+      const currentStep = pointData.step + 1; // Adding 1 for human-readable step number
+      const sublimationRate = pointData.sublimationRate;
       
       // Get the terpenes that would boil at this point
       const boilingTerpenes = Object.entries(pointData)
@@ -146,9 +173,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       return (
         <div className="bg-background border border-border p-3 shadow-md rounded-md">
           <p className="font-semibold mb-1">{`Time: ${pointData.time.toFixed(2)} hours`}</p>
-          <p className="text-sm mb-2">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
-          <p className="text-sm mb-2">{`Pressure: ${Math.round(pointData.pressure)} mBar`}</p>
-          <p className="text-sm">{`Ice Sublimated: ${Math.round(pointData.progress)}%`}</p>
+          <p className="text-sm mb-1">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
+          <p className="text-sm mb-1">{`Pressure: ${Math.round(pointData.pressure)} mBar`}</p>
+          <p className="text-sm mb-1">{`Ice Sublimated: ${Math.round(pointData.progress)}%`}</p>
+          <p className="text-sm mb-2">{`Step ${currentStep}: ${sublimationRate.toFixed(1)}% sublimation`}</p>
           
           {boilingTerpenes.length > 0 && (
             <div className="mt-2 pt-2 border-t border-border">
@@ -304,3 +332,4 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     </div>
   );
 }
+
