@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -68,9 +69,23 @@ export function estimateHeatInputRate(
   // Pressure factor - lower pressure decreases heat transfer
   // More significant effect at very low pressures
   const normalizedPressure = Math.max(0.1, Math.min(1000, pressureMbar));
-  const pressureFactor = normalizedPressure <= 100 
-    ? 0.5 + (normalizedPressure / 200) // More pronounced effect at very low pressures
-    : 0.5 + (normalizedPressure / 2000) + 0.25; // Less pronounced effect at higher pressures
+  
+  // Modified pressure factor with more realistic scaling
+  // Very low pressures significantly reduce heat transfer efficiency
+  let pressureFactor;
+  if (normalizedPressure <= 1) {
+    // Severe reduction at extremely low pressures (vacuum levels)
+    pressureFactor = 0.2 + (normalizedPressure * 0.3);
+  } else if (normalizedPressure <= 10) {
+    // Gradual improvement as pressure increases
+    pressureFactor = 0.5 + (normalizedPressure * 0.05);
+  } else if (normalizedPressure <= 100) {
+    // Less pronounced effect at medium-low pressures
+    pressureFactor = 0.7 + (normalizedPressure / 500);
+  } else {
+    // High pressures have less impact on transfer efficiency
+    pressureFactor = 0.9 + (normalizedPressure / 10000);
+  }
   
   // Thermal conductivity factor
   // This could be expanded with actual material properties in a more complex model
@@ -142,12 +157,19 @@ export function calculateProgressCurve(
   
   const points: SubTimePoint[] = [];
   let remainingIce = iceWeight;
+  let lastHeatRate = 0;
   
   // Add starting point at time 0
   const firstStep = steps[0];
   const firstTempC = normalizeTemperature(firstStep.temperature, firstStep.tempUnit);
   const firstPressureMbar = normalizePressure(firstStep.pressure, firstStep.pressureUnit);
   
+  // Calculate initial heat rate
+  const initialHeatRate = settings.heatInputRate || 
+    estimateHeatInputRate(firstTempC, firstPressureMbar, totalShelfAreaM2);
+  lastHeatRate = initialHeatRate;
+  
+  // Add initial point
   points.push({
     time: 0,
     progress: 0,
@@ -155,6 +177,14 @@ export function calculateProgressCurve(
     temperature: firstTempC,
     pressure: firstPressureMbar,
   });
+  
+  // Determine efficiency reduction factor
+  // This simulates how sublimation becomes less efficient over time
+  const efficiencyReductionFactor = 1.5; // Increase for more realistic slower progression
+  
+  // Calculate theoretical completion time (in hours)
+  const theoreticalCompletionTime = calculateSubTimeInHours(iceWeight, initialHeatRate);
+  console.log("Theoretical completion time:", theoreticalCompletionTime.toFixed(2), "hours");
   
   // Generate data points with fine time resolution, ensuring we include the full total time
   for (let i = 1; i <= numPoints; i++) {
@@ -178,12 +208,20 @@ export function calculateProgressCurve(
     const previousTimePoint = points[points.length - 1];
     const timeInStep = currentTime - previousTimePoint.time;
     
-    // Calculate heat rate and sublimation for this time segment
-    const heatRate = settings.heatInputRate || 
+    // Calculate heat rate for this step with a more realistic model
+    const baseHeatRate = settings.heatInputRate || 
       estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
     
+    // Apply diminishing returns as sublimation progresses
+    // The closer we get to 100% sublimation, the slower the process becomes
+    const progressFactor = Math.max(0.2, 1 - Math.pow(previousTimePoint.progress / 100, 0.7));
+    
+    // Apply efficiency factor considering how heat transfer becomes less efficient as the material dries
+    const effectiveHeatRate = baseHeatRate * progressFactor;
+    lastHeatRate = effectiveHeatRate;
+    
     // Energy transferred during this time segment
-    const energyTransferred = heatRate * timeInStep; // kJ
+    const energyTransferred = effectiveHeatRate * timeInStep; // kJ
     
     // Ice sublimated during this time segment
     const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg
@@ -195,7 +233,7 @@ export function calculateProgressCurve(
     // Add the point with this step's temperature
     points.push({
       time: currentTime,
-      progress: progress,
+      progress: Math.min(100, progress), // Cap at 100%
       step: currentStepIndex,
       temperature: tempC,
       pressure: pressureMbar,
@@ -203,6 +241,8 @@ export function calculateProgressCurve(
     
     // If we've reached 100% sublimation, adjust remaining points to maintain 100%
     if (remainingIce <= 0 && i < numPoints) {
+      console.log(`100% sublimation reached at ${currentTime.toFixed(2)} hours (point ${i} of ${numPoints})`);
+      
       // Add data points for the rest of the time with 100% progress
       for (let j = i + 1; j <= numPoints; j++) {
         const remainingTime = j === numPoints ? totalTime : j * timeStep;
