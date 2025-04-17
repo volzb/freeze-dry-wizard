@@ -26,27 +26,24 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     return dryingData.map((point) => {
       const terpenesAtPoint: Record<string, number> = {};
       
-      // Only calculate terpene boiling points if temperature and pressure are > 0
-      // This ensures that terpene lines don't appear when the machine is off
-      if (point.temperature > 0 && point.pressure > 0) {
-        // Calculate boiling point for each terpene at this pressure
-        terpenes.forEach((terpene) => {
-          // Convert pressure from mbar to torr for calculation
-          const pressureTorr = point.pressure / 1.33322;
-          let boilingTemp = calculateBoilingPoint(terpene, pressureTorr);
-          
-          // Convert to Fahrenheit if needed
-          if (displayUnit === 'F') {
-            boilingTemp = celsiusToFahrenheit(boilingTemp);
-          }
-          
-          terpenesAtPoint[terpene.name] = boilingTemp;
-        });
-      }
+      // Calculate boiling point for each terpene at this pressure
+      terpenes.forEach((terpene) => {
+        // Convert pressure from mbar to torr for calculation
+        const pressureTorr = point.pressure / 1.33322;
+        let boilingTemp = calculateBoilingPoint(terpene, pressureTorr);
+        
+        // Convert to Fahrenheit if needed
+        if (displayUnit === 'F') {
+          boilingTemp = celsiusToFahrenheit(boilingTemp);
+        }
+        
+        terpenesAtPoint[terpene.name] = boilingTemp;
+      });
       
       // Adjust temperature for display unit
-      const displayTemp = point.temperature > 0 ? 
-        (displayUnit === 'F' ? celsiusToFahrenheit(point.temperature) : point.temperature) : 0;
+      const displayTemp = displayUnit === 'F' 
+        ? celsiusToFahrenheit(point.temperature) 
+        : point.temperature;
       
       return {
         ...point,
@@ -66,17 +63,14 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       // Get current step temperature
       const stepTemp = pointData.displayTemp;
       
-      // Only show terpene risk if the machine is running (temp > 0)
-      const showTerpeneRisk = stepTemp > 0;
-      
       // Get the terpenes that would boil at this point
-      const boilingTerpenes = showTerpeneRisk ? Object.entries(pointData)
+      const boilingTerpenes = Object.entries(pointData)
         .filter(([key, value]) => {
           return terpenes.some(t => t.name === key) && 
                  typeof value === 'number' &&
                  value <= stepTemp;
         })
-        .map(([key]) => key) : [];
+        .map(([key]) => key);
       
       return (
         <div className="bg-background border border-border p-3 shadow-md rounded-md">
