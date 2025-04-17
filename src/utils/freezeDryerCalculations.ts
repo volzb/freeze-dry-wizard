@@ -163,6 +163,15 @@ export function calculateProgressCurve(
   const theoreticalCompletionTime = calculateSubTimeInHours(iceWeight, initialHeatRate);
   console.log("Theoretical completion time:", theoreticalCompletionTime.toFixed(2), "hours");
   
+  // Initialize the first point at time 0 before entering the loop
+  points.push({
+    time: 0,
+    progress: 0,
+    step: 0,
+    temperature: firstTempC,
+    pressure: firstPressureMbar,
+  });
+  
   // Generate data points with fine time resolution, ensuring we include the full total time
   for (let i = 1; i <= numPoints; i++) {
     // Using <= ensures we include the last point exactly at totalTime
