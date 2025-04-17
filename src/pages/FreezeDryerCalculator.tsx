@@ -367,6 +367,30 @@ export default function FreezeDryerCalculator() {
               </CardContent>
             </Card>
             
+            <Card>
+              <CardHeader>
+                <CardTitle>Terpene Guide</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="text-sm space-y-1">
+                  <p className="font-semibold">Terpene Boiling Points (at atmospheric pressure):</p>
+                  <ul className="space-y-1 text-sm">
+                    {terpenes.map((terpene) => (
+                      <li key={terpene.name} className="flex justify-between items-center">
+                        <span className="flex items-center">
+                          <span 
+                            className="h-3 w-3 rounded-full mr-2" 
+                            style={{ backgroundColor: terpene.color }}
+                          />
+                          {terpene.name}
+                        </span>
+                        <span>{terpene.boilingPoint}°C</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           
           <div className="space-y-6">
@@ -469,31 +493,6 @@ export default function FreezeDryerCalculator() {
                       <li>A, B, C = Antoine constants specific to each terpene</li>
                     </ul>
                   </section>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Terpene Guide</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="text-sm space-y-1">
-                  <p className="font-semibold">Terpene Boiling Points (at atmospheric pressure):</p>
-                  <ul className="space-y-1 text-sm">
-                    {terpenes.map((terpene) => (
-                      <li key={terpene.name} className="flex justify-between items-center">
-                        <span className="flex items-center">
-                          <span 
-                            className="h-3 w-3 rounded-full mr-2" 
-                            style={{ backgroundColor: terpene.color }}
-                          />
-                          {terpene.name}
-                        </span>
-                        <span>{terpene.boilingPoint}°C</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </CardContent>
             </Card>
