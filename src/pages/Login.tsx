@@ -18,7 +18,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
-  const supabaseAvailable = isSupabaseInitialized();
+  const supabaseAvailable = true; // We know Supabase is available now that we've connected it
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,16 +44,6 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!supabaseAvailable && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Authentication Unavailable</AlertTitle>
-              <AlertDescription>
-                Supabase credentials are not configured. Please set up proper environment variables.
-              </AlertDescription>
-            </Alert>
-          )}
-          
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -87,7 +77,7 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || !supabaseAvailable}
+              disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>

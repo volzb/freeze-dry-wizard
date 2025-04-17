@@ -1,22 +1,8 @@
 
-import { createClient } from "@supabase/supabase-js";
-import { toast } from "sonner";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 
-// Replace these with your actual Supabase URL and anon key
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
-// Check if the credentials are available
-const hasValidCredentials = supabaseUrl && supabaseAnonKey;
-
-if (!hasValidCredentials) {
-  console.warn("Missing Supabase credentials. Authentication features will not work.");
-}
-
-// Create the Supabase client only if we have valid credentials
-export const supabase = hasValidCredentials 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+// Export the initialized Supabase client
+export const supabase = supabaseClient;
 
 // Define database types
 export type FreezeDryerConfig = {

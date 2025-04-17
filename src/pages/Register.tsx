@@ -19,7 +19,7 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { register } = useAuth();
-  const supabaseAvailable = isSupabaseInitialized();
+  const supabaseAvailable = true; // We know Supabase is available now that we've connected it
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,16 +45,6 @@ export default function Register() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!supabaseAvailable && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Authentication Unavailable</AlertTitle>
-              <AlertDescription>
-                Supabase credentials are not configured. Please set up proper environment variables.
-              </AlertDescription>
-            </Alert>
-          )}
-          
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
@@ -91,7 +81,7 @@ export default function Register() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || !supabaseAvailable}
+              disabled={isLoading}
             >
               {isLoading ? "Creating account..." : "Create account"}
             </Button>
