@@ -1,7 +1,9 @@
+
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { supabase, isSupabaseInitialized, FreezeDryerConfig } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 type AuthUser = {
   id: string;
@@ -106,22 +108,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Existing configs in database:", existingConfigs);
       
       for (const config of configurations) {
+        // Cast the settings to Json type explicitly
+        const settingsToSave: Json = config.settings ? 
+          config.settings as unknown as Json : 
+          {} as Json;
+          
+        // Process numeric values if needed
+        if (typeof settingsToSave === 'object' && settingsToSave !== null) {
+          // Ensure hashPerTray is a number
+          if ('hashPerTray' in settingsToSave) {
+            (settingsToSave as any).hashPerTray = Number((settingsToSave as any).hashPerTray);
+          }
+          // Ensure waterPercentage is a number
+          if ('waterPercentage' in settingsToSave) {
+            (settingsToSave as any).waterPercentage = Number((settingsToSave as any).waterPercentage);
+          }
+        }
+        
+        // Cast the steps to Json[] type explicitly
+        const stepsToSave: Json[] = config.steps ? 
+          config.steps as unknown as Json[] : 
+          [];
+        
         const configData = {
           user_id: userId,
           name: config.name,
-          settings: config.settings ? config.settings as object : {},
-          steps: config.steps || [],
+          settings: settingsToSave,
+          steps: stepsToSave,
         };
-        
-        if (configData.settings && typeof configData.settings === 'object') {
-          const settingsObj = configData.settings as { [key: string]: any };
-          if ('hashPerTray' in settingsObj) {
-            settingsObj.hashPerTray = Number(settingsObj.hashPerTray);
-          }
-          if ('waterPercentage' in settingsObj) {
-            settingsObj.waterPercentage = Number(settingsObj.waterPercentage);
-          }
-        }
         
         const existingConfig = existingConfigs?.find(ec => ec.id === config.id);
         
@@ -143,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .insert({
               ...configData,
               id: config.id
-            });
+            } as FreezeDryerConfig);
             
           if (insertError) {
             console.error("Error inserting configuration:", insertError);
