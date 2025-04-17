@@ -16,6 +16,9 @@ export interface FreezeDryerSettings {
   heatInputRate: number; // in kJ/hr
   traySizeCm2: number; // tray size in square centimeters
   numberOfTrays: number; // number of trays used
+  trayLength?: number; // tray length in cm 
+  trayWidth?: number; // tray width in cm
+  hashPerTray?: number; // hash amount per tray in kg
   chamberVolume?: number; // optional: freeze dryer chamber volume in liters
   condenserCapacity?: number; // optional: condenser capacity in kg of ice
 }

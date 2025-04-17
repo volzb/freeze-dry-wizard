@@ -90,11 +90,25 @@ export default function FreezeDryerCalculator() {
     });
   }, [steps, settings.iceWeight, settings.heatInputRate, settings.traySizeCm2, settings.numberOfTrays]);
   
-  // Check for potentially risky conditions (high temp/low pressure)
+  // Check for potentially risky conditions
   const riskAssessment = useMemo(() => {
     if (!steps.length) return [];
     
-    return steps.map((step, index) => {
+    const risks = [];
+    
+    // Check for high hash density
+    const totalArea = (settings.traySizeCm2 || 0) * (settings.numberOfTrays || 1) / 100; // convert to m²
+    const hashDensity = settings.iceWeight && totalArea ? (settings.iceWeight * 1000) / totalArea : 0;
+    
+    if (hashDensity > 3) {
+      risks.push({
+        type: "density",
+        message: `Hash density is ${hashDensity.toFixed(1)} g/m². Values above 3 g/m² may result in uneven drying.`
+      });
+    }
+    
+    // Check temperature and pressure risks
+    steps.forEach((step, index) => {
       const tempC = normalizeTemperature(step.temperature, step.tempUnit);
       const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
       
@@ -104,20 +118,23 @@ export default function FreezeDryerCalculator() {
       // Low pressure risk (below 50 mBar)
       const pressureRisk = pressureMbar < 50;
       
-      return {
-        stepIndex: index,
-        tempRisk,
-        pressureRisk,
-        message: tempRisk && pressureRisk
-          ? "High temperature and low pressure may cause significant terpene loss."
-          : tempRisk 
-            ? "High temperature may accelerate terpene evaporation."
-            : pressureRisk
-              ? "Very low pressure may extract some terpenes."
-              : ""
-      };
-    }).filter(risk => risk.tempRisk || risk.pressureRisk);
-  }, [steps]);
+      if (tempRisk || pressureRisk) {
+        risks.push({
+          type: "step",
+          stepIndex: index,
+          tempRisk,
+          pressureRisk,
+          message: tempRisk && pressureRisk
+            ? "High temperature and low pressure may cause significant terpene loss."
+            : tempRisk 
+              ? "High temperature may accelerate terpene evaporation."
+              : "Very low pressure may extract some terpenes."
+        });
+      }
+    });
+    
+    return risks;
+  }, [steps, settings.iceWeight, settings.traySizeCm2, settings.numberOfTrays]);
   
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4">
@@ -218,12 +235,13 @@ export default function FreezeDryerCalculator() {
             {riskAssessment.length > 0 && (
               <Alert variant="destructive">
                 <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Potential Terpene Loss Detected</AlertTitle>
+                <AlertTitle>Potential Issues Detected</AlertTitle>
                 <AlertDescription>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     {riskAssessment.map((risk, idx) => (
                       <li key={idx}>
-                        Step {risk.stepIndex + 1}: {risk.message}
+                        {risk.type === "step" ? `Step ${(risk as any).stepIndex + 1}: ` : ""}
+                        {risk.message}
                       </li>
                     ))}
                   </ul>
