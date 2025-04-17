@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
         setIsAuthenticated(true);
+        console.log("Restored user session from localStorage:", parsedUser.id);
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('user');
@@ -43,8 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const saveConfigurationToStorage = (userId: string, configurations: any[]) => {
     try {
       const key = `${STORAGE_PREFIX}${userId}`;
-      localStorage.setItem(key, JSON.stringify(configurations));
-      console.log(`Saved ${configurations.length} configurations for user ${userId} to ${key}`);
+      
+      // Make a deep copy to ensure we don't store any references
+      const configsCopy = JSON.parse(JSON.stringify(configurations));
+      
+      localStorage.setItem(key, JSON.stringify(configsCopy));
+      console.log(`Saved ${configurations.length} configurations for user ${userId} to ${key}:`, configsCopy);
     } catch (error) {
       console.error('Error saving configurations to storage:', error);
     }
@@ -58,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (configs) {
         const parsedConfigs = JSON.parse(configs);
-        console.log(`Retrieved ${parsedConfigs.length} configurations for user ${userId}`);
+        console.log(`Retrieved ${parsedConfigs.length} configurations for user ${userId}:`, parsedConfigs);
         return parsedConfigs;
       } else {
         console.log(`No configurations found for user ${userId} at key ${key}`);
@@ -71,16 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (userData: User) => {
     console.log("Login called with user:", userData);
+    
+    if (!userData || !userData.id) {
+      console.error("Login attempted with invalid user data:", userData);
+      return;
+    }
+    
     setUser(userData);
     setIsAuthenticated(true);
     localStorage.setItem('user', JSON.stringify(userData));
     
     // Ensure any previously anonymous saved settings are migrated to the user account
-    if (userData && userData.id) {
-      migrateAnonymousSettings(userData.id);
-    } else {
-      console.error("Login attempted with invalid user data:", userData);
-    }
+    migrateAnonymousSettings(userData.id);
   };
   
   const migrateAnonymousSettings = (userId: string) => {
@@ -99,11 +106,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Save anonymous settings to the user's storage
           localStorage.setItem(userKey, anonymousSettings);
           console.log('Successfully migrated anonymous settings to user account', userId);
+          
+          // Verify migration was successful
+          const migratedSettings = localStorage.getItem(userKey);
+          if (migratedSettings) {
+            console.log('Verified migrated settings:', JSON.parse(migratedSettings));
+          }
         } else {
           console.log('User already has settings, no migration needed');
+          console.log('Existing user settings:', JSON.parse(existingUserSettings));
         }
       } else {
         console.log('No anonymous settings found to migrate');
+      }
+      
+      // Verify all settings in local storage for debugging
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(STORAGE_PREFIX)) {
+          console.log(`Found storage key: ${key}`);
+        }
       }
     } catch (error) {
       console.error('Error migrating anonymous settings:', error);

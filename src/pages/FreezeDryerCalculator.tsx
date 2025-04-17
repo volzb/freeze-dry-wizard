@@ -73,7 +73,8 @@ export default function FreezeDryerCalculator() {
     heatInputRate: Math.round(initialHeatRate),
     traySizeCm2: defaultTraySizeCm2,
     numberOfTrays: defaultNumberOfTrays,
-    waterPercentage: 75 // Default water percentage
+    waterPercentage: 75, // Default water percentage
+    hashPerTray: 0.15 // Default hash per tray
   });
   
   // Selected terpenes to display
@@ -83,8 +84,23 @@ export default function FreezeDryerCalculator() {
   
   // Load settings and steps
   const handleLoadSavedSettings = (savedSettings: Partial<FreezeDryerSettings>, savedSteps: DryingStep[]) => {
-    setSettings(savedSettings);
-    setSteps(savedSteps);
+    console.log("Loading saved settings:", savedSettings);
+    console.log("Loading saved steps:", savedSteps);
+    
+    // Ensure all required settings are present
+    const completeSettings = {
+      ...settings, // Keep current default values
+      ...savedSettings, // Override with saved settings
+    };
+    
+    // Make sure steps have IDs
+    const completeSteps = savedSteps.map(step => ({
+      ...step,
+      id: step.id || uuidv4()
+    }));
+    
+    setSettings(completeSettings);
+    setSteps(completeSteps);
   };
   
   // Calculate progress curve data
@@ -105,6 +121,14 @@ export default function FreezeDryerCalculator() {
     const totalHashWeight = (settings.hashPerTray || 0.15) * (settings.numberOfTrays || defaultNumberOfTrays);
     return calculateWaterWeight(totalHashWeight, settings.waterPercentage || 75);
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
+  
+  // Update ice weight when water weight calculation changes
+  useEffect(() => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      iceWeight: waterWeight
+    }));
+  }, [waterWeight]);
   
   // Check for potentially risky conditions
   const riskAssessment = useMemo(() => {
