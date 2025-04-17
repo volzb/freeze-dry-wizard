@@ -63,7 +63,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
           
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Water Removal</p>
-            <p className={`text-2xl font-bold ${isDryingIncomplete ? 'text-destructive' : isOverDry ? 'text-amber-500' : ''}`}>
+            <p className={`text-2xl font-bold ${isDryingIncomplete ? 'text-amber-500' : isOverDry ? 'text-amber-500' : ''}`}>
               {Math.round(completedPercent)}%
               {isOverDry ? " (Over Dry)" : ""}
             </p>
@@ -84,7 +84,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
           </div>
         </div>
         
-        {waterWeight && waterPercentage && (
+        {waterWeight !== undefined && waterPercentage !== undefined && (
           <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Water Content</p>
