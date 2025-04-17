@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,11 +184,9 @@ export default function FreezeDryerCalculator() {
       const completeSteps = savedSteps.map(step => ({
         ...step,
         id: step.id || uuidv4(),
-        // Ensure pressureUnit is of the correct type
         pressureUnit: (step.pressureUnit === 'mBar' || step.pressureUnit === 'Torr') 
           ? step.pressureUnit 
           : 'mBar' as 'mBar' | 'Torr',
-        // Ensure tempUnit is of the correct type
         tempUnit: (step.tempUnit === 'C' || step.tempUnit === 'F') 
           ? step.tempUnit 
           : 'C' as 'C' | 'F'
@@ -422,6 +419,87 @@ export default function FreezeDryerCalculator() {
               settings={settings}
               onSettingsChange={setSettings}
             />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Calculation Details</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="text-sm space-y-4 prose prose-sm max-w-none">
+                  <section>
+                    <h4 className="font-semibold">Sublimation Process</h4>
+                    <p>
+                      The freeze drying process involves sublimation, where ice transitions directly from solid to vapor state. 
+                      The rate of sublimation (Rs) is calculated using the following equation:
+                    </p>
+                    <p className="font-mono bg-muted p-2 rounded">
+                      Rs = (Q × t) / (m × Ls)
+                    </p>
+                    <p>Where:</p>
+                    <ul className="list-disc list-inside">
+                      <li>Q = Heat input rate (kJ/hr)</li>
+                      <li>t = Time (hours)</li>
+                      <li>m = Mass of ice (kg)</li>
+                      <li>Ls = Latent heat of sublimation (2835 kJ/kg)</li>
+                    </ul>
+                  </section>
+
+                  <section>
+                    <h4 className="font-semibold">Heat Transfer Rate</h4>
+                    <p>
+                      Heat transfer rate (Q) is influenced by several factors:
+                    </p>
+                    <ul className="list-disc list-inside">
+                      <li>Chamber pressure (affects heat transfer efficiency)</li>
+                      <li>Temperature differential</li>
+                      <li>Surface area of the product</li>
+                      <li>Heating element power and efficiency</li>
+                    </ul>
+                    <p>
+                      The effective heat transfer rate decreases as sublimation progresses due to the formation of a dried layer,
+                      which acts as an insulator. This is accounted for using a progressive efficiency factor.
+                    </p>
+                  </section>
+
+                  <section>
+                    <h4 className="font-semibold">Progress Calculation</h4>
+                    <p>
+                      The sublimation progress is calculated in small time increments:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Calculate effective heat rate for current conditions</li>
+                      <li>Apply efficiency factor based on current progress</li>
+                      <li>Calculate energy transferred in time segment</li>
+                      <li>Convert energy to mass of ice sublimated</li>
+                      <li>Update remaining ice and progress percentage</li>
+                    </ol>
+                    <p className="mt-2">
+                      The efficiency factor diminishes as sublimation progresses according to:
+                    </p>
+                    <p className="font-mono bg-muted p-2 rounded">
+                      efficiency = max(0.2, 1 - (progress/100)^0.7)
+                    </p>
+                  </section>
+
+                  <section>
+                    <h4 className="font-semibold">Temperature Effects</h4>
+                    <p>
+                      Each terpene has a unique vapor pressure curve that determines its boiling point at different pressures.
+                      This is calculated using the Antoine equation:
+                    </p>
+                    <p className="font-mono bg-muted p-2 rounded">
+                      log₁₀(P) = A - (B / (C + T))
+                    </p>
+                    <p>Where:</p>
+                    <ul className="list-disc list-inside">
+                      <li>P = Vapor pressure</li>
+                      <li>T = Temperature (°C)</li>
+                      <li>A, B, C = Antoine constants specific to each terpene</li>
+                    </ul>
+                  </section>
+                </div>
+              </CardContent>
+            </Card>
             
             <Card>
               <CardHeader>

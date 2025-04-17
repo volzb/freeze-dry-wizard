@@ -27,9 +27,6 @@ export function NavBar() {
           <Link to="/" className="text-sm font-medium hover:text-primary">
             Home
           </Link>
-          <Link to="/calculator" className="text-sm font-medium hover:text-primary">
-            Calculator
-          </Link>
           
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
