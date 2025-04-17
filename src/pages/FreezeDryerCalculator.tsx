@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,14 +27,14 @@ import { v4 as uuidv4 } from "@/utils/uuid";
 // and will update when the user saves their settings to localStorage
 const defaultSettings = {
   // Default tray dimensions (typical lab freeze dryer tray)
-  trayLength: 22.36, // 22.36 cm
-  trayWidth: 22.36, // 22.36 cm
-  traySizeCm2: 22.36 * 22.36, // 500 cm²
-  numberOfTrays: 3,
-  hashPerTray: 0.15, // Default hash per tray in kg
-  waterPercentage: 75, // Default water percentage  
-  heatingPowerWatts: 250, // Default heating power in watts per tray
-  iceWeight: 0.5 // Will be recalculated based on hash and water percentage
+  trayLength: 45, // 45 cm
+  trayWidth: 20, // 20 cm
+  traySizeCm2: 45 * 20, // 900 cm²
+  numberOfTrays: 5,
+  hashPerTray: 0.5, // Default hash per tray in kg
+  waterPercentage: 50, // Default water percentage  
+  heatingPowerWatts: 50, // Default heating power in watts per tray
+  iceWeight: 1.25 // Will be recalculated based on hash and water percentage
 };
 
 // Try to load saved defaults from localStorage
