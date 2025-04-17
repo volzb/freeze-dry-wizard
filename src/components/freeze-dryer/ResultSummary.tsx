@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubTimePoint } from "@/utils/freezeDryerCalculations";
 import { celsiusToFahrenheit } from "@/utils/terpeneData";
+import { Progress } from "@/components/ui/progress";
 
 interface ResultSummaryProps {
   progressCurve: SubTimePoint[];
@@ -68,10 +69,13 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
           
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">Water Removal</p>
-            <p className={`text-2xl font-bold ${isDryingIncomplete ? 'text-amber-500' : isOverDry ? 'text-amber-500' : ''}`}>
-              {Math.round(completedPercent)}%
-              {isOverDry ? " (Over Dry)" : ""}
-            </p>
+            <div className="space-y-1">
+              <Progress value={completedPercent} indicatorClassName={isDryingIncomplete ? 'bg-amber-500' : isOverDry ? 'bg-amber-500' : ''} />
+              <p className={`text-lg font-semibold ${isDryingIncomplete ? 'text-amber-500' : isOverDry ? 'text-amber-500' : ''}`}>
+                {Math.round(completedPercent)}%
+                {isOverDry ? " (Over Dry)" : ""}
+              </p>
+            </div>
           </div>
           
           <div className="space-y-1">
@@ -98,9 +102,20 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
             
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Water Removed</p>
-              <p className="text-2xl font-bold">{actualWaterRemoved !== undefined ? actualWaterRemoved.toFixed(3) : '0'} kg</p>
+              <p className="text-2xl font-bold">
+                {actualWaterRemoved !== undefined ? actualWaterRemoved.toFixed(3) : '0'} kg
+                <span className="text-xs block text-muted-foreground">
+                  of {waterWeight.toFixed(3)} kg
+                </span>
+              </p>
             </div>
           </div>
+        )}
+        
+        {isDryingIncomplete && (
+          <p className="text-xs text-amber-500 italic">
+            Process will only achieve {Math.round(completedPercent)}% sublimation. Consider extending drying time.
+          </p>
         )}
         
         {isOverDry && (
