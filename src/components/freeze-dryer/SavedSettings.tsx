@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,26 +61,22 @@ export function SavedSettings({
   }, [isAuthenticated, user]);
 
   const loadSavedConfigurations = async () => {
+    if (!isAuthenticated || !user?.id) {
+      console.log("User not authenticated, skipping configuration load");
+      return;
+    }
+
     setIsLoading(true);
-    try {
-      // Get the current user ID or use 'anonymous' for non-authenticated sessions
-      const userId = user?.id;
+    try {      
+      console.log(`Loading configurations for user: ${user.id}`);
       
-      console.log(`Loading configurations for user: ${userId || 'anonymous'}`);
-      
-      if (!userId || !isAuthenticated) {
-        toast.error("Please login to save and load settings");
-        setIsLoading(false);
-        return;
-      }
-      
-      const configs = await getConfigurationsFromStorage(userId);
+      const configs = await getConfigurationsFromStorage(user.id);
       
       if (configs && configs.length > 0) {
-        console.log(`Found ${configs.length} saved configurations for ${userId}`);
+        console.log(`Found ${configs.length} saved configurations for ${user.id}`);
         setSavedConfigs(configs);
       } else {
-        console.log(`No saved configurations found for ${userId}`);
+        console.log(`No saved configurations found for ${user.id}`);
         setSavedConfigs([]);
       }
     } catch (error) {
