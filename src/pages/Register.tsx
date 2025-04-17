@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Apple } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -15,28 +15,53 @@ export default function Register() {
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulated registration
-    setTimeout(() => {
-      toast.success("Account created successfully!");
+    try {
+      // In a real app, this would create a new account in the backend
+      // For now, we'll simulate a successful registration
+      setTimeout(() => {
+        login({
+          id: crypto.randomUUID(),
+          email,
+          name,
+          authProvider: 'email'
+        });
+        
+        toast.success("Account created successfully!");
+        setIsLoading(false);
+        navigate("/calculator");
+      }, 1500);
+    } catch (error) {
+      toast.error("Registration failed. Please try again.");
       setIsLoading(false);
-      navigate("/calculator");
-    }, 1500);
+    }
   };
 
   const handleAppleSignup = async () => {
     setIsLoading(true);
 
-    // Simulated Apple signup
-    setTimeout(() => {
-      toast.success("Apple ID signup successful!");
+    try {
+      // Simulated Apple signup
+      setTimeout(() => {
+        login({
+          id: crypto.randomUUID(),
+          name: "Apple User",
+          authProvider: 'apple'
+        });
+        
+        toast.success("Apple ID signup successful!");
+        setIsLoading(false);
+        navigate("/calculator");
+      }, 1500);
+    } catch (error) {
+      toast.error("Apple signup failed. Please try again.");
       setIsLoading(false);
-      navigate("/calculator");
-    }, 1500);
+    }
   };
 
   return (

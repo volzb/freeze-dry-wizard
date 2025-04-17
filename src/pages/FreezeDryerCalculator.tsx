@@ -7,8 +7,10 @@ import { TerpeneChart } from "@/components/freeze-dryer/TerpeneChart";
 import { TerpeneSelector } from "@/components/freeze-dryer/TerpeneSelector";
 import { CalculationSettings } from "@/components/freeze-dryer/CalculationSettings";
 import { ResultSummary } from "@/components/freeze-dryer/ResultSummary";
+import { SavedSettings } from "@/components/freeze-dryer/SavedSettings";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { terpenes } from "@/utils/terpeneData";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   DryingStep, 
   FreezeDryerSettings, 
@@ -25,6 +27,7 @@ import { v4 as uuidv4 } from "@/utils/uuid";
 export default function FreezeDryerCalculator() {
   // Temperature unit for display
   const [displayUnit, setDisplayUnit] = useState<'C' | 'F'>('C');
+  const { isAuthenticated } = useAuth();
   
   // Drying steps
   const [steps, setSteps] = useState<DryingStep[]>([
@@ -78,6 +81,12 @@ export default function FreezeDryerCalculator() {
   const [selectedTerpenes, setSelectedTerpenes] = useState<string[]>(
     terpenes.slice(0, 5).map(t => t.name)
   );
+  
+  // Load settings and steps
+  const handleLoadSavedSettings = (savedSettings: Partial<FreezeDryerSettings>, savedSteps: DryingStep[]) => {
+    setSettings(savedSettings);
+    setSteps(savedSteps);
+  };
   
   // Calculate progress curve data
   const progressCurve = useMemo(() => {
@@ -164,6 +173,18 @@ export default function FreezeDryerCalculator() {
         
         <div className="grid gap-6 md:grid-cols-3">
           <div className="space-y-6 md:col-span-2">
+            {isAuthenticated && (
+              <Card>
+                <CardContent className="p-4">
+                  <SavedSettings 
+                    currentSettings={settings}
+                    currentSteps={steps}
+                    onLoadSettings={handleLoadSavedSettings}
+                  />
+                </CardContent>
+              </Card>
+            )}
+            
             <Card>
               <CardHeader>
                 <CardTitle>Drying and Terpene Visualization</CardTitle>

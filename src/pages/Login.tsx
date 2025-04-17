@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,36 +7,60 @@ import { Label } from "@/components/ui/label";
 import { Apple } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login delay
-    setTimeout(() => {
-      toast.success("Login successful!");
+    try {
+      // In a real app, this would send the credentials to a backend
+      // For now, we'll simulate a successful login
+      setTimeout(() => {
+        login({
+          id: crypto.randomUUID(),
+          email,
+          name: email.split('@')[0],
+          authProvider: 'email'
+        });
+        
+        toast.success("Login successful!");
+        setIsLoading(false);
+        navigate("/calculator");
+      }, 1500);
+    } catch (error) {
+      toast.error("Login failed. Please try again.");
       setIsLoading(false);
-      navigate("/calculator");
-      // In a real app, save the authentication status to localStorage or context
-    }, 1500);
+    }
   };
 
   const handleAppleLogin = async () => {
     setIsLoading(true);
 
-    // Simulated Apple login
-    setTimeout(() => {
-      toast.success("Apple ID login successful!");
+    try {
+      // Simulated Apple login
+      setTimeout(() => {
+        login({
+          id: crypto.randomUUID(),
+          name: "Apple User",
+          authProvider: 'apple'
+        });
+        
+        toast.success("Apple ID login successful!");
+        setIsLoading(false);
+        navigate("/calculator");
+      }, 1500);
+    } catch (error) {
+      toast.error("Apple login failed. Please try again.");
       setIsLoading(false);
-      navigate("/calculator");
-      // In a real app, implement proper Apple OAuth
-    }, 1500);
+    }
   };
 
   return (
