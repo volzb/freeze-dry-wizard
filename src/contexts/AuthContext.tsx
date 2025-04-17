@@ -57,11 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           config.settings = {};
         }
         
-        // Explicitly log the hashPerTray value before saving
-        console.log(`Config '${config.name}' hashPerTray before save:`, config.settings.hashPerTray);
-        
-        // Ensure hashPerTray is saved
-        if (config.settings.hashPerTray === undefined) {
+        // Explicitly ensure hashPerTray exists for each configuration
+        if (config.settings.hashPerTray !== undefined) {
+          // Explicitly log the hashPerTray value before saving
+          console.log(`Config '${config.name}' hashPerTray before save:`, config.settings.hashPerTray);
+        } else {
           console.log(`Setting default hashPerTray for config '${config.name}'`);
           config.settings.hashPerTray = 0.15; // Default value
         }
@@ -72,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
       
+      // Stringify and save to localStorage
       localStorage.setItem(key, JSON.stringify(configsCopy));
       console.log(`Saved ${configurations.length} configurations for user ${userId} to ${key}:`, configsCopy);
       

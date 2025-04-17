@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,15 +44,26 @@ export function CalculationSettings({
   
   // Update local state when settings change (e.g., when loading saved config)
   useEffect(() => {
-    if (settings.hashPerTray !== undefined && settings.hashPerTray !== hashPerTray) {
+    if (settings.hashPerTray !== undefined) {
       console.log("Updating hashPerTray from settings:", settings.hashPerTray);
       setHashPerTray(settings.hashPerTray);
     }
     
-    if (settings.waterPercentage !== undefined && settings.waterPercentage !== waterPercentage) {
+    if (settings.waterPercentage !== undefined) {
       setWaterPercentage(settings.waterPercentage);
     }
-  }, [settings.hashPerTray, settings.waterPercentage]);
+    
+    // Update selectedModel if traySizeCm2 and numberOfTrays match a predefined model
+    if (settings.traySizeCm2 && settings.numberOfTrays) {
+      Object.entries(freezeDryerModels).forEach(([key, model]) => {
+        if (model.traySizeCm2 === settings.traySizeCm2 && model.numberOfTrays === settings.numberOfTrays) {
+          setSelectedModel(key);
+          setTrayLength(model.length);
+          setTrayWidth(model.width);
+        }
+      });
+    }
+  }, [settings]);
   
   // Calculate area when length or width changes
   useEffect(() => {
@@ -63,20 +73,29 @@ export function CalculationSettings({
   
   // Calculate total ice weight when hash per tray, water percentage, or number of trays changes
   useEffect(() => {
-    const totalHashWeight = hashPerTray * (settings.numberOfTrays || 1);
-    const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
-    
-    // Log values to debug
-    console.log("hashPerTray in effect:", hashPerTray);
-    console.log("calculated water weight:", waterWeight);
-    
-    // Update settings with these values
-    handleSettingChange("hashPerTray", hashPerTray);
-    handleSettingChange("waterPercentage", waterPercentage);
-    handleSettingChange("iceWeight", waterWeight);
+    // Only update if values are valid
+    if (hashPerTray > 0) {
+      const totalHashWeight = hashPerTray * (settings.numberOfTrays || 1);
+      const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
+      
+      // Log values to debug
+      console.log("hashPerTray in effect:", hashPerTray);
+      console.log("calculated water weight:", waterWeight);
+      
+      // Update settings with these values
+      handleSettingChange("hashPerTray", hashPerTray);
+      handleSettingChange("waterPercentage", waterPercentage);
+      handleSettingChange("iceWeight", waterWeight);
+    }
   }, [hashPerTray, waterPercentage, settings.numberOfTrays]);
   
   const handleSettingChange = (field: keyof FreezeDryerSettings, value: any) => {
+    // Ensure value is valid
+    if (value === null || value === undefined || (typeof value === 'number' && isNaN(value))) {
+      console.error(`Invalid value for ${field}:`, value);
+      return;
+    }
+    
     // Log the change for debugging
     console.log(`Changing setting ${field} to:`, value);
     

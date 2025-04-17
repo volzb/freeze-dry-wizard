@@ -100,23 +100,23 @@ export default function FreezeDryerCalculator() {
       console.log("Saved hashPerTray value:", savedSettings.hashPerTray);
       
       // Create a deep copy of saved settings to avoid reference issues
-      const savedSettingsCopy = JSON.parse(JSON.stringify(savedSettings));
+      const savedSettingsCopy = structuredClone(savedSettings);
       
-      // Ensure all required settings are present
-      const completeSettings = {
-        ...settings, // Keep current default values
-        ...savedSettingsCopy, // Override with saved settings
-        // Explicitly set these values to ensure they're present
-        hashPerTray: savedSettingsCopy.hashPerTray !== undefined 
-          ? savedSettingsCopy.hashPerTray 
-          : defaultHashPerTray,
-        waterPercentage: savedSettingsCopy.waterPercentage !== undefined 
-          ? savedSettingsCopy.waterPercentage 
-          : defaultWaterPercentage
-      };
+      // Ensure hashPerTray is explicitly handled
+      if (savedSettingsCopy.hashPerTray !== undefined) {
+        console.log("Using saved hashPerTray:", savedSettingsCopy.hashPerTray);
+      } else {
+        console.log("No hashPerTray in saved settings, using default");
+        savedSettingsCopy.hashPerTray = defaultHashPerTray;
+      }
       
-      console.log("Complete settings after merge:", completeSettings);
-      console.log("Final hashPerTray value:", completeSettings.hashPerTray);
+      // Ensure waterPercentage is explicitly handled
+      if (savedSettingsCopy.waterPercentage === undefined) {
+        savedSettingsCopy.waterPercentage = defaultWaterPercentage;
+      }
+      
+      console.log("Complete settings after prep:", savedSettingsCopy);
+      console.log("Final hashPerTray value to be set:", savedSettingsCopy.hashPerTray);
       
       // Make sure steps have IDs
       const completeSteps = savedSteps.map(step => ({
@@ -124,7 +124,8 @@ export default function FreezeDryerCalculator() {
         id: step.id || uuidv4()
       }));
       
-      setSettings(completeSettings);
+      // Update settings state with the complete settings
+      setSettings(savedSettingsCopy);
       setSteps(completeSteps);
     } catch (error) {
       console.error("Error loading saved settings:", error);
@@ -147,6 +148,9 @@ export default function FreezeDryerCalculator() {
   // Calculate water weight based on hash per tray, number of trays, and water percentage
   const waterWeight = useMemo(() => {
     // Ensure hashPerTray has a value
+    console.log("Settings in waterWeight calculation:", settings);
+    console.log("hashPerTray value in calculation:", settings.hashPerTray);
+    
     const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultHashPerTray;
     const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultNumberOfTrays);
     const waterPercentageValue = settings.waterPercentage !== undefined ? settings.waterPercentage : defaultWaterPercentage;
