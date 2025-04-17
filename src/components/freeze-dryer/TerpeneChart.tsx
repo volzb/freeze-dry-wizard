@@ -23,7 +23,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     const stepSublimationRates: Record<number, number> = {};
     let lastProgress = 0;
     let lastStepIdx = -1;
-    let accumulatedRate = 0;
 
     // First pass to calculate total sublimation per step
     dryingData.forEach((point, idx) => {
@@ -31,7 +30,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         if (lastStepIdx >= 0) {
           const progressInStep = point.progress - lastProgress;
           stepSublimationRates[lastStepIdx] = progressInStep;
-          accumulatedRate += progressInStep;
         }
         lastProgress = point.progress;
         lastStepIdx = point.step;
@@ -39,7 +37,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         // Handle last point
         const progressInStep = point.progress - lastProgress;
         stepSublimationRates[lastStepIdx] = progressInStep;
-        accumulatedRate += progressInStep;
       }
     });
 
@@ -69,18 +66,11 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       const stepIdx = point.step;
       const sublimationRate = stepSublimationRates[stepIdx] || 0;
       
-      // Calculate accumulated sublimation up to and including this step
-      let accumulatedSublimation = 0;
-      for (let i = 0; i <= stepIdx; i++) {
-        accumulatedSublimation += (stepSublimationRates[i] || 0);
-      }
-      
       return {
         time: point.time,
         displayTemp,
         progress: point.progress,
         sublimationRate,
-        accumulatedSublimation,
         pressure: point.pressure,
         step: point.step,
         ...terpenesAtPoint
@@ -172,10 +162,9 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       const stepTemp = pointData.displayTemp;
       const currentStep = pointData.step !== undefined ? pointData.step + 1 : null; // Adding 1 for human-readable step number
       
-      // Safely access sublimation rates with fallbacks
-      const sublimationRate = typeof pointData.sublimationRate === 'number' ? pointData.sublimationRate : 0;
-      const accumulatedSublimation = typeof pointData.accumulatedSublimation === 'number' ? pointData.accumulatedSublimation : 0;
+      // Safely access values with fallbacks
       const progress = typeof pointData.progress === 'number' ? pointData.progress : 0;
+      const sublimationRate = typeof pointData.sublimationRate === 'number' ? pointData.sublimationRate : 0;
       
       // Get the terpenes that would boil at this point
       const boilingTerpenes = Object.entries(pointData)
@@ -193,9 +182,8 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <p className="text-sm mb-1">{`Pressure: ${pointData.pressure ? Math.round(pointData.pressure) : 'N/A'} mBar`}</p>
           <p className="text-sm mb-1">{`Ice Sublimated: ${Math.round(progress)}%`}</p>
           {currentStep !== null && (
-            <p className="text-sm mb-1">{`Step ${currentStep}: ${sublimationRate.toFixed(1)}% sublimation`}</p>
+            <p className="text-sm mb-1">{`Step ${currentStep}: ${sublimationRate.toFixed(1)}% sublimation rate`}</p>
           )}
-          <p className="text-sm mb-2">{`Accumulated: ${accumulatedSublimation.toFixed(1)}% total`}</p>
           
           {boilingTerpenes.length > 0 && (
             <div className="mt-2 pt-2 border-t border-border">
@@ -316,42 +304,14 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
-          {/* Step sublimation rate line - THIS IS THE PURPLE LINE */}
-          <Line
-            yAxisId="progress"
-            type="stepAfter"
-            dataKey="sublimationRate"
-            stroke="#9b87f5"
-            strokeWidth={2}
-            name="Sublimation Rate per Step (%)"
-            dot={false}
-            connectNulls={true}
-            isAnimationActive={false}
-          />
-          
-          {/* Accumulated sublimation line */}
-          <Line
-            yAxisId="progress"
-            type="stepAfter"
-            dataKey="accumulatedSublimation"
-            stroke="#7c61f0"
-            strokeWidth={2}
-            name="Accumulated Sublimation (%)"
-            dot={false}
-            connectNulls={true}
-            isAnimationActive={false}
-          />
-          
-          {/* Standard Progress line (make less prominent) */}
+          {/* Single sublimation progress line that reflects varying rates */}
           <Line
             yAxisId="progress"
             type="monotone"
             dataKey="progress"
             stroke="#9b87f5"
-            strokeOpacity={0.4}
-            strokeDasharray="3 3"
-            strokeWidth={1}
-            name="Overall Progress (%)"
+            strokeWidth={3}
+            name="Sublimation Progress (%)"
             dot={false}
             connectNulls={true}
             isAnimationActive={false}
