@@ -113,7 +113,8 @@ export function calculateProgressCurve(
   if (!steps?.length || !iceWeight || iceWeight <= 0) {
     console.warn("Invalid input for progress curve calculation:", { 
       stepsValid: !!steps?.length,
-      iceWeightValid: iceWeight && iceWeight > 0 
+      iceWeightValid: iceWeight && iceWeight > 0,
+      iceWeight: iceWeight
     });
     return [];
   }

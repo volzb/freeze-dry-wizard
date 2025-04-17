@@ -220,6 +220,11 @@ export default function FreezeDryerCalculator() {
   const progressCurve = useMemo(() => {
     if (!steps.length || waterWeight <= 0) return [] as SubTimePoint[];
     
+    const uniqueKey = `${waterWeight.toFixed(5)}-${steps.length}-${settings.heatingPowerWatts || 0}`;
+    
+    console.log("Recalculating progress curve with key:", uniqueKey);
+    console.log("Current water weight:", waterWeight, "kg");
+    
     return calculateProgressCurve({
       steps,
       iceWeight: waterWeight,
