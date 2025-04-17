@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -53,7 +54,11 @@ export function calculateWaterWeight(hashWeightKg: number, waterPercentage: numb
 }
 
 // Import heat transfer calculations
-import { estimateHeatInputRate as calculateHeatInput, calculateHeatInputFromPower } from './heatTransferCalculations';
+import { 
+  estimateHeatInputRate as calculateHeatInput, 
+  calculateHeatInputFromPower,
+  estimateHeatTransferEfficiency 
+} from './heatTransferCalculations';
 
 // Calculate heat input rate based on temperature, pressure, and surface area
 // Re-export the function for backward compatibility
