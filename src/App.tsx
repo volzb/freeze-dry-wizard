@@ -15,6 +15,7 @@ import { NavBar } from "./components/NavBar";
 import ResetPassword from "./pages/ResetPassword";
 import UpdatePassword from "./pages/UpdatePassword";
 import AuthRedirect from "./components/AuthRedirect";
+import "./App.css";
 
 const App = () => {
   // Move queryClient inside the component 
@@ -26,9 +27,7 @@ const App = () => {
         <AuthProvider>
           <BrowserRouter>
             <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <div className="min-h-screen flex flex-col">
+              <div className="min-h-screen flex flex-col bg-background">
                 <NavBar />
                 <main className="flex-1">
                   <Routes>
@@ -44,6 +43,8 @@ const App = () => {
                   </Routes>
                 </main>
               </div>
+              <Toaster />
+              <Sonner />
             </TooltipProvider>
           </BrowserRouter>
         </AuthProvider>
