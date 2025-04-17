@@ -394,8 +394,6 @@ export default function FreezeDryerCalculator() {
             <CalculationSettings
               settings={settings}
               onSettingsChange={setSettings}
-              displayUnit={displayUnit}
-              onDisplayUnitChange={setDisplayUnit}
             />
             
             <Card>
