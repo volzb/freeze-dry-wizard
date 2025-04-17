@@ -93,7 +93,7 @@ export function SavedSettings({
       return;
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.id) {
       toast.error("Please login to save settings");
       return;
     }
@@ -141,24 +141,15 @@ export function SavedSettings({
         updatedAt: new Date().toISOString(),
       };
 
-      // Get the current user ID
-      const userId = user?.id;
-      
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
-      
-      console.log(`Saving configuration "${configName}" for user ${userId}`, newConfig);
-      
       // Add to the list
       const updatedConfigs = [...savedConfigs, newConfig];
       setSavedConfigs(updatedConfigs);
       
       // Save to Supabase
-      await saveConfigurationToStorage(userId, updatedConfigs);
+      await saveConfigurationToStorage(user.id, updatedConfigs);
       
       // Debug log to confirm what was saved
-      console.log(`Updated configurations for ${userId}:`, updatedConfigs);
+      console.log(`Updated configurations for ${user.id}:`, updatedConfigs);
 
       // Reset and close dialog
       setConfigName("");

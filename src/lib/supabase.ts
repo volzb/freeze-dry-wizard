@@ -1,4 +1,3 @@
-
 import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -13,6 +12,17 @@ export const isSupabaseInitialized = () => {
   return !!supabase;
 };
 
+// Ensure the table exists (this runs when the module is imported)
+(async () => {
+  try {
+    if (isSupabaseInitialized()) {
+      await ensureFreezeDryerConfigTable();
+    }
+  } catch (e) {
+    console.error("Error checking/creating freeze_dryer_configs table:", e);
+  }
+})();
+
 // Create a SQL migration first to ensure the table exists
 export const ensureFreezeDryerConfigTable = async () => {
   try {
@@ -23,12 +33,24 @@ export const ensureFreezeDryerConfigTable = async () => {
       .limit(1);
     
     // If there's no error, the table exists
-    if (!error) return true;
+    if (!error) {
+      console.log("freeze_dryer_configs table exists");
+      return true;
+    }
     
-    console.log("freeze_dryer_configs table may not exist");
+    console.log("freeze_dryer_configs table may not exist, checking further...");
+    
+    // If there's an error in the select query, check if it's because the table doesn't exist
+    if (error.message?.includes('relation "public.freeze_dryer_configs" does not exist')) {
+      console.error("Table does not exist:", error);
+      return false;
+    }
+    
+    // Other errors
+    console.error("Error checking for table:", error);
     return false;
   } catch (e) {
-    console.error("Error checking freeze_dryer_configs table:", e);
+    console.error("Exception checking freeze_dryer_configs table:", e);
     return false;
   }
 };

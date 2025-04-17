@@ -1,3 +1,4 @@
+
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { supabase, isSupabaseInitialized, FreezeDryerConfig } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -93,9 +94,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log(`Saving ${configurations.length} configurations for user ${userId}`);
       
-      const configsCopy = JSON.parse(JSON.stringify(configurations));
+      // Get existing configurations to compare and determine updates/inserts
+      const { data: existingConfigs, error: fetchError } = await supabase
+        .from('freeze_dryer_configs')
+        .select('*')
+        .eq('user_id', userId);
+        
+      if (fetchError) {
+        console.error("Error fetching existing configurations:", fetchError);
+        throw fetchError;
+      }
       
-      for (const config of configsCopy) {
+      console.log("Existing configs in database:", existingConfigs);
+      
+      // Process each configuration
+      for (const config of configurations) {
         const configData = {
           user_id: userId,
           name: config.name,
@@ -103,35 +116,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           steps: config.steps || [],
         };
         
-        if (configData.settings && typeof configData.settings === 'object' && 'hashPerTray' in configData.settings) {
-          configData.settings.hashPerTray = Number(configData.settings.hashPerTray);
-          console.log(`Saving hashPerTray for config '${config.name}':`, configData.settings.hashPerTray);
+        // Ensure numeric values are properly formatted
+        if (configData.settings && typeof configData.settings === 'object') {
+          if ('hashPerTray' in configData.settings) {
+            configData.settings.hashPerTray = Number(configData.settings.hashPerTray);
+          }
+          if ('waterPercentage' in configData.settings) {
+            configData.settings.waterPercentage = Number(configData.settings.waterPercentage);
+          }
         }
         
-        if (config.id && config.id !== 'new') {
-          const { error } = await supabase
+        // Check if this configuration exists by name
+        const existingConfig = existingConfigs?.find(ec => ec.id === config.id);
+        
+        if (existingConfig) {
+          // Update existing configuration
+          console.log(`Updating configuration ${config.name} with ID ${config.id}`);
+          const { error: updateError } = await supabase
             .from('freeze_dryer_configs')
             .update(configData)
-            .eq('id', config.id)
-            .eq('user_id', userId);
+            .eq('id', config.id);
             
-          if (error) {
-            console.error("Error updating configuration:", error);
-            throw error;
+          if (updateError) {
+            console.error("Error updating configuration:", updateError);
+            throw updateError;
           }
         } else {
-          const { error } = await supabase
+          // Insert new configuration
+          console.log(`Inserting new configuration ${config.name}`);
+          const { error: insertError } = await supabase
             .from('freeze_dryer_configs')
-            .insert(configData);
+            .insert({
+              ...configData,
+              id: config.id // Include the UUID that was generated client-side
+            });
             
-          if (error) {
-            console.error("Error inserting configuration:", error);
-            throw error;
+          if (insertError) {
+            console.error("Error inserting configuration:", insertError);
+            throw insertError;
           }
         }
       }
       
-      console.log(`Successfully saved ${configurations.length} configurations for user ${userId}`);
+      // Handle deletion - identify configs that exist in DB but not in current list
+      if (existingConfigs) {
+        const currentIds = configurations.map(c => c.id);
+        const configsToDelete = existingConfigs.filter(ec => !currentIds.includes(ec.id));
+        
+        if (configsToDelete.length > 0) {
+          console.log(`Deleting ${configsToDelete.length} removed configurations`);
+          for (const configToDelete of configsToDelete) {
+            const { error: deleteError } = await supabase
+              .from('freeze_dryer_configs')
+              .delete()
+              .eq('id', configToDelete.id);
+              
+            if (deleteError) {
+              console.error("Error deleting configuration:", deleteError);
+              // Continue with other deletions even if one fails
+            }
+          }
+        }
+      }
+      
+      console.log(`Successfully saved configurations for user ${userId}`);
     } catch (error) {
       console.error('Error saving configurations to Supabase:', error);
       toast.error("Failed to save configurations");
@@ -169,18 +217,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       const configurations = data.map(record => {
-        if (!record.settings) {
-          record.settings = {};
-        }
+        let settings = record.settings || {};
         
-        const settings = record.settings as Record<string, any>;
-        
+        // Ensure hashPerTray is a number
         if ('hashPerTray' in settings) {
           settings.hashPerTray = Number(settings.hashPerTray);
           console.log(`Loaded hashPerTray for config '${record.name}':`, settings.hashPerTray);
         } else {
           console.log(`Setting default hashPerTray for config '${record.name}' during load`);
           settings.hashPerTray = 0.15;
+        }
+        
+        // Ensure waterPercentage is a number
+        if ('waterPercentage' in settings) {
+          settings.waterPercentage = Number(settings.waterPercentage);
+        } else {
+          settings.waterPercentage = 75;
         }
         
         return {
