@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -105,8 +106,10 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
           temperature: Number(step.temperature),
           pressure: Number(step.pressure),
           duration: Number(step.duration),
-          tempUnit: step.tempUnit || 'C',
-          pressureUnit: step.pressureUnit || 'mBar'
+          // Ensure the tempUnit is a valid type
+          tempUnit: (step.tempUnit === 'C' || step.tempUnit === 'F') ? step.tempUnit as 'C' | 'F' : 'C',
+          // Ensure the pressureUnit is a valid type
+          pressureUnit: (step.pressureUnit === 'mBar' || step.pressureUnit === 'Torr') ? step.pressureUnit as 'mBar' | 'Torr' : 'mBar'
         }));
         
         if (processedSteps.length > maxSteps) {

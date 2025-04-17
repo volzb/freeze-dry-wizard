@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,14 +35,14 @@ const defaultSettings = {
   iceWeight: 1.25 // Will be recalculated based on hash and water percentage
 };
 
-const defaultDryingSteps = [
+const defaultDryingSteps: DryingStep[] = [
   {
     id: uuidv4(),
     temperature: -20,
     pressure: 0.1,
     duration: 300,
     tempUnit: 'C' as 'C' | 'F',
-    pressureUnit: 'mBar'
+    pressureUnit: 'mBar' as 'mBar' | 'Torr'
   },
   {
     id: uuidv4(),
@@ -49,7 +50,7 @@ const defaultDryingSteps = [
     pressure: 0.25,
     duration: 180,
     tempUnit: 'C' as 'C' | 'F',
-    pressureUnit: 'mBar'
+    pressureUnit: 'mBar' as 'mBar' | 'Torr'
   },
   {
     id: uuidv4(),
@@ -57,7 +58,7 @@ const defaultDryingSteps = [
     pressure: 0.23,
     duration: 180,
     tempUnit: 'C' as 'C' | 'F',
-    pressureUnit: 'mBar'
+    pressureUnit: 'mBar' as 'mBar' | 'Torr'
   }
 ];
 
@@ -167,7 +168,15 @@ export default function FreezeDryerCalculator() {
       
       const completeSteps = savedSteps.map(step => ({
         ...step,
-        id: step.id || uuidv4()
+        id: step.id || uuidv4(),
+        // Ensure pressureUnit is of the correct type
+        pressureUnit: (step.pressureUnit === 'mBar' || step.pressureUnit === 'Torr') 
+          ? step.pressureUnit 
+          : 'mBar' as 'mBar' | 'Torr',
+        // Ensure tempUnit is of the correct type
+        tempUnit: (step.tempUnit === 'C' || step.tempUnit === 'F') 
+          ? step.tempUnit 
+          : 'C' as 'C' | 'F'
       }));
       
       setSettings(savedSettingsCopy);
