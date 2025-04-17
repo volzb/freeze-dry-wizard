@@ -1,4 +1,3 @@
-
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { supabase, isSupabaseInitialized, FreezeDryerConfig } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -94,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log(`Saving ${configurations.length} configurations for user ${userId}`);
       
-      // Get existing configurations to compare and determine updates/inserts
       const { data: existingConfigs, error: fetchError } = await supabase
         .from('freeze_dryer_configs')
         .select('*')
@@ -107,30 +105,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log("Existing configs in database:", existingConfigs);
       
-      // Process each configuration
       for (const config of configurations) {
         const configData = {
           user_id: userId,
           name: config.name,
-          settings: config.settings || {},
+          settings: config.settings ? config.settings as object : {},
           steps: config.steps || [],
         };
         
-        // Ensure numeric values are properly formatted
         if (configData.settings && typeof configData.settings === 'object') {
-          if ('hashPerTray' in configData.settings) {
-            configData.settings.hashPerTray = Number(configData.settings.hashPerTray);
+          const settingsObj = configData.settings as { [key: string]: any };
+          if ('hashPerTray' in settingsObj) {
+            settingsObj.hashPerTray = Number(settingsObj.hashPerTray);
           }
-          if ('waterPercentage' in configData.settings) {
-            configData.settings.waterPercentage = Number(configData.settings.waterPercentage);
+          if ('waterPercentage' in settingsObj) {
+            settingsObj.waterPercentage = Number(settingsObj.waterPercentage);
           }
         }
         
-        // Check if this configuration exists by name
         const existingConfig = existingConfigs?.find(ec => ec.id === config.id);
         
         if (existingConfig) {
-          // Update existing configuration
           console.log(`Updating configuration ${config.name} with ID ${config.id}`);
           const { error: updateError } = await supabase
             .from('freeze_dryer_configs')
@@ -142,13 +137,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw updateError;
           }
         } else {
-          // Insert new configuration
           console.log(`Inserting new configuration ${config.name}`);
           const { error: insertError } = await supabase
             .from('freeze_dryer_configs')
             .insert({
               ...configData,
-              id: config.id // Include the UUID that was generated client-side
+              id: config.id
             });
             
           if (insertError) {
@@ -158,7 +152,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      // Handle deletion - identify configs that exist in DB but not in current list
       if (existingConfigs) {
         const currentIds = configurations.map(c => c.id);
         const configsToDelete = existingConfigs.filter(ec => !currentIds.includes(ec.id));
@@ -173,7 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
             if (deleteError) {
               console.error("Error deleting configuration:", deleteError);
-              // Continue with other deletions even if one fails
             }
           }
         }
@@ -217,28 +209,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       const configurations = data.map(record => {
-        let settings = record.settings || {};
+        const settingsObj = typeof record.settings === 'string' 
+          ? JSON.parse(record.settings) 
+          : (record.settings as object) || {};
         
-        // Ensure hashPerTray is a number
-        if ('hashPerTray' in settings) {
-          settings.hashPerTray = Number(settings.hashPerTray);
-          console.log(`Loaded hashPerTray for config '${record.name}':`, settings.hashPerTray);
+        if ('hashPerTray' in settingsObj) {
+          (settingsObj as any).hashPerTray = Number((settingsObj as any).hashPerTray);
+          console.log(`Loaded hashPerTray for config '${record.name}':`, (settingsObj as any).hashPerTray);
         } else {
           console.log(`Setting default hashPerTray for config '${record.name}' during load`);
-          settings.hashPerTray = 0.15;
+          (settingsObj as any).hashPerTray = 0.15;
         }
         
-        // Ensure waterPercentage is a number
-        if ('waterPercentage' in settings) {
-          settings.waterPercentage = Number(settings.waterPercentage);
+        if ('waterPercentage' in settingsObj) {
+          (settingsObj as any).waterPercentage = Number((settingsObj as any).waterPercentage);
         } else {
-          settings.waterPercentage = 75;
+          (settingsObj as any).waterPercentage = 75;
         }
         
         return {
           id: record.id,
           name: record.name,
-          settings: settings,
+          settings: settingsObj,
           steps: record.steps || [],
           createdAt: record.created_at,
           updatedAt: record.updated_at
