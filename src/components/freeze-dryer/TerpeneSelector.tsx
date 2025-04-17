@@ -1,15 +1,17 @@
 
 import { useEffect, useState } from "react";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue,
-  SelectGroup,
-  SelectLabel
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { terpenes, getTerpeneGroups } from "@/utils/terpeneData";
+import { ChevronDown } from "lucide-react";
 
 interface TerpeneSelectorProps {
   selectedTerpenes: string[];
@@ -52,7 +54,7 @@ export function TerpeneSelector({ selectedTerpenes, onChange }: TerpeneSelectorP
     }
   }, []);
 
-  const handleSelectionChange = (value: string) => {
+  const handleGroupSelection = (value: 'all' | 'major' | 'minor' | 'none') => {
     if (value === 'all') {
       onChange(terpenes.map(t => t.name));
       setSelectionMode('all');
@@ -65,61 +67,171 @@ export function TerpeneSelector({ selectedTerpenes, onChange }: TerpeneSelectorP
     } else if (value === 'minor') {
       onChange(terpeneGroups.minor.map(t => t.name));
       setSelectionMode('minor');
-    } else {
-      // For specific terpene selections
-      const currentSelection = [...selectedTerpenes];
-      
-      if (currentSelection.includes(value)) {
-        onChange(currentSelection.filter(t => t !== value));
-      } else {
-        onChange([...currentSelection, value]);
-      }
-      
-      setSelectionMode('custom');
+    }
+  };
+  
+  const handleTerpeneToggle = (terpeneName: string, checked: boolean) => {
+    const currentSelection = [...selectedTerpenes];
+    
+    if (checked && !currentSelection.includes(terpeneName)) {
+      onChange([...currentSelection, terpeneName]);
+    } else if (!checked && currentSelection.includes(terpeneName)) {
+      onChange(currentSelection.filter(t => t !== terpeneName));
+    }
+    
+    setSelectionMode('custom');
+  };
+  
+  // Get current display text based on selection mode
+  const getDisplayText = () => {
+    switch (selectionMode) {
+      case 'all': return 'All Terpenes';
+      case 'major': return 'Major Terpenes';
+      case 'minor': return 'Minor Terpenes';
+      case 'none': return 'No Terpenes';
+      case 'custom': return `${selectedTerpenes.length} Terpenes Selected`;
+      default: return 'Select Terpenes';
     }
   };
   
   return (
-    <Select value={selectionMode} onValueChange={handleSelectionChange}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select terpenes to display" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectLabel>Terpene Groups</SelectLabel>
-          <SelectItem value="all">All Terpenes</SelectItem>
-          <SelectItem value="major">Major Terpenes</SelectItem>
-          <SelectItem value="minor">Minor Terpenes</SelectItem>
-          <SelectItem value="none">No Terpenes</SelectItem>
-        </SelectGroup>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="w-full flex justify-between">
+          <span className="truncate">{getDisplayText()}</span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-64 max-h-80 overflow-auto bg-popover">
+        <DropdownMenuLabel>Terpene Groups</DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => handleGroupSelection('all')}>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              checked={selectionMode === 'all'} 
+              onCheckedChange={() => handleGroupSelection('all')}
+              id="all-terpenes"
+            />
+            <label htmlFor="all-terpenes" className="cursor-pointer flex-1">All Terpenes</label>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => handleGroupSelection('major')}>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              checked={selectionMode === 'major'} 
+              onCheckedChange={() => handleGroupSelection('major')}
+              id="major-terpenes"
+            />
+            <label htmlFor="major-terpenes" className="cursor-pointer flex-1">Major Terpenes</label>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => handleGroupSelection('minor')}>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              checked={selectionMode === 'minor'} 
+              onCheckedChange={() => handleGroupSelection('minor')}
+              id="minor-terpenes"
+            />
+            <label htmlFor="minor-terpenes" className="cursor-pointer flex-1">Minor Terpenes</label>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => handleGroupSelection('none')}>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              checked={selectionMode === 'none'} 
+              onCheckedChange={() => handleGroupSelection('none')}
+              id="no-terpenes"
+            />
+            <label htmlFor="no-terpenes" className="cursor-pointer flex-1">No Terpenes</label>
+          </div>
+        </DropdownMenuItem>
         
-        <SelectGroup>
-          <SelectLabel>Major Terpenes</SelectLabel>
-          {terpeneGroups.major.map(terpene => (
-            <SelectItem key={terpene.name} value={terpene.name}>
-              {terpene.name} ({terpene.boilingPoint}°C)
-            </SelectItem>
-          ))}
-        </SelectGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Major Terpenes</DropdownMenuLabel>
+        {terpeneGroups.major.map(terpene => (
+          <DropdownMenuItem 
+            key={`major-${terpene.name}`}
+            onSelect={(e) => e.preventDefault()}
+            className="pl-2"
+          >
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                checked={selectedTerpenes.includes(terpene.name)} 
+                onCheckedChange={(checked) => handleTerpeneToggle(terpene.name, checked === true)}
+                id={`terpene-${terpene.name}`}
+              />
+              <div
+                className="h-3 w-3 rounded-full mr-1"
+                style={{ backgroundColor: terpene.color }}
+              />
+              <label 
+                htmlFor={`terpene-${terpene.name}`}
+                className="cursor-pointer flex-1 flex justify-between items-center"
+              >
+                <span>{terpene.name}</span>
+                <span className="text-xs text-muted-foreground">{terpene.boilingPoint}°C</span>
+              </label>
+            </div>
+          </DropdownMenuItem>
+        ))}
         
-        <SelectGroup>
-          <SelectLabel>Minor Terpenes</SelectLabel>
-          {terpeneGroups.minor.map(terpene => (
-            <SelectItem key={terpene.name} value={terpene.name}>
-              {terpene.name} ({terpene.boilingPoint}°C)
-            </SelectItem>
-          ))}
-        </SelectGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Minor Terpenes</DropdownMenuLabel>
+        {terpeneGroups.minor.map(terpene => (
+          <DropdownMenuItem 
+            key={`minor-${terpene.name}`}
+            onSelect={(e) => e.preventDefault()}
+            className="pl-2"
+          >
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                checked={selectedTerpenes.includes(terpene.name)} 
+                onCheckedChange={(checked) => handleTerpeneToggle(terpene.name, checked === true)}
+                id={`terpene-${terpene.name}`}
+              />
+              <div
+                className="h-3 w-3 rounded-full mr-1"
+                style={{ backgroundColor: terpene.color }}
+              />
+              <label 
+                htmlFor={`terpene-${terpene.name}`}
+                className="cursor-pointer flex-1 flex justify-between items-center"
+              >
+                <span>{terpene.name}</span>
+                <span className="text-xs text-muted-foreground">{terpene.boilingPoint}°C</span>
+              </label>
+            </div>
+          </DropdownMenuItem>
+        ))}
         
-        <SelectGroup>
-          <SelectLabel>Other Terpenes</SelectLabel>
-          {terpeneGroups.other.map(terpene => (
-            <SelectItem key={terpene.name} value={terpene.name}>
-              {terpene.name} ({terpene.boilingPoint}°C)
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Other Terpenes</DropdownMenuLabel>
+        {terpeneGroups.other.map(terpene => (
+          <DropdownMenuItem 
+            key={`other-${terpene.name}`}
+            onSelect={(e) => e.preventDefault()}
+            className="pl-2"
+          >
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                checked={selectedTerpenes.includes(terpene.name)} 
+                onCheckedChange={(checked) => handleTerpeneToggle(terpene.name, checked === true)}
+                id={`terpene-${terpene.name}`}
+              />
+              <div
+                className="h-3 w-3 rounded-full mr-1"
+                style={{ backgroundColor: terpene.color }}
+              />
+              <label 
+                htmlFor={`terpene-${terpene.name}`}
+                className="cursor-pointer flex-1 flex justify-between items-center"
+              >
+                <span>{terpene.name}</span>
+                <span className="text-xs text-muted-foreground">{terpene.boilingPoint}°C</span>
+              </label>
+            </div>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

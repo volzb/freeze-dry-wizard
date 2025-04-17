@@ -167,7 +167,9 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   };
 
   // Filter terpenes based on selection and group them
-  const filteredTerpenes = terpenes.filter(t => showTerpenes.includes(t.name));
+  const filteredTerpenes = useMemo(() => {
+    return terpenes.filter(t => showTerpenes.includes(t.name));
+  }, [showTerpenes]);
   
   // Check if we have data to display
   if (chartData.length === 0) {
