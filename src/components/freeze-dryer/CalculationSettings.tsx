@@ -27,12 +27,12 @@ export function CalculationSettings({
   onSettingsChange 
 }: CalculationSettingsProps) {
   
-  const [trayLength, setTrayLength] = useState<number>(settings.trayLength || 22.36);
-  const [trayWidth, setTrayWidth] = useState<number>(settings.trayWidth || 22.36);
-  const [hashPerTray, setHashPerTray] = useState<number>(settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : 0.15);
-  const [waterPercentage, setWaterPercentage] = useState<number>(settings.waterPercentage || 75);
-  const [heatingPowerWatts, setHeatingPowerWatts] = useState<number>(settings.heatingPowerWatts || 250);
-  const [numberOfTrays, setNumberOfTrays] = useState<number>(settings.numberOfTrays || 3);
+  const [trayLength, setTrayLength] = useState<number | ''>(settings.trayLength || 22.36);
+  const [trayWidth, setTrayWidth] = useState<number | ''>(settings.trayWidth || 22.36);
+  const [hashPerTray, setHashPerTray] = useState<number | ''>(settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : 0.15);
+  const [waterPercentage, setWaterPercentage] = useState<number | ''>(settings.waterPercentage || 75);
+  const [heatingPowerWatts, setHeatingPowerWatts] = useState<number | ''>(settings.heatingPowerWatts || 250);
+  const [numberOfTrays, setNumberOfTrays] = useState<number | ''>(settings.numberOfTrays || 3);
   
   // Update local state when settings change (e.g., when loading saved config)
   useEffect(() => {
@@ -66,20 +66,24 @@ export function CalculationSettings({
   
   // Calculate area when length or width changes
   useEffect(() => {
-    const area = trayLength * trayWidth;
-    handleSettingChange("traySizeCm2", area);
-    handleSettingChange("trayLength", trayLength);
-    handleSettingChange("trayWidth", trayWidth);
+    if (trayLength !== '' && trayWidth !== '') {
+      const area = trayLength * trayWidth;
+      handleSettingChange("traySizeCm2", area);
+      handleSettingChange("trayLength", trayLength);
+      handleSettingChange("trayWidth", trayWidth);
+    }
   }, [trayLength, trayWidth]);
   
   // When number of trays changes
   useEffect(() => {
-    handleSettingChange("numberOfTrays", numberOfTrays);
+    if (numberOfTrays !== '') {
+      handleSettingChange("numberOfTrays", numberOfTrays);
+    }
   }, [numberOfTrays]);
   
   // Calculate total ice weight when hash per tray, water percentage, or number of trays changes
   useEffect(() => {
-    if (hashPerTray > 0) {
+    if (hashPerTray !== '' && waterPercentage !== '' && numberOfTrays !== '') {
       const totalHashWeight = hashPerTray * numberOfTrays;
       const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
       
@@ -91,34 +95,35 @@ export function CalculationSettings({
   
   // Calculate heat input rate based on heating power
   useEffect(() => {
-    const tempC = 20; // Default temperature
-    const pressureMbar = 300; // Default pressure
-    
-    // Update heating power
-    handleSettingChange("heatingPowerWatts", heatingPowerWatts);
-    
-    // Calculate efficiency based on temperature and pressure
-    const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
-    
-    // Calculate heat input rate from heating power and efficiency
-    const heatRate = calculateHeatInputFromPower(
-      heatingPowerWatts, 
-      numberOfTrays,
-      efficiency
-    );
-    handleSettingChange("heatInputRate", Math.round(heatRate));
-    
+    if (heatingPowerWatts !== '' && numberOfTrays !== '') {
+      const tempC = 20; // Default temperature
+      const pressureMbar = 300; // Default pressure
+      
+      // Update heating power
+      handleSettingChange("heatingPowerWatts", heatingPowerWatts);
+      
+      // Calculate efficiency based on temperature and pressure
+      const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
+      
+      // Calculate heat input rate from heating power and efficiency
+      const heatRate = calculateHeatInputFromPower(
+        heatingPowerWatts, 
+        numberOfTrays,
+        efficiency
+      );
+      handleSettingChange("heatInputRate", Math.round(heatRate));
+    }
   }, [heatingPowerWatts, numberOfTrays]);
   
   const handleSettingChange = (field: keyof FreezeDryerSettings, value: any) => {
     // Ensure value is valid
-    if (value === null || value === undefined || (typeof value === 'number' && isNaN(value))) {
+    if (value === null || (typeof value === 'number' && isNaN(value))) {
       console.error(`Invalid value for ${field}:`, value);
       return;
     }
     
     // Handle numeric conversion for specific fields
-    if (field === 'hashPerTray' || field === 'heatingPowerWatts') {
+    if ((field === 'hashPerTray' || field === 'heatingPowerWatts') && value !== '') {
       value = Number(value);
     }
     
@@ -131,9 +136,11 @@ export function CalculationSettings({
   };
   
   // Calculate summarized values
-  const totalHashWeight = hashPerTray * numberOfTrays;
-  const totalWaterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
-  const totalArea = (trayLength * trayWidth) * numberOfTrays;
+  const totalHashWeight = (hashPerTray !== '' && numberOfTrays !== '') ? hashPerTray * numberOfTrays : 0;
+  const totalWaterWeight = (hashPerTray !== '' && waterPercentage !== '' && numberOfTrays !== '') ? 
+    calculateWaterWeight(totalHashWeight, waterPercentage) : 0;
+  const totalArea = (trayLength !== '' && trayWidth !== '' && numberOfTrays !== '') ? 
+    (trayLength * trayWidth) * numberOfTrays : 0;
   const hashDensity = totalHashWeight > 0 && totalArea > 0 ? (totalHashWeight * 1000) / (totalArea / 100) : 0;
   
   return (
@@ -151,8 +158,11 @@ export function CalculationSettings({
                 <Input
                   id="trayLength"
                   type="number"
-                  value={trayLength || ""}
-                  onChange={(e) => setTrayLength(parseFloat(e.target.value))}
+                  value={trayLength}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTrayLength(val === '' ? '' : parseFloat(val));
+                  }}
                   placeholder="22.36"
                   step="0.1"
                   min="1"
@@ -167,8 +177,11 @@ export function CalculationSettings({
                 <Input
                   id="trayWidth"
                   type="number"
-                  value={trayWidth || ""}
-                  onChange={(e) => setTrayWidth(parseFloat(e.target.value))}
+                  value={trayWidth}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTrayWidth(val === '' ? '' : parseFloat(val));
+                  }}
                   placeholder="22.36"
                   step="0.1"
                   min="1"
@@ -185,8 +198,11 @@ export function CalculationSettings({
                 <Input
                   id="numberOfTrays"
                   type="number"
-                  value={numberOfTrays || ""}
-                  onChange={(e) => setNumberOfTrays(parseInt(e.target.value))}
+                  value={numberOfTrays}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNumberOfTrays(val === '' ? '' : parseInt(val));
+                  }}
                   placeholder="3"
                   min="1"
                   step="1"
@@ -201,8 +217,11 @@ export function CalculationSettings({
                 <Input
                   id="heatingPowerWatts"
                   type="number"
-                  value={heatingPowerWatts || ""}
-                  onChange={(e) => setHeatingPowerWatts(parseFloat(e.target.value))}
+                  value={heatingPowerWatts}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setHeatingPowerWatts(val === '' ? '' : parseFloat(val));
+                  }}
                   placeholder="250"
                   min="50"
                   step="10"
@@ -210,7 +229,8 @@ export function CalculationSettings({
                 <span className="ml-2 text-sm text-muted-foreground w-16">watts</span>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                <p>Total heating power: {(heatingPowerWatts * numberOfTrays).toFixed(0)} watts</p>
+                <p>Total heating power: {(heatingPowerWatts !== '' && numberOfTrays !== '') ? 
+                  (heatingPowerWatts * numberOfTrays).toFixed(0) : "0"} watts</p>
               </div>
             </div>
           </div>
@@ -222,12 +242,10 @@ export function CalculationSettings({
                 <Input
                   id="hashPerTray"
                   type="number"
-                  value={hashPerTray || ""}
+                  value={hashPerTray}
                   onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (!isNaN(value)) {
-                      setHashPerTray(value);
-                    }
+                    const val = e.target.value;
+                    setHashPerTray(val === '' ? '' : parseFloat(val));
                   }}
                   placeholder="0.15"
                   step="0.05"
@@ -243,10 +261,10 @@ export function CalculationSettings({
                 <Input
                   id="waterPercentage"
                   type="number"
-                  value={waterPercentage || ""}
+                  value={waterPercentage}
                   onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    setWaterPercentage(value);
+                    const val = e.target.value;
+                    setWaterPercentage(val === '' ? '' : parseFloat(val));
                   }}
                   placeholder="75"
                   min="1"
