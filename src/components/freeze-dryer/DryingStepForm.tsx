@@ -42,6 +42,32 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
     onChange(updatedSteps);
   };
 
+  // Utility function to handle numeric inputs properly
+  const handleNumericInput = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+    field: keyof DryingStep,
+    minValue: number,
+    allowNegative: boolean = false
+  ) => {
+    // Get the raw input value
+    const inputValue = e.target.value;
+    
+    // Check if the input is empty, just a negative sign, or a valid number
+    if (inputValue === "" || (allowNegative && inputValue === "-")) {
+      handleStepChange(index, field, inputValue);
+      return;
+    }
+    
+    // Try to parse as a number
+    const parsedValue = parseFloat(inputValue);
+    
+    // If it's a valid number that meets minimum requirements
+    if (!isNaN(parsedValue) && (parsedValue >= minValue || (allowNegative && parsedValue < 0))) {
+      handleStepChange(index, field, parsedValue);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -84,12 +110,9 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
                   <div className="flex space-x-2">
                     <Input
                       id={`temp-${index}`}
-                      type="number"
+                      type="text"
                       value={step.temperature}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                        handleStepChange(index, "temperature", value);
-                      }}
+                      onChange={(e) => handleNumericInput(e, index, "temperature", -100, true)}
                       min="-100"
                       step="1"
                     />
@@ -113,12 +136,9 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
                   <div className="flex space-x-2">
                     <Input
                       id={`pressure-${index}`}
-                      type="number"
+                      type="text"
                       value={step.pressure}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                        handleStepChange(index, "pressure", value);
-                      }}
+                      onChange={(e) => handleNumericInput(e, index, "pressure", 0)}
                       min="0"
                       step="1"
                     />
@@ -142,12 +162,9 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
                   <div className="flex space-x-2 items-center">
                     <Input
                       id={`duration-${index}`}
-                      type="number"
+                      type="text"
                       value={step.duration}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? 0 : parseInt(e.target.value);
-                        handleStepChange(index, "duration", value);
-                      }}
+                      onChange={(e) => handleNumericInput(e, index, "duration", 1)}
                       min="1"
                       step="1"
                     />
