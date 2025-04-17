@@ -31,8 +31,10 @@ export default function ResetPassword() {
   async function onSubmit(data: ResetPasswordValues) {
     setIsLoading(true);
     try {
+      const currentUrl = window.location.origin;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: window.location.origin + '/update-password',
+        redirectTo: `${currentUrl}/update-password`,
       });
 
       if (error) {

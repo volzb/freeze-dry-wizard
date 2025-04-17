@@ -41,6 +41,23 @@ export default function UpdatePassword() {
     const hash = window.location.hash;
     if (!hash || !hash.includes("access_token")) {
       setError("Invalid or expired reset link. Please try requesting a new password reset.");
+    } else {
+      // Parse the hash and set the session
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      
+      if (accessToken && refreshToken) {
+        console.log("Found valid tokens in URL");
+        // Set the session with the tokens from the URL
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        }).catch(error => {
+          console.error("Error setting session:", error);
+          setError("Failed to authenticate with the provided token. Please try requesting a new password reset.");
+        });
+      }
     }
   }, []);
 
