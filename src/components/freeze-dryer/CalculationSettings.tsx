@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,37 +34,46 @@ export function CalculationSettings({
   const [heatingPowerWatts, setHeatingPowerWatts] = useState<number | ''>(settings.heatingPowerWatts || 250);
   const [numberOfTrays, setNumberOfTrays] = useState<number | ''>(settings.numberOfTrays || 3);
   
+  // Flag to track if the initial values have been loaded from settings
+  const [initialSettingsLoaded, setInitialSettingsLoaded] = useState(false);
+  
   // Update local state when settings change (e.g., when loading saved config)
+  // But only do this once for initial load, not on every settings change
   useEffect(() => {
-    if (settings.trayLength !== undefined) {
-      setTrayLength(settings.trayLength);
-    }
-    
-    if (settings.trayWidth !== undefined) {
-      setTrayWidth(settings.trayWidth);
-    }
-    
-    if (settings.hashPerTray !== undefined) {
-      const numericValue = Number(settings.hashPerTray);
-      if (!isNaN(numericValue)) {
-        setHashPerTray(numericValue);
+    if (!initialSettingsLoaded) {
+      if (settings.trayLength !== undefined) {
+        setTrayLength(settings.trayLength);
       }
+      
+      if (settings.trayWidth !== undefined) {
+        setTrayWidth(settings.trayWidth);
+      }
+      
+      if (settings.hashPerTray !== undefined) {
+        const numericValue = Number(settings.hashPerTray);
+        if (!isNaN(numericValue)) {
+          setHashPerTray(numericValue);
+        }
+      }
+      
+      if (settings.waterPercentage !== undefined) {
+        setWaterPercentage(settings.waterPercentage);
+      }
+      
+      if (settings.heatingPowerWatts !== undefined) {
+        setHeatingPowerWatts(settings.heatingPowerWatts);
+      }
+      
+      if (settings.numberOfTrays !== undefined) {
+        setNumberOfTrays(settings.numberOfTrays);
+      }
+      
+      setInitialSettingsLoaded(true);
     }
-    
-    if (settings.waterPercentage !== undefined) {
-      setWaterPercentage(settings.waterPercentage);
-    }
-    
-    if (settings.heatingPowerWatts !== undefined) {
-      setHeatingPowerWatts(settings.heatingPowerWatts);
-    }
-    
-    if (settings.numberOfTrays !== undefined) {
-      setNumberOfTrays(settings.numberOfTrays);
-    }
-  }, [settings]);
+  }, [settings, initialSettingsLoaded]);
   
   // Calculate area when length or width changes
+  // But use local state values, not the incoming settings
   useEffect(() => {
     if (trayLength !== '' && trayWidth !== '') {
       const area = trayLength * trayWidth;
@@ -174,8 +184,8 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="trayLength"
-                  type="number"
-                  value={trayLength === '' ? '' : trayLength}
+                  type="text"
+                  value={trayLength === '' ? '' : trayLength.toString()}
                   onChange={(e) => handleInputChange(e, setTrayLength)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
@@ -187,8 +197,8 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="trayWidth"
-                  type="number"
-                  value={trayWidth === '' ? '' : trayWidth}
+                  type="text"
+                  value={trayWidth === '' ? '' : trayWidth.toString()}
                   onChange={(e) => handleInputChange(e, setTrayWidth)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">cm</span>
@@ -202,8 +212,8 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="numberOfTrays"
-                  type="number"
-                  value={numberOfTrays === '' ? '' : numberOfTrays}
+                  type="text"
+                  value={numberOfTrays === '' ? '' : numberOfTrays.toString()}
                   onChange={(e) => handleInputChange(e, setNumberOfTrays)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">trays</span>
@@ -215,8 +225,8 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="heatingPowerWatts"
-                  type="number"
-                  value={heatingPowerWatts === '' ? '' : heatingPowerWatts}
+                  type="text"
+                  value={heatingPowerWatts === '' ? '' : heatingPowerWatts.toString()}
                   onChange={(e) => handleInputChange(e, setHeatingPowerWatts)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-16">watts</span>
@@ -234,8 +244,8 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="hashPerTray"
-                  type="number"
-                  value={hashPerTray === '' ? '' : hashPerTray}
+                  type="text"
+                  value={hashPerTray === '' ? '' : hashPerTray.toString()}
                   onChange={(e) => handleInputChange(e, setHashPerTray)}
                   step="0.01"
                 />
@@ -248,8 +258,8 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="waterPercentage"
-                  type="number"
-                  value={waterPercentage === '' ? '' : waterPercentage}
+                  type="text"
+                  value={waterPercentage === '' ? '' : waterPercentage.toString()}
                   onChange={(e) => handleInputChange(e, setWaterPercentage)}
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">%</span>
@@ -265,7 +275,7 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input 
                   type="text"
-                  value={totalHashWeight.toFixed(2)}
+                  value={formatNumber(totalHashWeight, 2)}
                   readOnly
                   className="bg-muted"
                 />
@@ -278,7 +288,7 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input 
                   type="text"
-                  value={totalWaterWeight.toFixed(3)}
+                  value={formatNumber(totalWaterWeight, 3)}
                   readOnly
                   className="bg-muted"
                 />
@@ -304,7 +314,7 @@ export function CalculationSettings({
                 <Input
                   id="hashDensity"
                   type="text"
-                  value={hashDensity.toFixed(2)}
+                  value={formatNumber(hashDensity, 2)}
                   className="bg-muted"
                   readOnly
                 />
