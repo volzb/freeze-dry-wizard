@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene } from "@/utils/terpeneData";
@@ -97,7 +96,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       <ResponsiveContainer width="100%" height={450}>
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis 
@@ -131,11 +130,13 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <Legend 
             verticalAlign="bottom" 
             height={36}
-            wrapperStyle={{ fontSize: '10px' }} // Make the legend text smaller
-            iconSize={8} // Make the legend icons smaller
+            wrapperStyle={{ 
+              fontSize: '10px', 
+              marginTop: '10px'
+            }}
+            iconSize={8}
           />
           
-          {/* Step temperature line */}
           <Line
             yAxisId="temp"
             type="stepAfter"
@@ -146,7 +147,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             dot={false}
           />
           
-          {/* Progress line */}
           <Line
             yAxisId="progress"
             type="monotone"
@@ -157,7 +157,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             dot={false}
           />
           
-          {/* Terpene boiling point lines */}
           {filteredTerpenes.map((terpene) => (
             <Line
               key={terpene.name}
