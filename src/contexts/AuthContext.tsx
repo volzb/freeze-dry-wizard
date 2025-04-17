@@ -13,9 +13,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (user: User) => void;
   logout: () => void;
+  saveConfigurationToStorage: (userId: string, configurations: any[]) => void;
+  getConfigurationsFromStorage: (userId: string) => any[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const STORAGE_PREFIX = 'freezedryer-configs-';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -36,6 +40,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const saveConfigurationToStorage = (userId: string, configurations: any[]) => {
+    try {
+      localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(configurations));
+      console.log(`Saved ${configurations.length} configurations for user ${userId}`);
+    } catch (error) {
+      console.error('Error saving configurations to storage:', error);
+    }
+  };
+
+  const getConfigurationsFromStorage = (userId: string) => {
+    try {
+      const configs = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
+      if (configs) {
+        const parsedConfigs = JSON.parse(configs);
+        console.log(`Retrieved ${parsedConfigs.length} configurations for user ${userId}`);
+        return parsedConfigs;
+      }
+    } catch (error) {
+      console.error('Error retrieving configurations from storage:', error);
+    }
+    return [];
+  };
+
   const login = (userData: User) => {
     setUser(userData);
     setIsAuthenticated(true);
@@ -47,10 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const migrateAnonymousSettings = (userId: string) => {
     try {
-      const anonymousSettings = localStorage.getItem('freezedryer-configs-anonymous');
+      const anonymousSettings = localStorage.getItem(`${STORAGE_PREFIX}anonymous`);
       if (anonymousSettings) {
         // Save anonymous settings to the user's storage
-        localStorage.setItem(`freezedryer-configs-${userId}`, anonymousSettings);
+        localStorage.setItem(`${STORAGE_PREFIX}${userId}`, anonymousSettings);
         console.log('Migrated anonymous settings to user account', userId);
       }
     } catch (error) {
@@ -66,7 +93,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      login, 
+      logout,
+      saveConfigurationToStorage,
+      getConfigurationsFromStorage
+    }}>
       {children}
     </AuthContext.Provider>
   );

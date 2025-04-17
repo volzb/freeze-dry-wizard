@@ -50,7 +50,7 @@ export function SavedSettings({
   const [isLoading, setIsLoading] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [configName, setConfigName] = useState("");
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, saveConfigurationToStorage, getConfigurationsFromStorage } = useAuth();
 
   // Load saved configurations from localStorage when component mounts and when auth state changes
   useEffect(() => {
@@ -61,20 +61,13 @@ export function SavedSettings({
   const loadSavedConfigurations = () => {
     // Get the current user ID or use 'anonymous' for non-authenticated sessions
     const userId = user?.id || 'anonymous';
-    const storageKey = `${STORAGE_PREFIX}${userId}`;
     
-    console.log(`Loading configurations from ${storageKey}`);
-    const savedConfigsStr = localStorage.getItem(storageKey);
+    console.log(`Loading configurations for user: ${userId}`);
+    const configs = getConfigurationsFromStorage(userId);
     
-    if (savedConfigsStr) {
-      try {
-        const configs = JSON.parse(savedConfigsStr);
-        console.log(`Found ${configs.length} saved configurations`);
-        setSavedConfigs(configs);
-      } catch (error) {
-        console.error("Error loading saved configurations:", error);
-        setSavedConfigs([]);
-      }
+    if (configs && configs.length > 0) {
+      console.log(`Found ${configs.length} saved configurations`);
+      setSavedConfigs(configs);
     } else {
       console.log("No saved configurations found");
       setSavedConfigs([]);
@@ -106,7 +99,7 @@ export function SavedSettings({
     const userId = user?.id || 'anonymous';
     
     // Save to localStorage using the appropriate key
-    localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(updatedConfigs));
+    saveConfigurationToStorage(userId, updatedConfigs);
 
     // Reset and close dialog
     setConfigName("");
@@ -128,7 +121,7 @@ export function SavedSettings({
     const userId = user?.id || 'anonymous';
     
     // Save the updated configs to localStorage
-    localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(updatedConfigs));
+    saveConfigurationToStorage(userId, updatedConfigs);
     
     toast.success("Configuration deleted");
   };
