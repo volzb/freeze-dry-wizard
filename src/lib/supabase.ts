@@ -1,5 +1,6 @@
 
 import { supabase as supabaseClient } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 // Export the initialized Supabase client
 export const supabase = supabaseClient;

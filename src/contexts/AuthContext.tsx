@@ -1,5 +1,6 @@
+
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { supabase, isSupabaseInitialized } from '@/lib/supabase';
+import { supabase, isSupabaseInitialized, FreezeDryerConfig } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
