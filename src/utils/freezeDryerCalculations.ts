@@ -53,7 +53,7 @@ export function calculateWaterWeight(hashWeightKg: number, waterPercentage: numb
 }
 
 // Import heat transfer calculations
-import { estimateHeatInputRate as calculateHeatInput } from './heatTransferCalculations';
+import { estimateHeatInputRate as calculateHeatInput, calculateHeatInputFromPower } from './heatTransferCalculations';
 
 // Calculate heat input rate based on temperature, pressure, and surface area
 // Re-export the function for backward compatibility
@@ -134,19 +134,21 @@ export function calculateProgressCurve(
   const firstTempC = normalizeTemperature(firstStep.temperature, firstStep.tempUnit);
   const firstPressureMbar = normalizePressure(firstStep.pressure, firstStep.pressureUnit);
   
-  // Calculate initial heat rate
-  const initialHeatRate = settings.heatInputRate || 
-    estimateHeatInputRate(firstTempC, firstPressureMbar, totalShelfAreaM2);
+  // Calculate initial heat rate - considering the heating power per tray if provided
+  let initialHeatRate;
+  if (settings.heatingPowerWatts) {
+    // Use per-tray heating power calculation
+    const efficiency = estimateHeatTransferEfficiency(firstTempC, firstPressureMbar);
+    initialHeatRate = calculateHeatInputFromPower(
+      settings.heatingPowerWatts, 
+      settings.numberOfTrays || 1, 
+      efficiency
+    );
+  } else {
+    initialHeatRate = settings.heatInputRate || 
+      estimateHeatInputRate(firstTempC, firstPressureMbar, totalShelfAreaM2);
+  }
   lastHeatRate = initialHeatRate;
-  
-  // Add initial point
-  points.push({
-    time: 0,
-    progress: 0,
-    step: 0,
-    temperature: firstTempC,
-    pressure: firstPressureMbar,
-  });
   
   // Determine efficiency reduction factor
   // This simulates how sublimation becomes less efficient over time

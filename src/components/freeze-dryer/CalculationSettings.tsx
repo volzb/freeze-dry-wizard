@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,13 +28,13 @@ interface CalculationSettingsProps {
   onDisplayUnitChange: (unit: 'C' | 'F') => void;
 }
 
-// Freeze dryer model configurations
+// Freeze dryer model configurations - heating power is now per tray
 const freezeDryerModels = {
-  "cryodry-cd8": { traySizeCm2: 900, numberOfTrays: 9, heatingPowerWatts: 1500, label: "CryoDry CD8", width: 20, length: 45 },
-  "harvest-right-small": { traySizeCm2: 400, numberOfTrays: 3, heatingPowerWatts: 500, label: "Harvest Right (Small)", width: 20, length: 20 },
-  "harvest-right-medium": { traySizeCm2: 625, numberOfTrays: 4, heatingPowerWatts: 900, label: "Harvest Right (Medium)", width: 25, length: 25 },
-  "harvest-right-large": { traySizeCm2: 900, numberOfTrays: 5, heatingPowerWatts: 1200, label: "Harvest Right (Large)", width: 30, length: 30 },
-  "custom": { traySizeCm2: 500, numberOfTrays: 3, heatingPowerWatts: 750, label: "Custom", width: 22.36, length: 22.36 }
+  "cryodry-cd8": { traySizeCm2: 900, numberOfTrays: 9, heatingPowerWatts: 167, label: "CryoDry CD8", width: 20, length: 45 }, // 1500W total / 9 trays
+  "harvest-right-small": { traySizeCm2: 400, numberOfTrays: 3, heatingPowerWatts: 167, label: "Harvest Right (Small)", width: 20, length: 20 }, // 500W total / 3 trays
+  "harvest-right-medium": { traySizeCm2: 625, numberOfTrays: 4, heatingPowerWatts: 225, label: "Harvest Right (Medium)", width: 25, length: 25 }, // 900W total / 4 trays
+  "harvest-right-large": { traySizeCm2: 900, numberOfTrays: 5, heatingPowerWatts: 240, label: "Harvest Right (Large)", width: 30, length: 30 }, // 1200W total / 5 trays
+  "custom": { traySizeCm2: 500, numberOfTrays: 3, heatingPowerWatts: 250, label: "Custom", width: 22.36, length: 22.36 }
 };
 
 export function CalculationSettings({ 
@@ -122,8 +121,12 @@ export function CalculationSettings({
       // Calculate efficiency based on temperature and pressure
       const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
       
-      // Calculate heat input rate from heating power and efficiency
-      const heatRate = calculateHeatInputFromPower(settings.heatingPowerWatts, efficiency);
+      // Calculate heat input rate from heating power (now per tray) and efficiency
+      const heatRate = calculateHeatInputFromPower(
+        settings.heatingPowerWatts, 
+        settings.numberOfTrays || 1,
+        efficiency
+      );
       handleSettingChange("heatInputRate", Math.round(heatRate));
     } else {
       // Calculate based on traditional method
@@ -345,13 +348,13 @@ export function CalculationSettings({
             {useHeatingPower && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="heatingPowerWatts">Heating Element Power</Label>
+                  <Label htmlFor="heatingPowerWatts">Heating Power Per Tray</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="w-64">The total electrical power of the heating elements in your freeze dryer</p>
+                      <p className="w-64">The electrical power of each heating element per tray in your freeze dryer</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -361,14 +364,15 @@ export function CalculationSettings({
                     type="number"
                     value={settings.heatingPowerWatts || ""}
                     onChange={(e) => handleSettingChange("heatingPowerWatts", parseFloat(e.target.value))}
-                    placeholder="750"
-                    min="100"
-                    step="50"
+                    placeholder="250"
+                    min="50"
+                    step="10"
                   />
-                  <span className="ml-2 text-sm text-muted-foreground w-10">watts</span>
+                  <span className="ml-2 text-sm text-muted-foreground w-16">watts/tray</span>
                 </div>
-                {settings.heatingPowerWatts && (
-                  <div className="text-xs text-muted-foreground">
+                {settings.heatingPowerWatts && settings.numberOfTrays && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    <p>Total heating power: {(settings.heatingPowerWatts * settings.numberOfTrays).toFixed(0)} watts</p>
                     <p>Estimated efficiency: {(estimateHeatTransferEfficiency(
                       settings.steps?.[0]?.temperature || -20,
                       settings.steps?.[0]?.pressure || 200

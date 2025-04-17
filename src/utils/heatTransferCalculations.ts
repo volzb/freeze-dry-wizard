@@ -5,14 +5,18 @@ const WATTS_TO_KJ_PER_HOUR = 3.6; // 1 Watt = 3.6 kJ/hr
 /**
  * Calculate heat input rate based on heating element power and efficiency
  * @param heatingPowerWatts Power of heating elements in watts
+ * @param numberOfTrays Number of trays being used
  * @param efficiency Efficiency of heat transfer (0 to 1)
  * @returns Heat input rate in kJ/hr
  */
 export function calculateHeatInputFromPower(
   heatingPowerWatts: number,
+  numberOfTrays: number = 1,
   efficiency: number = 0.85 // Default efficiency of 85%
 ): number {
-  return heatingPowerWatts * WATTS_TO_KJ_PER_HOUR * efficiency;
+  // Total power is per-tray wattage multiplied by number of trays
+  const totalPower = heatingPowerWatts * numberOfTrays;
+  return totalPower * WATTS_TO_KJ_PER_HOUR * efficiency;
 }
 
 /**
