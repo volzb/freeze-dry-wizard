@@ -330,12 +330,7 @@ export default function FreezeDryerCalculator() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="chart" className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <TabsList>
-                      <TabsTrigger value="chart">Chart</TabsTrigger>
-                      <TabsTrigger value="info">Information</TabsTrigger>
-                    </TabsList>
-                    
+                  <div className="flex justify-end">
                     <div className="w-80">
                       <TerpeneSelector
                         selectedTerpenes={selectedTerpenes}
@@ -344,45 +339,12 @@ export default function FreezeDryerCalculator() {
                     </div>
                   </div>
                   
-                  <TabsContent value="chart" className="space-y-4">                    
-                    <TerpeneChart 
-                      dryingData={progressCurve}
-                      steps={steps}
-                      displayUnit={displayUnit}
-                      showTerpenes={selectedTerpenes}
-                    />
-                    
-                    <div className="pt-4 text-sm text-muted-foreground">
-                      <p>
-                        <strong>How to read this chart:</strong> Solid blue line shows temperature profile. Purple line shows sublimation progress. Dotted lines represent terpene boiling points at the current pressure. If the temperature line crosses a terpene's boiling point line, that terpene is at risk of loss.
-                      </p>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="info">
-                    <div className="prose max-w-none">
-                      <h4>Understanding Freeze Drying and Terpene Preservation</h4>
-                      <p>
-                        Freeze drying works by sublimating ice directly from solid to vapor state without going through the liquid phase. This process is ideal for preserving terpenes, which are volatile compounds that would otherwise evaporate during conventional drying methods.
-                      </p>
-                      <h4>Key Factors</h4>
-                      <ul>
-                        <li><strong>Temperature:</strong> Lower temperatures help preserve terpenes but slow the drying process.</li>
-                        <li><strong>Pressure:</strong> Low pressure enables sublimation at lower temperatures.</li>
-                        <li><strong>Time:</strong> Each step's duration affects both energy transfer and terpene preservation.</li>
-                      </ul>
-                      <h4>Calculation Method</h4>
-                      <p>
-                        This calculator uses the formula: Time = (m × L<sub>f</sub>) / Q where:
-                        <br />m = ice mass (kg)
-                        <br />L<sub>f</sub> = latent heat of sublimation (2835 kJ/kg)
-                        <br />Q = heat input rate (kJ/hr)
-                      </p>
-                      <p>
-                        Terpene boiling points are calculated using the Antoine equation with pressure adjustments.
-                      </p>
-                    </div>
-                  </TabsContent>
+                  <TerpeneChart 
+                    dryingData={progressCurve}
+                    steps={steps}
+                    displayUnit={displayUnit}
+                    showTerpenes={selectedTerpenes}
+                  />
                 </Tabs>
               </CardContent>
             </Card>
@@ -426,6 +388,16 @@ export default function FreezeDryerCalculator() {
               </CardHeader>
               <CardContent className="p-4">
                 <div className="text-sm space-y-4 prose prose-sm max-w-none">
+                  <section>
+                    <h4 className="font-semibold">Chart Reading Guide</h4>
+                    <p>
+                      <strong>How to read the chart:</strong> The solid blue line shows the temperature profile over time. 
+                      The purple line shows the sublimation progress as a percentage. Dotted lines represent terpene boiling 
+                      points at the current pressure. When the temperature line crosses a terpene's boiling point line, 
+                      that terpene is at risk of loss.
+                    </p>
+                  </section>
+
                   <section>
                     <h4 className="font-semibold">Sublimation Process</h4>
                     <p>

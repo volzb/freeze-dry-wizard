@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -15,51 +14,42 @@ interface TerpeneChartProps {
 }
 
 export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: TerpeneChartProps) {
-  // Process data to include terpene boiling points and calculate sublimation rates per step
   const chartData = useMemo(() => {
     if (!dryingData.length) return [];
 
-    // Calculate step durations in hours for rate calculation
     const stepDurations: Record<number, number> = {};
     steps.forEach((step, index) => {
-      stepDurations[index] = step.duration / 60; // Convert minutes to hours
+      stepDurations[index] = step.duration / 60;
     });
 
-    // Determine step boundaries (end times)
     const stepEndTimes: number[] = [];
     let accumulatedTime = 0;
     steps.forEach((step) => {
-      accumulatedTime += step.duration / 60; // Convert minutes to hours
+      accumulatedTime += step.duration / 60;
       stepEndTimes.push(accumulatedTime);
     });
 
-    // First pass: Calculate total sublimation per step
     const stepSublimationAmounts: Record<number, number> = {};
     const stepSublimationRates: Record<number, number> = {};
     
-    // Initialize with 0 for all steps
     steps.forEach((_, idx) => {
       stepSublimationAmounts[idx] = 0;
       stepSublimationRates[idx] = 0;
     });
     
-    // Calculate the total sublimation amount for each step
     let lastProgress = 0;
     let lastStepIdx = 0;
     
     dryingData.forEach((point, idx) => {
       if (idx === 0) {
         lastStepIdx = point.step;
-        return; // Skip first point
+        return;
       }
       
-      // When step changes or at the last point
       if (point.step !== lastStepIdx || idx === dryingData.length - 1) {
-        // Calculate progress made in this step
         const progressInStep = point.progress - lastProgress;
         stepSublimationAmounts[lastStepIdx] = progressInStep;
         
-        // Calculate rate (% per hour)
         const duration = stepDurations[lastStepIdx];
         if (duration > 0) {
           stepSublimationRates[lastStepIdx] = progressInStep / duration;
@@ -73,16 +63,12 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     console.log("Step sublimation amounts:", stepSublimationAmounts);
     console.log("Step sublimation rates per hour:", stepSublimationRates);
 
-    // Transform points to include terpene boiling points and proper sublimation rates
     return dryingData.map((point, idx) => {
-      // Calculate terpene boiling points at this pressure
       const terpenesAtPoint: Record<string, number> = {};
       terpenes.forEach((terpene) => {
-        // Convert pressure from mbar to torr for calculation
         const pressureTorr = Math.max(0.001, point.pressure / 1.33322);
         let boilingTemp = calculateBoilingPoint(terpene, pressureTorr);
         
-        // Convert to Fahrenheit if needed
         if (displayUnit === 'F') {
           boilingTemp = celsiusToFahrenheit(boilingTemp);
         }
@@ -90,12 +76,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         terpenesAtPoint[terpene.name] = boilingTemp;
       });
       
-      // Adjust temperature for display unit
       const displayTemp = displayUnit === 'F' 
         ? celsiusToFahrenheit(point.temperature) 
         : point.temperature;
       
-      // Get hourly rate for this step
       const stepIdx = point.step;
       const hourlyRate = stepSublimationRates[stepIdx] || 0;
       
@@ -111,45 +95,34 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     });
   }, [dryingData, displayUnit, steps]);
 
-  // Generate exact temperature step line data
   const temperatureStepData = useMemo(() => {
     if (!steps.length) return [];
     
     const result = [];
     let accumulatedTime = 0;
     
-    // Add starting point
-    const firstStepTempC = normalizeTemperature(steps[0].temperature, steps[0].tempUnit);
-    const firstStepDisplayTemp = displayUnit === 'F' 
-      ? celsiusToFahrenheit(firstStepTempC) 
-      : firstStepTempC;
-      
     result.push({
       time: 0,
-      temperature: firstStepTempC,
-      displayTemp: firstStepDisplayTemp
+      temperature: normalizeTemperature(steps[0].temperature, steps[0].tempUnit),
+      displayTemp: displayUnit === 'F' 
+        ? celsiusToFahrenheit(normalizeTemperature(steps[0].temperature, steps[0].tempUnit)) 
+        : normalizeTemperature(steps[0].temperature, steps[0].tempUnit)
     });
     
-    // Add points for each step boundary
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
-      // Convert step duration to hours
       const stepDurationHr = step.duration / 60;
       accumulatedTime += stepDurationHr;
       
-      // Temperature for this step (already normalized in Celsius)
       const tempC = normalizeTemperature(step.temperature, step.tempUnit);
       const displayTemp = displayUnit === 'F' ? celsiusToFahrenheit(tempC) : tempC;
       
-      // Add a point at the end of this step
       result.push({
         time: accumulatedTime,
         temperature: tempC,
         displayTemp: displayTemp
       });
       
-      // If not the last step, add another point at this time with the next step's temperature
-      // This creates the step-like visualization
       if (i < steps.length - 1) {
         const nextStep = steps[i + 1];
         const nextTempC = normalizeTemperature(nextStep.temperature, nextStep.tempUnit);
@@ -166,40 +139,31 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     return result;
   }, [steps, displayUnit]);
 
-  // Generate time axis ticks with better distribution
   const timeAxisTicks = useMemo(() => {
     if (!chartData.length) return [0];
     
-    // Calculate total time from steps rather than chart data
-    // This ensures we include the full duration of all steps
     let totalTime = 0;
     steps.forEach(step => {
-      totalTime += step.duration / 60; // Convert minutes to hours
+      totalTime += step.duration / 60;
     });
     
     if (totalTime === 0) return [0];
     
-    // Generate enough ticks for good readability
     const tickCount = Math.min(10, Math.max(5, Math.ceil(totalTime)));
     return Array.from({ length: tickCount }, (_, i) => (totalTime * i) / (tickCount - 1));
   }, [steps]);
 
-  // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
     if (active && payload && payload.length) {
-      // Find the current step data
       const pointData = payload[0]?.payload;
       if (!pointData) return null;
       
-      // Get current step temperature
       const stepTemp = pointData.displayTemp;
-      const currentStep = pointData.step !== undefined ? pointData.step + 1 : null; // Adding 1 for human-readable step number
+      const currentStep = pointData.step !== undefined ? pointData.step + 1 : null;
       
-      // Safely access values with fallbacks
       const progress = typeof pointData.progress === 'number' ? pointData.progress : 0;
       const hourlyRate = typeof pointData.hourlyRate === 'number' ? pointData.hourlyRate : 0;
       
-      // Get the terpenes that would boil at this point
       const boilingTerpenes = Object.entries(pointData)
         .filter(([key, value]) => {
           return terpenes.some(t => t.name === key) && 
@@ -234,12 +198,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     return null;
   };
 
-  // Filter terpenes based on selection and group them
   const filteredTerpenes = useMemo(() => {
     return terpenes.filter(t => showTerpenes.includes(t.name));
   }, [showTerpenes]);
   
-  // Check if we have data to display
   if (chartData.length === 0) {
     return (
       <div className="w-full h-[500px] flex items-center justify-center border border-dashed border-muted-foreground rounded-lg">
@@ -248,27 +210,22 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     );
   }
 
-  // Calculate total time from steps
   let totalTime = 0;
   steps.forEach(step => {
-    totalTime += step.duration / 60; // Convert minutes to hours
+    totalTime += step.duration / 60;
   });
   
-  // Format the time axis ticks
   const formatTimeTick = (value: number) => {
     if (value === 0) return "0";
     
-    // For short times, show decimal
     if (totalTime < 1) {
       return value.toFixed(1);
     }
     
-    // For smaller values, round to 1 decimal
     if (value < 10) {
       return value.toFixed(1);
     }
     
-    // For larger values, round to whole numbers
     return Math.round(value).toString();
   };
 
@@ -285,7 +242,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             label={{ value: 'Time (hours)', position: 'insideBottomRight', offset: -10 }}
             tickFormatter={formatTimeTick}
             ticks={timeAxisTicks}
-            domain={[0, totalTime]} // Set domain to total step time
+            domain={[0, totalTime]}
             type="number"
             allowDecimals={true}
           />
@@ -323,7 +280,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             iconSize={8}
           />
           
-          {/* Temperature line showing exact step changes */}
           <Line
             yAxisId="temp"
             type="linear"
@@ -337,7 +293,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
-          {/* Sublimation progress curve */}
           <Line
             yAxisId="progress"
             type="monotone"
@@ -350,7 +305,6 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
-          {/* Terpene boiling point lines */}
           {filteredTerpenes.map((terpene) => (
             <Line
               key={terpene.name}
