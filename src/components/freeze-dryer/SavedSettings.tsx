@@ -53,19 +53,25 @@ export function SavedSettings({
   // Load saved configurations when component mounts and when auth state changes
   useEffect(() => {
     console.log("Auth state changed or component mounted, loading configurations. User:", user?.id || "anonymous");
-    loadSavedConfigurations();
+    if (isAuthenticated && user) {
+      loadSavedConfigurations();
+    } else {
+      // Clear saved configs when not authenticated
+      setSavedConfigs([]);
+    }
   }, [isAuthenticated, user]);
 
   const loadSavedConfigurations = async () => {
     setIsLoading(true);
     try {
       // Get the current user ID or use 'anonymous' for non-authenticated sessions
-      const userId = user?.id || 'anonymous';
+      const userId = user?.id;
       
-      console.log(`Loading configurations for user: ${userId}`);
+      console.log(`Loading configurations for user: ${userId || 'anonymous'}`);
       
-      if (userId === 'anonymous' && !isAuthenticated) {
+      if (!userId || !isAuthenticated) {
         toast.error("Please login to save and load settings");
+        setIsLoading(false);
         return;
       }
       
@@ -299,6 +305,7 @@ export function SavedSettings({
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={savedConfigs.length === 0 || !isAuthenticated}>
             <Button variant="outline" size="sm" className="flex items-center gap-1">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Load Settings
               <ChevronDown className="h-4 w-4" />
             </Button>

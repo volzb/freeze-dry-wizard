@@ -1,4 +1,3 @@
-
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { supabase, isSupabaseInitialized, FreezeDryerConfig } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -35,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Supabase auth event:", event);
@@ -60,7 +58,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       if (initialSession && initialSession.user) {
         const supabaseUser = initialSession.user;
@@ -77,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Clean up the subscription
     return () => {
       subscription.unsubscribe();
     };
@@ -97,10 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log(`Saving ${configurations.length} configurations for user ${userId}`);
       
-      // Make a deep copy to ensure we don't store any references
       const configsCopy = JSON.parse(JSON.stringify(configurations));
       
-      // Process each configuration for saving to Supabase
       for (const config of configsCopy) {
         const configData = {
           user_id: userId,
@@ -109,15 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           steps: config.steps || [],
         };
         
-        // Ensure hashPerTray is properly set
         if (configData.settings && typeof configData.settings === 'object' && 'hashPerTray' in configData.settings) {
           configData.settings.hashPerTray = Number(configData.settings.hashPerTray);
           console.log(`Saving hashPerTray for config '${config.name}':`, configData.settings.hashPerTray);
         }
         
-        // Check if this is an existing configuration or a new one
         if (config.id && config.id !== 'new') {
-          // Update existing configuration
           const { error } = await supabase
             .from('freeze_dryer_configs')
             .update(configData)
@@ -129,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw error;
           }
         } else {
-          // Insert new configuration
           const { error } = await supabase
             .from('freeze_dryer_configs')
             .insert(configData);
@@ -178,17 +168,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return [];
       }
       
-      // Map Supabase data to the expected format
       const configurations = data.map(record => {
-        // Ensure settings object exists
         if (!record.settings) {
           record.settings = {};
         }
         
-        // Type assertion for the settings object
         const settings = record.settings as Record<string, any>;
         
-        // Ensure hashPerTray exists and is a number
         if ('hashPerTray' in settings) {
           settings.hashPerTray = Number(settings.hashPerTray);
           console.log(`Loaded hashPerTray for config '${record.name}':`, settings.hashPerTray);
@@ -315,7 +301,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       
-      // State will be updated by the auth listener
       console.log("Logout successful");
       toast.success("Logged out successfully");
     } catch (error) {

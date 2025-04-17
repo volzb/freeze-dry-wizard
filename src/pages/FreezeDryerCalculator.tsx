@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +26,17 @@ import { v4 as uuidv4 } from "@/utils/uuid";
 export default function FreezeDryerCalculator() {
   // Temperature unit for display
   const [displayUnit, setDisplayUnit] = useState<'C' | 'F'>('C');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  
+  // Reference to savedSettings component for reloading
+  const [savedSettingsKey, setSavedSettingsKey] = useState<number>(0);
+  
+  // Force reload of saved settings when authentication state changes
+  useEffect(() => {
+    // Increment key to force component remount/reload when auth state changes
+    setSavedSettingsKey(prev => prev + 1);
+    console.log("Auth state changed in calculator, triggering saved settings reload");
+  }, [isAuthenticated, user]);
   
   // Drying steps
   const [steps, setSteps] = useState<DryingStep[]>([
@@ -245,6 +254,7 @@ export default function FreezeDryerCalculator() {
             <Card>
               <CardContent className="p-4">
                 <SavedSettings 
+                  key={savedSettingsKey}
                   currentSettings={settings}
                   currentSteps={steps}
                   onLoadSettings={handleLoadSavedSettings}
