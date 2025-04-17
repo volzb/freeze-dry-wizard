@@ -92,14 +92,19 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   const timeAxisTicks = useMemo(() => {
     if (!chartData.length) return [0];
     
-    // Get max time from chart data
-    const maxTime = chartData[chartData.length - 1]?.time || 0;
-    if (maxTime === 0) return [0];
+    // Calculate total time from steps rather than chart data
+    // This ensures we include the full duration of all steps
+    let totalTime = 0;
+    steps.forEach(step => {
+      totalTime += step.duration / 60; // Convert minutes to hours
+    });
+    
+    if (totalTime === 0) return [0];
     
     // Generate enough ticks for good readability
-    const tickCount = 10;
-    return Array.from({ length: tickCount }, (_, i) => (maxTime * i) / (tickCount - 1));
-  }, [chartData]);
+    const tickCount = Math.min(10, Math.max(5, Math.ceil(totalTime)));
+    return Array.from({ length: tickCount }, (_, i) => (totalTime * i) / (tickCount - 1));
+  }, [steps]);
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
@@ -155,12 +160,18 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     );
   }
 
+  // Calculate total time from steps
+  let totalTime = 0;
+  steps.forEach(step => {
+    totalTime += step.duration / 60; // Convert minutes to hours
+  });
+  
   // Format the time axis ticks
   const formatTimeTick = (value: number) => {
     if (value === 0) return "0";
     
     // For short times, show decimal
-    if (chartData[chartData.length - 1]?.time < 1) {
+    if (totalTime < 1) {
       return value.toFixed(1);
     }
     
@@ -186,7 +197,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             label={{ value: 'Time (hours)', position: 'insideBottomRight', offset: -10 }}
             tickFormatter={formatTimeTick}
             ticks={timeAxisTicks}
-            domain={[0, 'dataMax']}
+            domain={[0, totalTime]} // Set domain to total step time
             type="number"
             allowDecimals={true}
           />

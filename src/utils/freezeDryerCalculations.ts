@@ -1,4 +1,3 @@
-
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -157,9 +156,10 @@ export function calculateProgressCurve(
     pressure: firstPressureMbar,
   });
   
-  // Generate data points with fine time resolution
-  for (let i = 1; i < numPoints; i++) {
-    const currentTime = i * timeStep;
+  // Generate data points with fine time resolution, ensuring we include the full total time
+  for (let i = 1; i <= numPoints; i++) {
+    // Using <= ensures we include the last point exactly at totalTime
+    const currentTime = i < numPoints ? i * timeStep : totalTime;
     
     // Find current step
     let currentStepIndex = 0;
@@ -199,6 +199,55 @@ export function calculateProgressCurve(
       step: currentStepIndex,
       temperature: tempC,
       pressure: pressureMbar,
+    });
+    
+    // If we've reached 100% sublimation, adjust remaining points to maintain 100%
+    if (remainingIce <= 0 && i < numPoints) {
+      // Add data points for the rest of the time with 100% progress
+      for (let j = i + 1; j <= numPoints; j++) {
+        const remainingTime = j === numPoints ? totalTime : j * timeStep;
+        
+        // Find step for this time
+        let stepIndex = 0;
+        for (let k = 1; k < stepTimes.length; k++) {
+          if (remainingTime <= stepTimes[k]) {
+            stepIndex = k - 1;
+            break;
+          }
+        }
+        
+        const currentStep = steps[stepIndex];
+        const stepTempC = normalizeTemperature(currentStep.temperature, currentStep.tempUnit);
+        const stepPressureMbar = normalizePressure(currentStep.pressure, currentStep.pressureUnit);
+        
+        points.push({
+          time: remainingTime,
+          progress: 100,
+          step: stepIndex,
+          temperature: stepTempC,
+          pressure: stepPressureMbar,
+        });
+      }
+      break;
+    }
+  }
+  
+  // Ensure the last point is exactly at totalTime with correct step values
+  const lastStep = steps[steps.length - 1];
+  const lastTempC = normalizeTemperature(lastStep.temperature, lastStep.tempUnit);
+  const lastPressureMbar = normalizePressure(lastStep.pressure, lastStep.pressureUnit);
+  
+  // Check if the last point is already at totalTime
+  const lastPoint = points[points.length - 1];
+  if (Math.abs(lastPoint.time - totalTime) > 0.001) {
+    // Add the final point if it's not already there
+    const finalProgress = ((iceWeight - remainingIce) / iceWeight) * 100;
+    points.push({
+      time: totalTime,
+      progress: finalProgress,
+      step: steps.length - 1,
+      temperature: lastTempC,
+      pressure: lastPressureMbar,
     });
   }
   
