@@ -34,6 +34,33 @@ const defaultSettings = {
   iceWeight: 1.25 // Will be recalculated based on hash and water percentage
 };
 
+const defaultDryingSteps = [
+  {
+    id: uuidv4(),
+    temperature: -20,
+    pressure: 0.1,
+    duration: 300,
+    tempUnit: 'C',
+    pressureUnit: 'mBar'
+  },
+  {
+    id: uuidv4(),
+    temperature: -10,
+    pressure: 0.25,
+    duration: 180,
+    tempUnit: 'C',
+    pressureUnit: 'mBar'
+  },
+  {
+    id: uuidv4(),
+    temperature: 3,
+    pressure: 0.23,
+    duration: 180,
+    tempUnit: 'C',
+    pressureUnit: 'mBar'
+  }
+];
+
 const loadSavedDefaults = (): Partial<FreezeDryerSettings> => {
   try {
     const savedDefaultsString = localStorage.getItem('freezeDryerDefaults');
@@ -66,38 +93,13 @@ export default function FreezeDryerCalculator() {
   const initialSettings = useMemo(() => loadSavedDefaults(), []);
   
   const initialHeatRate = useMemo(() => estimateHeatInputRate(
-    -30, // Initial temperature from first step
-    200, // Initial pressure from first step
+    -20, // Initial temperature from first step (updated to match new default)
+    0.1, // Initial pressure from first step (updated to match new default)
     ((initialSettings.traySizeCm2 || defaultSettings.traySizeCm2) / 10000) * 
     (initialSettings.numberOfTrays || defaultSettings.numberOfTrays)
   ), [initialSettings]);
   
-  const [steps, setSteps] = useState<DryingStep[]>([
-    {
-      id: uuidv4(),
-      temperature: -30,
-      pressure: 200,
-      duration: 180,
-      tempUnit: 'C',
-      pressureUnit: 'mBar'
-    },
-    {
-      id: uuidv4(),
-      temperature: -10,
-      pressure: 150,
-      duration: 180,
-      tempUnit: 'C',
-      pressureUnit: 'mBar'
-    },
-    {
-      id: uuidv4(),
-      temperature: 10,
-      pressure: 100,
-      duration: 180,
-      tempUnit: 'C',
-      pressureUnit: 'mBar'
-    }
-  ]);
+  const [steps, setSteps] = useState<DryingStep[]>(defaultDryingSteps);
   
   const [settings, setSettings] = useState<Partial<FreezeDryerSettings>>({
     iceWeight: initialSettings.iceWeight || defaultSettings.iceWeight,
