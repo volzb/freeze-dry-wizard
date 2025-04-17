@@ -26,7 +26,7 @@ interface CalculationSettingsProps {
 
 // Freeze dryer model configurations
 const freezeDryerModels = {
-  "cryodry-cd8": { traySizeCm2: 625, numberOfTrays: 3, label: "CryoDry CD8", width: 25, length: 25 },
+  "cryodry-cd8": { traySizeCm2: 900, numberOfTrays: 9, label: "CryoDry CD8", width: 20, length: 45 },
   "custom": { traySizeCm2: 500, numberOfTrays: 3, label: "Custom", width: 22.36, length: 22.36 }
 };
 
