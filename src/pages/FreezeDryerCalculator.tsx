@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DryingStepForm } from "@/components/freeze-dryer/DryingStepForm";
@@ -365,18 +365,18 @@ export default function FreezeDryerCalculator() {
           </div>
           
           <div className="space-y-6">
-            <CalculationSettings
-              settings={settings}
-              onSettingsChange={setSettings}
-              displayUnit={displayUnit}
-              onDisplayUnitChange={setDisplayUnit}
-            />
-            
             <ResultSummary 
               progressCurve={progressCurve}
               displayUnit={displayUnit}
               waterWeight={waterWeight}
               waterPercentage={settings.waterPercentage}
+            />
+            
+            <CalculationSettings
+              settings={settings}
+              onSettingsChange={setSettings}
+              displayUnit={displayUnit}
+              onDisplayUnitChange={setDisplayUnit}
             />
             
             <Card>
