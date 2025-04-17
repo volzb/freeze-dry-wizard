@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,17 +172,15 @@ export default function FreezeDryerCalculator() {
         
         <div className="grid gap-6 md:grid-cols-3">
           <div className="space-y-6 md:col-span-2">
-            {isAuthenticated && (
-              <Card>
-                <CardContent className="p-4">
-                  <SavedSettings 
-                    currentSettings={settings}
-                    currentSteps={steps}
-                    onLoadSettings={handleLoadSavedSettings}
-                  />
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardContent className="p-4">
+                <SavedSettings 
+                  currentSettings={settings}
+                  currentSteps={steps}
+                  onLoadSettings={handleLoadSavedSettings}
+                />
+              </CardContent>
+            </Card>
             
             <Card>
               <CardHeader>

@@ -40,6 +40,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(userData);
     setIsAuthenticated(true);
     localStorage.setItem('user', JSON.stringify(userData));
+    
+    // Ensure any previously anonymous saved settings are migrated to the user account
+    migrateAnonymousSettings(userData.id);
+  };
+  
+  const migrateAnonymousSettings = (userId: string) => {
+    try {
+      const anonymousSettings = localStorage.getItem('freezedryer-configs-anonymous');
+      if (anonymousSettings) {
+        // Save anonymous settings to the user's storage
+        localStorage.setItem(`freezedryer-configs-${userId}`, anonymousSettings);
+      }
+    } catch (error) {
+      console.error('Error migrating anonymous settings:', error);
+    }
   };
 
   const logout = () => {

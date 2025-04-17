@@ -54,12 +54,13 @@ export function SavedSettings({
 
   // Load saved configurations from localStorage
   useEffect(() => {
-    // Load configurations regardless of user being logged in
     loadSavedConfigurations();
   }, [isAuthenticated, user]);
 
   const loadSavedConfigurations = () => {
+    // Get the current user ID or use 'anonymous' for non-authenticated sessions
     const userId = user?.id || 'anonymous';
+    
     const savedConfigsStr = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
     
     if (savedConfigsStr) {
@@ -68,7 +69,10 @@ export function SavedSettings({
         setSavedConfigs(configs);
       } catch (error) {
         console.error("Error loading saved configurations:", error);
+        setSavedConfigs([]);
       }
+    } else {
+      setSavedConfigs([]);
     }
   };
 
@@ -123,16 +127,6 @@ export function SavedSettings({
     
     toast.success("Configuration deleted");
   };
-
-  if (!isAuthenticated) {
-    return (
-      <Card>
-        <CardContent className="p-4 text-center">
-          <p className="text-muted-foreground">Please log in to save your settings</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-4">
