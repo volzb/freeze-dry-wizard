@@ -79,66 +79,98 @@ export function SavedSettings({
 
     setIsLoading(true);
     
-    // Deep clone all current settings to ensure no references are stored
-    const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
-    const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
-    
-    // Create a new configuration
-    const newConfig: SavedSettingsRecord = {
-      id: crypto.randomUUID(),
-      name: configName,
-      settings: settingsCopy,
-      steps: stepsCopy,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      // Deep clone all current settings to ensure no references are stored
+      const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
+      const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
+      
+      // Ensure hashPerTray is explicitly saved
+      if (settingsCopy.hashPerTray === undefined) {
+        settingsCopy.hashPerTray = currentSettings.hashPerTray || 0.15;
+      }
+      
+      // Create a new configuration
+      const newConfig: SavedSettingsRecord = {
+        id: crypto.randomUUID(),
+        name: configName,
+        settings: settingsCopy,
+        steps: stepsCopy,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    // Get the current user ID or use 'anonymous' for non-authenticated sessions
-    const userId = user?.id || 'anonymous';
-    
-    console.log(`Saving configuration "${configName}" for user ${userId}`, newConfig);
-    
-    // Add to the list
-    const updatedConfigs = [...savedConfigs, newConfig];
-    setSavedConfigs(updatedConfigs);
-    
-    // Save to localStorage using the appropriate key
-    saveConfigurationToStorage(userId, updatedConfigs);
-    
-    // Debug log to confirm what was saved
-    console.log(`Updated configurations for ${userId}:`, updatedConfigs);
+      // Get the current user ID or use 'anonymous' for non-authenticated sessions
+      const userId = user?.id || 'anonymous';
+      
+      console.log(`Saving configuration "${configName}" for user ${userId}`, newConfig);
+      
+      // Add to the list
+      const updatedConfigs = [...savedConfigs, newConfig];
+      setSavedConfigs(updatedConfigs);
+      
+      // Save to localStorage using the appropriate key
+      saveConfigurationToStorage(userId, updatedConfigs);
+      
+      // Debug log to confirm what was saved
+      console.log(`Updated configurations for ${userId}:`, updatedConfigs);
 
-    // Reset and close dialog
-    setConfigName("");
-    setSaveDialogOpen(false);
-    setIsLoading(false);
-    toast.success("Configuration saved successfully");
+      // Reset and close dialog
+      setConfigName("");
+      setSaveDialogOpen(false);
+      toast.success("Configuration saved successfully");
+    } catch (error) {
+      console.error("Error saving configuration:", error);
+      toast.error("Failed to save configuration");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLoadConfig = (config: SavedSettingsRecord) => {
-    console.log(`Loading configuration: ${config.name}`, config);
-    
-    // Deep clone the settings and steps to avoid reference issues
-    const settingsCopy = JSON.parse(JSON.stringify(config.settings));
-    const stepsCopy = JSON.parse(JSON.stringify(config.steps));
-    
-    onLoadSettings(settingsCopy, stepsCopy);
-    toast.success(`Loaded settings: ${config.name}`);
+    try {
+      console.log(`Loading configuration: ${config.name}`, config);
+      
+      if (!config.settings) {
+        console.error("Configuration has no settings:", config);
+        toast.error("Invalid configuration");
+        return;
+      }
+      
+      // Deep clone the settings and steps to avoid reference issues
+      const settingsCopy = JSON.parse(JSON.stringify(config.settings));
+      const stepsCopy = JSON.parse(JSON.stringify(config.steps || []));
+      
+      // Ensure hashPerTray is present
+      if (settingsCopy.hashPerTray === undefined) {
+        settingsCopy.hashPerTray = 0.15; // Default value
+      }
+      
+      onLoadSettings(settingsCopy, stepsCopy);
+      toast.success(`Loaded settings: ${config.name}`);
+    } catch (error) {
+      console.error("Error loading configuration:", error);
+      toast.error("Failed to load configuration");
+    }
   };
 
   const handleDeleteConfig = (id: string) => {
-    // Get the current user ID or use 'anonymous' for non-authenticated sessions
-    const userId = user?.id || 'anonymous';
-    
-    console.log(`Deleting configuration for user ${userId} with id ${id}`);
-    
-    const updatedConfigs = savedConfigs.filter(config => config.id !== id);
-    setSavedConfigs(updatedConfigs);
-    
-    // Save the updated configs to localStorage
-    saveConfigurationToStorage(userId, updatedConfigs);
-    
-    toast.success("Configuration deleted");
+    try {
+      // Get the current user ID or use 'anonymous' for non-authenticated sessions
+      const userId = user?.id || 'anonymous';
+      
+      console.log(`Deleting configuration for user ${userId} with id ${id}`);
+      
+      const updatedConfigs = savedConfigs.filter(config => config.id !== id);
+      setSavedConfigs(updatedConfigs);
+      
+      // Save the updated configs to localStorage
+      saveConfigurationToStorage(userId, updatedConfigs);
+      
+      toast.success("Configuration deleted");
+    } catch (error) {
+      console.error("Error deleting configuration:", error);
+      toast.error("Failed to delete configuration");
+    }
   };
 
   return (

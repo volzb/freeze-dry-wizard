@@ -48,6 +48,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Make a deep copy to ensure we don't store any references
       const configsCopy = JSON.parse(JSON.stringify(configurations));
       
+      // Log before saving to verify complete data
+      console.log(`Saving configurations for ${userId}:`, configsCopy);
+      
+      // Ensure all required settings fields are present in each configuration
+      configsCopy.forEach((config: any) => {
+        if (!config.settings) {
+          config.settings = {};
+        }
+        
+        // Ensure hashPerTray is saved
+        if (config.settings.hashPerTray === undefined) {
+          config.settings.hashPerTray = 0.15; // Default value
+        }
+        
+        // Ensure other important settings have defaults
+        if (config.settings.waterPercentage === undefined) {
+          config.settings.waterPercentage = 75;
+        }
+      });
+      
       localStorage.setItem(key, JSON.stringify(configsCopy));
       console.log(`Saved ${configurations.length} configurations for user ${userId} to ${key}:`, configsCopy);
     } catch (error) {
@@ -63,8 +83,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (configs) {
         const parsedConfigs = JSON.parse(configs);
-        console.log(`Retrieved ${parsedConfigs.length} configurations for user ${userId}:`, parsedConfigs);
-        return parsedConfigs;
+        
+        // Verify all configuration objects have required fields
+        const validatedConfigs = parsedConfigs.map((config: any) => {
+          // Create a deep copy
+          const fullConfig = JSON.parse(JSON.stringify(config));
+          
+          // Ensure settings object exists
+          if (!fullConfig.settings) {
+            fullConfig.settings = {};
+          }
+          
+          // Ensure hashPerTray exists
+          if (fullConfig.settings.hashPerTray === undefined) {
+            fullConfig.settings.hashPerTray = 0.15;
+          }
+          
+          // Ensure waterPercentage exists
+          if (fullConfig.settings.waterPercentage === undefined) {
+            fullConfig.settings.waterPercentage = 75;
+          }
+          
+          return fullConfig;
+        });
+        
+        console.log(`Retrieved ${validatedConfigs.length} configurations for user ${userId}:`, validatedConfigs);
+        return validatedConfigs;
       } else {
         console.log(`No configurations found for user ${userId} at key ${key}`);
       }
@@ -110,7 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Verify migration was successful
           const migratedSettings = localStorage.getItem(userKey);
           if (migratedSettings) {
-            console.log('Verified migrated settings:', JSON.parse(migratedSettings));
+            const parsedSettings = JSON.parse(migratedSettings);
+            console.log('Verified migrated settings:', parsedSettings);
           }
         } else {
           console.log('User already has settings, no migration needed');

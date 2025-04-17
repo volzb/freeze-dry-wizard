@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,23 +85,37 @@ export default function FreezeDryerCalculator() {
   
   // Load settings and steps
   const handleLoadSavedSettings = (savedSettings: Partial<FreezeDryerSettings>, savedSteps: DryingStep[]) => {
-    console.log("Loading saved settings:", savedSettings);
-    console.log("Loading saved steps:", savedSteps);
-    
-    // Ensure all required settings are present
-    const completeSettings = {
-      ...settings, // Keep current default values
-      ...savedSettings, // Override with saved settings
-    };
-    
-    // Make sure steps have IDs
-    const completeSteps = savedSteps.map(step => ({
-      ...step,
-      id: step.id || uuidv4()
-    }));
-    
-    setSettings(completeSettings);
-    setSteps(completeSteps);
+    try {
+      console.log("Loading saved settings:", savedSettings);
+      console.log("Loading saved steps:", savedSteps);
+      
+      if (!savedSettings) {
+        console.error("Saved settings is undefined or null");
+        return;
+      }
+      
+      // Ensure all required settings are present
+      const completeSettings = {
+        ...settings, // Keep current default values
+        ...JSON.parse(JSON.stringify(savedSettings)), // Override with saved settings (deep clone)
+        // Explicitly set these values to ensure they're present
+        hashPerTray: savedSettings.hashPerTray !== undefined ? savedSettings.hashPerTray : 0.15,
+        waterPercentage: savedSettings.waterPercentage !== undefined ? savedSettings.waterPercentage : 75
+      };
+      
+      console.log("Complete settings after merge:", completeSettings);
+      
+      // Make sure steps have IDs
+      const completeSteps = savedSteps.map(step => ({
+        ...step,
+        id: step.id || uuidv4()
+      }));
+      
+      setSettings(completeSettings);
+      setSteps(completeSteps);
+    } catch (error) {
+      console.error("Error loading saved settings:", error);
+    }
   };
   
   // Calculate progress curve data
