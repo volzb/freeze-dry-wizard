@@ -8,7 +8,7 @@ import { CalculationSettings } from "@/components/freeze-dryer/CalculationSettin
 import { ResultSummary } from "@/components/freeze-dryer/ResultSummary";
 import { SavedSettings } from "@/components/freeze-dryer/SavedSettings";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { terpenes } from "@/utils/terpeneData";
+import { terpenes, celsiusToFahrenheit } from "@/utils/terpeneData";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   DryingStep, 
@@ -22,6 +22,7 @@ import {
 } from "@/utils/freezeDryerCalculations";
 import { InfoIcon } from "lucide-react";
 import { v4 as uuidv4 } from "@/utils/uuid";
+import { Toggle } from "@/components/ui/toggle";
 
 const defaultSettings = {
   trayLength: 45, // 45 cm
@@ -281,6 +282,8 @@ export default function FreezeDryerCalculator() {
     return risks;
   }, [steps, settings.hashPerTray, settings.traySizeCm2, settings.numberOfTrays, settings.waterPercentage]);
   
+  const [terpeneGuideUnit, setTerpeneGuideUnit] = useState<'C' | 'F'>('C');
+  
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4">
       <div className="space-y-6">
@@ -368,8 +371,16 @@ export default function FreezeDryerCalculator() {
             </Card>
             
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>Terpene Guide</CardTitle>
+                <Toggle
+                  pressed={terpeneGuideUnit === 'F'}
+                  onPressedChange={(pressed) => setTerpeneGuideUnit(pressed ? 'F' : 'C')}
+                  aria-label="Toggle temperature unit"
+                  className="h-8"
+                >
+                  {terpeneGuideUnit}°
+                </Toggle>
               </CardHeader>
               <CardContent className="p-4">
                 <div className="text-sm space-y-1">
@@ -384,7 +395,12 @@ export default function FreezeDryerCalculator() {
                           />
                           {terpene.name}
                         </span>
-                        <span>{terpene.boilingPoint}°C</span>
+                        <span>
+                          {terpeneGuideUnit === 'C' 
+                            ? `${terpene.boilingPoint}°C`
+                            : `${Math.round(celsiusToFahrenheit(terpene.boilingPoint))}°F`
+                          }
+                        </span>
                       </li>
                     ))}
                   </ul>
