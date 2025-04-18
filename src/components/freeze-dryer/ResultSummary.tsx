@@ -49,8 +49,9 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
   
   // Calculate the actual water weight removed based on completion percentage
+  // Fix: When completedPercent is 100%, the actualWaterRemoved should equal waterWeight
   const actualWaterRemoved = waterWeight !== undefined ? 
-    (waterWeight * (completedPercent / 100)) : undefined;
+    (completedPercent >= 100 ? waterWeight : waterWeight * (completedPercent / 100)) : undefined;
 
   console.log("Rendering ResultSummary with:", {
     waterWeight,

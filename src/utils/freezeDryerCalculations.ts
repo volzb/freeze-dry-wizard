@@ -247,7 +247,7 @@ export function calculateProgressCurve(
         
         points.push({
           time: remainingTime,
-          progress: 100,
+          progress: 100, // Ensure exactly 100% for all remaining points
           step: stepIndex,
           temperature: stepTempC,
           pressure: stepPressureMbar,
@@ -266,7 +266,8 @@ export function calculateProgressCurve(
   const lastPoint = points[points.length - 1];
   if (Math.abs(lastPoint.time - totalTime) > 0.001) {
     // Add the final point if it's not already there
-    const finalProgress = ((iceWeight - remainingIce) / iceWeight) * 100;
+    // If we reached 100% earlier in the simulation, ensure the final point also shows 100%
+    const finalProgress = remainingIce <= 0 ? 100 : ((iceWeight - remainingIce) / iceWeight) * 100;
     points.push({
       time: totalTime,
       progress: finalProgress,
@@ -274,6 +275,11 @@ export function calculateProgressCurve(
       temperature: lastTempC,
       pressure: lastPressureMbar,
     });
+  }
+  
+  // If we removed all ice and the last point doesn't indicate 100%, correct it
+  if (remainingIce <= 0 && lastPoint.progress < 100) {
+    lastPoint.progress = 100;
   }
   
   console.log(`Final ice remaining: ${remainingIce.toFixed(3)}kg (${((remainingIce/iceWeight) * 100).toFixed(1)}% remains)`);
