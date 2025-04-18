@@ -15,8 +15,13 @@ interface ResultSummaryProps {
 export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPercentage }: ResultSummaryProps) {
   // For debugging purposes
   useEffect(() => {
-    console.log("ResultSummary rendered with waterWeight:", waterWeight);
-  }, [waterWeight]);
+    console.log("ResultSummary rendered with:", {
+      waterWeight,
+      waterPercentage,
+      progressCurveLength: progressCurve.length,
+      lastPointProgress: progressCurve.length > 0 ? progressCurve[progressCurve.length - 1].progress : 'N/A'
+    });
+  }, [waterWeight, waterPercentage, progressCurve]);
 
   if (!progressCurve.length) {
     return (
@@ -49,12 +54,13 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
   
   // Calculate the actual water weight removed based on completion percentage
-  // Fix: When completedPercent is 100%, the actualWaterRemoved should equal waterWeight
+  // If completedPercent is 100% or more, the actualWaterRemoved should equal waterWeight
   const actualWaterRemoved = waterWeight !== undefined ? 
     (completedPercent >= 100 ? waterWeight : waterWeight * (completedPercent / 100)) : undefined;
 
   console.log("Rendering ResultSummary with:", {
     waterWeight,
+    waterPercentage,
     completedPercent,
     actualWaterRemoved
   });

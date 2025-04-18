@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -49,7 +50,10 @@ export function calculateSubTimeInHours(iceWeightKg: number, heatInputRateKJHr: 
 
 // Calculate water weight based on hash weight and water percentage
 export function calculateWaterWeight(hashWeightKg: number, waterPercentage: number): number {
-  return hashWeightKg * (waterPercentage / 100);
+  // Make sure to round to a reasonable precision to avoid floating point issues
+  const result = hashWeightKg * (waterPercentage / 100);
+  console.log(`calculateWaterWeight: ${hashWeightKg} kg hash with ${waterPercentage}% water = ${result} kg water`);
+  return result;
 }
 
 // Import heat transfer calculations
