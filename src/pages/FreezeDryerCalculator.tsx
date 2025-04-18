@@ -146,7 +146,7 @@ export default function FreezeDryerCalculator() {
     terpenes.slice(0, 5).map(t => t.name)
   );
   
-  const handleLoadSavedSettings = (savedSettings: Partial<FreezeDryerSettings>, savedSteps: DryingStep[]) => {
+  const handleLoadSavedSettings = useCallback((savedSettings: Partial<FreezeDryerSettings>, savedSteps: DryingStep[]) => {
     try {
       console.log("Loading saved settings:", savedSettings);
       console.log("Loading saved steps:", savedSteps);
@@ -205,7 +205,7 @@ export default function FreezeDryerCalculator() {
     } catch (error) {
       console.error("Error loading saved settings:", error);
     }
-  };
+  }, []);
   
   // This is the key mechanism for updating water weight
   const waterWeight = useMemo(() => {
@@ -224,6 +224,8 @@ export default function FreezeDryerCalculator() {
       ...prevSettings,
       iceWeight: waterWeight
     }));
+    // Force chart update when water weight changes
+    updateChartAndCalculations();
   }, [waterWeight]);
   
   // Add a chart update key to force recalculation when needed
@@ -435,7 +437,7 @@ export default function FreezeDryerCalculator() {
           
           <div className="space-y-6">
             <ResultSummary 
-              key={`summary-${chartUpdateKey}-${waterWeight.toFixed(5)}-${settings.numberOfTrays}`}
+              key={`summary-${chartUpdateKey}-${waterWeight.toFixed(5)}-${settings.waterPercentage}`}
               progressCurve={progressCurve}
               displayUnit={displayUnit}
               waterWeight={waterWeight}
