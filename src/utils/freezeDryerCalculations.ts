@@ -208,12 +208,12 @@ export function calculateProgressCurve(
     // Energy transferred during this time segment
     const energyTransferred = effectiveHeatRate * timeInSegment; // kJ
     
-    // Ice sublimated during this time segment
+    // Ice sublimated during this time segment - when remainder is 0, we're done
     const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg
     remainingIce = Math.max(0, remainingIce - iceSublimated);
     
     // Calculate progress percentage - always using the original iceWeight value
-    const progress = ((iceWeight - remainingIce) / iceWeight) * 100;
+    const progress = iceWeight > 0 ? ((iceWeight - remainingIce) / iceWeight) * 100 : 0;
     
     // Add the point with this step's temperature
     points.push({

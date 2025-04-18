@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { SubTimePoint } from "@/utils/freezeDryerCalculations";
 import { celsiusToFahrenheit } from "@/utils/terpeneData";
 import { useEffect } from "react";
@@ -48,7 +49,6 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
   
   // Calculate the actual water weight removed based on completion percentage
-  // Make sure we're using the latest waterWeight prop value for this calculation
   const actualWaterRemoved = waterWeight !== undefined ? 
     (waterWeight * (completedPercent / 100)) : undefined;
 
@@ -80,6 +80,11 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
               {Math.round(completedPercent)}%
               {isOverDry ? " (Over Dry)" : ""}
             </p>
+            <Progress 
+              value={Math.min(completedPercent, 100)} 
+              indicatorClassName={isOverDry ? "bg-amber-500" : isDryingIncomplete ? "bg-amber-500" : ""}
+              className="h-2 mt-1"
+            />
           </div>
           
           <div className="space-y-1">
