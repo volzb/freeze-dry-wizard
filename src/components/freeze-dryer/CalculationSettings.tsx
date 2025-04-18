@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -99,7 +98,7 @@ export function CalculationSettings({
     if (numberOfTrays !== '') {
       handleSettingChange("numberOfTrays", numberOfTrays);
       
-      // Recalculate water weight when number of trays changes
+      // Force recalculate water weight when number of trays changes
       if (hashPerTray !== '' && waterPercentage !== '') {
         const totalHashWeight = hashPerTray * numberOfTrays;
         const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
@@ -199,7 +198,7 @@ export function CalculationSettings({
   const formatNumber = (value: number | '', decimals: number = 2): string => {
     return typeof value === 'number' ? value.toFixed(decimals) : '0';
   };
-  
+
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
