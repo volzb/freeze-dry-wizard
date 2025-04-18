@@ -135,7 +135,7 @@ export function calculateProgressCurve(
   const timeStep = totalTime / (numPoints - 1);
   
   const points: SubTimePoint[] = [];
-  let remainingIce = iceWeight;
+  let remainingIce = iceWeight; // Use the input iceWeight directly - this is the water we need to remove
   
   // Calculate heat rates for each step upfront
   const baseHeatRates: number[] = [];
@@ -211,7 +211,7 @@ export function calculateProgressCurve(
     const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg
     remainingIce = Math.max(0, remainingIce - iceSublimated);
     
-    // Calculate progress percentage
+    // Calculate progress percentage - always using the original iceWeight value
     const progress = ((iceWeight - remainingIce) / iceWeight) * 100;
     
     // Add the point with this step's temperature
