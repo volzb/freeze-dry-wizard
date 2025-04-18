@@ -13,9 +13,9 @@ interface ResultSummaryProps {
 }
 
 export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPercentage }: ResultSummaryProps) {
-  // For debugging purposes
+  // For debugging purposes - important to track re-renders and props changes
   useEffect(() => {
-    console.log("ResultSummary rendered with:", {
+    console.log("ResultSummary rendered with props:", {
       waterWeight,
       waterPercentage,
       progressCurveLength: progressCurve.length,
@@ -54,11 +54,11 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   // Find lowest pressure point
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
   
-  // Calculate the water weight removed
+  // Calculate the water weight removed - ensure we're working with the latest values
   const actualWaterRemoved = waterWeight !== undefined ? 
     (completedPercent >= 100 ? waterWeight : waterWeight * (completedPercent / 100)) : undefined;
 
-  console.log("Displaying ResultSummary with:", {
+  console.log("Rendering ResultSummary with final values:", {
     waterWeight,
     waterPercentage,
     completedPercent,

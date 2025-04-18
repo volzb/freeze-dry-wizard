@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,11 +28,15 @@ export function CalculationSettings({
   // Generate a unique render ID to help with debugging
   const renderInstanceId = React.useId();
   
-  // Create state for all form fields
+  // Create state for all form fields with proper typing
   const [trayLength, setTrayLength] = useState<number | ''>(settings.trayLength || 45);
   const [trayWidth, setTrayWidth] = useState<number | ''>(settings.trayWidth || 20);
-  const [hashPerTray, setHashPerTray] = useState<number | ''>(settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : 0.5);
-  const [waterPercentage, setWaterPercentage] = useState<number | ''>(settings.waterPercentage !== undefined ? Number(settings.waterPercentage) : 50);
+  const [hashPerTray, setHashPerTray] = useState<number | ''>(
+    settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : 0.5
+  );
+  const [waterPercentage, setWaterPercentage] = useState<number | ''>(
+    settings.waterPercentage !== undefined ? Number(settings.waterPercentage) : 50
+  );
   const [heatingPowerWatts, setHeatingPowerWatts] = useState<number | ''>(settings.heatingPowerWatts || 50);
   const [numberOfTrays, setNumberOfTrays] = useState<number | ''>(settings.numberOfTrays || 1);
   
@@ -49,40 +52,45 @@ export function CalculationSettings({
       hashPerTray,
       waterPercentage,
       heatingPowerWatts,
-      numberOfTrays
+      numberOfTrays,
+      timestamp: new Date().toISOString()
     });
   }, []);
   
   // Update local state when settings change (e.g., when loading saved config)
   useEffect(() => {
     if (!initialSettingsLoaded) {
-      console.log(`Loading initial settings (ID: ${renderInstanceId})`, settings);
+      console.log(`Loading initial settings (ID: ${renderInstanceId})`, {
+        settings,
+        timestamp: new Date().toISOString()
+      });
       
       if (settings.trayLength !== undefined) {
-        setTrayLength(settings.trayLength);
+        setTrayLength(Number(settings.trayLength));
       }
       
       if (settings.trayWidth !== undefined) {
-        setTrayWidth(settings.trayWidth);
+        setTrayWidth(Number(settings.trayWidth));
       }
       
       if (settings.hashPerTray !== undefined) {
         const numericValue = Number(settings.hashPerTray);
         if (!isNaN(numericValue)) {
           setHashPerTray(numericValue);
+          console.log(`Setting hashPerTray to ${numericValue} (ID: ${renderInstanceId})`);
         }
       }
       
       if (settings.waterPercentage !== undefined) {
-        setWaterPercentage(settings.waterPercentage);
+        setWaterPercentage(Number(settings.waterPercentage));
       }
       
       if (settings.heatingPowerWatts !== undefined) {
-        setHeatingPowerWatts(settings.heatingPowerWatts);
+        setHeatingPowerWatts(Number(settings.heatingPowerWatts));
       }
       
       if (settings.numberOfTrays !== undefined) {
-        setNumberOfTrays(settings.numberOfTrays);
+        setNumberOfTrays(Number(settings.numberOfTrays));
       }
       
       setInitialSettingsLoaded(true);
@@ -96,7 +104,8 @@ export function CalculationSettings({
       console.log(`Recalculating tray area (ID: ${renderInstanceId}):`, {
         trayLength,
         trayWidth,
-        area
+        area,
+        timestamp: new Date().toISOString()
       });
       handleSettingChange("traySizeCm2", area);
       handleSettingChange("trayLength", trayLength);
@@ -107,7 +116,11 @@ export function CalculationSettings({
   // When number of trays changes
   useEffect(() => {
     if (numberOfTrays !== '') {
-      console.log(`Number of trays changed (ID: ${renderInstanceId}):`, numberOfTrays);
+      console.log(`Number of trays changed (ID: ${renderInstanceId}):`, {
+        numberOfTrays,
+        timestamp: new Date().toISOString()
+      });
+      
       handleSettingChange("numberOfTrays", numberOfTrays);
       
       // Force recalculate water weight when number of trays changes
@@ -118,12 +131,15 @@ export function CalculationSettings({
           hashPerTray,
           numberOfTrays,
           totalHashWeight,
-          waterWeight
+          waterWeight,
+          timestamp: new Date().toISOString()
         });
+        
+        // Explicitly update the ice weight based on the new calculations
         handleSettingChange("iceWeight", waterWeight);
       }
     }
-  }, [numberOfTrays]);
+  }, [numberOfTrays, hashPerTray, waterPercentage]);
   
   // Calculate total ice weight when hash per tray, water percentage, or number of trays changes
   useEffect(() => {
@@ -136,10 +152,11 @@ export function CalculationSettings({
         numberOfTrays,
         waterPercentage, 
         totalHashWeight,
-        calculatedWaterWeight: waterWeight
+        calculatedWaterWeight: waterWeight,
+        timestamp: new Date().toISOString()
       });
       
-      // Update hashPerTray and waterPercentage values
+      // Update hashPerTray and waterPercentage values with numbers, not strings
       handleSettingChange("hashPerTray", Number(hashPerTray));
       handleSettingChange("waterPercentage", Number(waterPercentage));
       
@@ -156,10 +173,11 @@ export function CalculationSettings({
       
       console.log(`Heating power changed (ID: ${renderInstanceId}):`, {
         heatingPowerWatts,
-        numberOfTrays
+        numberOfTrays,
+        timestamp: new Date().toISOString()
       });
       
-      // Update heating power
+      // Update heating power (ensure numeric)
       handleSettingChange("heatingPowerWatts", Number(heatingPowerWatts));
       
       // Calculate efficiency based on temperature and pressure
@@ -171,6 +189,8 @@ export function CalculationSettings({
         Number(numberOfTrays),
         efficiency
       );
+      
+      // Update heat input rate
       handleSettingChange("heatInputRate", Math.round(heatRate));
     }
   }, [heatingPowerWatts, numberOfTrays]);
@@ -182,8 +202,9 @@ export function CalculationSettings({
       return;
     }
     
-    // Handle numeric conversion for specific fields
-    if ((field === 'hashPerTray' || field === 'waterPercentage' || field === 'heatingPowerWatts') && value !== '') {
+    // Always ensure numeric values for certain fields
+    if ((field === 'hashPerTray' || field === 'waterPercentage' || 
+         field === 'heatingPowerWatts' || field === 'iceWeight') && value !== '') {
       value = Number(value);
     }
     
@@ -194,13 +215,20 @@ export function CalculationSettings({
     
     console.log(`Updating setting ${field} (ID: ${renderInstanceId}):`, {
       oldValue: settings[field],
-      newValue: value
+      newValue: value,
+      timestamp: new Date().toISOString()
     });
+    
+    // Propagate the change to parent component
     onSettingsChange(updatedSettings);
   };
   
   // Handle input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<number | ''>>, fieldName: string) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>, 
+    setter: React.Dispatch<React.SetStateAction<number | ''>>, 
+    fieldName: string
+  ) => {
     const value = e.target.value;
     if (value === '') {
       setter('');
@@ -214,20 +242,24 @@ export function CalculationSettings({
                    fieldName === 'waterPercentage' ? waterPercentage :
                    fieldName === 'heatingPowerWatts' ? heatingPowerWatts :
                    fieldName === 'numberOfTrays' ? numberOfTrays : 'unknown',
-          newValue: numValue
+          newValue: numValue,
+          timestamp: new Date().toISOString()
         });
         setter(numValue);
       }
     }
   };
   
-  // Calculate summarized values
+  // Calculate summarized values - these are just for display
   const totalHashWeight = (hashPerTray !== '' && numberOfTrays !== '') ? 
     Number(hashPerTray) * Number(numberOfTrays) : 0;
+    
   const totalWaterWeight = (hashPerTray !== '' && waterPercentage !== '' && numberOfTrays !== '') ? 
     calculateWaterWeight(totalHashWeight, waterPercentage) : 0;
+    
   const totalArea = (trayLength !== '' && trayWidth !== '' && numberOfTrays !== '') ? 
     (Number(trayLength) * Number(trayWidth)) * Number(numberOfTrays) : 0;
+    
   const hashDensity = totalHashWeight > 0 && totalArea > 0 ? 
     (totalHashWeight * 1000) / (totalArea / 100) : 0;
   

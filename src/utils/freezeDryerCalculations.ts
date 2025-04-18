@@ -50,12 +50,13 @@ export function calculateSubTimeInHours(iceWeightKg: number, heatInputRateKJHr: 
 
 // Calculate water weight based on hash weight and water percentage
 export function calculateWaterWeight(hashWeightKg: number, waterPercentage: number): number {
-  // Ensure waterPercentage is treated as a number
+  // Ensure parameters are treated as numbers
+  const hashWeightKgNum = Number(hashWeightKg);
   const waterPercentageNum = Number(waterPercentage);
   
   // Make sure to round to a reasonable precision to avoid floating point issues
-  const result = hashWeightKg * (waterPercentageNum / 100);
-  console.log(`calculateWaterWeight: ${hashWeightKg} kg hash with ${waterPercentageNum}% water = ${result} kg water`);
+  const result = hashWeightKgNum * (waterPercentageNum / 100);
+  console.log(`calculateWaterWeight: ${hashWeightKgNum} kg hash with ${waterPercentageNum}% water = ${result} kg water`);
   return result;
 }
 
@@ -103,7 +104,8 @@ export function generateCalculationId(settings: FreezeDryerSettings): string {
   const { iceWeight, numberOfTrays, waterPercentage, hashPerTray, heatingPowerWatts, steps } = settings;
   
   // Create a string that captures all the important parameters that would affect calculations
-  return `${iceWeight?.toFixed(5)}-${numberOfTrays}-${waterPercentage}-${hashPerTray?.toFixed(5)}-${heatingPowerWatts}-${steps.length}`;
+  // Ensure numeric values are properly formatted
+  return `${Number(iceWeight).toFixed(5)}-${Number(numberOfTrays)}-${Number(waterPercentage)}-${Number(hashPerTray).toFixed(5)}-${Number(heatingPowerWatts)}-${steps.length}`;
 }
 
 // Calculate dense progress curve with many data points
@@ -113,28 +115,48 @@ export function calculateProgressCurve(
   // Generate a calculation ID for debugging
   const calculationId = generateCalculationId(settings);
   
+  // Explicitly convert all numeric values to ensure consistent calculations
+  const settingsNormalized = {
+    ...settings,
+    iceWeight: Number(settings.iceWeight),
+    heatInputRate: Number(settings.heatInputRate),
+    traySizeCm2: Number(settings.traySizeCm2),
+    numberOfTrays: Number(settings.numberOfTrays),
+    trayLength: Number(settings.trayLength),
+    trayWidth: Number(settings.trayWidth),
+    hashPerTray: Number(settings.hashPerTray),
+    waterPercentage: Number(settings.waterPercentage),
+    heatingPowerWatts: Number(settings.heatingPowerWatts)
+  };
+  
   console.log(`Starting Progress Curve Calculation (ID: ${calculationId}):`, {
-    iceWeight: settings.iceWeight,
-    heatInputRate: settings.heatInputRate,
-    traySizeCm2: settings.traySizeCm2,
-    numberOfTrays: settings.numberOfTrays,
-    trayLength: settings.trayLength,
-    trayWidth: settings.trayWidth,
-    hashPerTray: settings.hashPerTray,
-    waterPercentage: settings.waterPercentage,
-    heatingPowerWatts: settings.heatingPowerWatts
+    iceWeight: settingsNormalized.iceWeight,
+    heatInputRate: settingsNormalized.heatInputRate,
+    traySizeCm2: settingsNormalized.traySizeCm2,
+    numberOfTrays: settingsNormalized.numberOfTrays,
+    trayLength: settingsNormalized.trayLength,
+    trayWidth: settingsNormalized.trayWidth,
+    hashPerTray: settingsNormalized.hashPerTray,
+    waterPercentage: settingsNormalized.waterPercentage,
+    heatingPowerWatts: settingsNormalized.heatingPowerWatts,
+    timestamp: new Date().toISOString()
   });
 
-  const { steps, iceWeight } = settings;
+  const { steps } = settingsNormalized;
+  const iceWeight = Number(settingsNormalized.iceWeight);
   
   // Log key water parameters
   console.log(`Water Calculation Parameters (ID: ${calculationId}):`, { 
-    iceWeight: iceWeight,
-    numberOfTrays: settings.numberOfTrays,
-    hashPerTray: settings.hashPerTray,
-    waterPercentage: settings.waterPercentage,
-    totalHashWeight: settings.hashPerTray * settings.numberOfTrays,
-    calculatedWaterWeight: calculateWaterWeight(settings.hashPerTray * settings.numberOfTrays, settings.waterPercentage)
+    iceWeight,
+    numberOfTrays: settingsNormalized.numberOfTrays,
+    hashPerTray: settingsNormalized.hashPerTray,
+    waterPercentage: settingsNormalized.waterPercentage,
+    totalHashWeight: settingsNormalized.hashPerTray * settingsNormalized.numberOfTrays,
+    calculatedWaterWeight: calculateWaterWeight(
+      settingsNormalized.hashPerTray * settingsNormalized.numberOfTrays, 
+      settingsNormalized.waterPercentage
+    ),
+    timestamp: new Date().toISOString()
   });
   
   // Validate inputs
@@ -142,13 +164,14 @@ export function calculateProgressCurve(
     console.warn(`Invalid input for progress curve calculation (ID: ${calculationId}):`, { 
       stepsValid: !!steps?.length,
       iceWeightValid: iceWeight && iceWeight > 0,
-      iceWeight: iceWeight
+      iceWeight,
+      timestamp: new Date().toISOString()
     });
     return [];
   }
 
   // Calculate total shelf area in m²
-  const totalShelfAreaM2 = ((settings.traySizeCm2 || 500) / 10000) * (settings.numberOfTrays || 1);
+  const totalShelfAreaM2 = ((settingsNormalized.traySizeCm2 || 500) / 10000) * (settingsNormalized.numberOfTrays || 1);
   console.log(`Total shelf area (ID: ${calculationId}): ${totalShelfAreaM2} m²`);
 
   // Generate time points at step boundaries
@@ -160,15 +183,15 @@ export function calculateProgressCurve(
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
-    if (settings.heatingPowerWatts) {
+    if (settingsNormalized.heatingPowerWatts) {
       const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
       return calculateHeatInputFromPower(
-        settings.heatingPowerWatts, 
-        settings.numberOfTrays || 1, 
+        settingsNormalized.heatingPowerWatts, 
+        settingsNormalized.numberOfTrays || 1, 
         efficiency
       );
     } else {
-      return settings.heatInputRate || 
+      return settingsNormalized.heatInputRate || 
         estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
     }
   });
@@ -282,7 +305,10 @@ export function calculateProgressCurve(
   }
   
   console.log(`Generated progress curve (ID: ${calculationId}) with ${progressCurve.length} points`);
-  console.log(`Final progress (ID: ${calculationId}): ${progressCurve[progressCurve.length - 1].progress.toFixed(2)}%`);
+  console.log(`Final progress (ID: ${calculationId}): ${progressCurve[progressCurve.length - 1].progress.toFixed(2)}%`, {
+    iceWeight,
+    timestamp: new Date().toISOString()
+  });
   
   return progressCurve;
 }
