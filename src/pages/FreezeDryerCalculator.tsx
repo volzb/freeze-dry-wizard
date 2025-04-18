@@ -213,7 +213,6 @@ export default function FreezeDryerCalculator() {
     return calculatedWaterWeight;
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
   
-  // Force update iceWeight whenever waterWeight changes
   useEffect(() => {
     setSettings(prevSettings => ({
       ...prevSettings,
@@ -221,10 +220,8 @@ export default function FreezeDryerCalculator() {
     }));
   }, [waterWeight]);
   
-  // Explicitly create a state for force updating charts
   const [chartUpdateKey, setChartUpdateKey] = useState<number>(0);
   
-  // Force chart update whenever relevant settings change
   useEffect(() => {
     setChartUpdateKey(prev => prev + 1);
   }, [waterWeight, settings.numberOfTrays, settings.heatingPowerWatts]);
@@ -232,16 +229,14 @@ export default function FreezeDryerCalculator() {
   const progressCurve = useMemo(() => {
     if (!steps.length || waterWeight <= 0) return [] as SubTimePoint[];
     
-    // Include all key dependencies in the unique key string
     const uniqueKey = `${waterWeight.toFixed(5)}-${settings.numberOfTrays || 0}-${settings.heatingPowerWatts || 0}-${chartUpdateKey}`;
     
     console.log("Recalculating progress curve with key:", uniqueKey);
     console.log("Current water weight:", waterWeight, "kg");
     
-    // Create a deep copy of settings to ensure it's not affected by reference issues
     const calculationSettings: FreezeDryerSettings = {
       steps: [...steps],
-      iceWeight: waterWeight, // Use the latest waterWeight directly
+      iceWeight: waterWeight,
       heatInputRate: settings.heatInputRate || 0,
       traySizeCm2: settings.traySizeCm2 || defaultSettings.traySizeCm2,
       numberOfTrays: settings.numberOfTrays || defaultSettings.numberOfTrays,
@@ -265,7 +260,7 @@ export default function FreezeDryerCalculator() {
     settings.waterPercentage,
     settings.heatingPowerWatts,
     forceUpdateKey,
-    chartUpdateKey // Add explicit chart update key
+    chartUpdateKey
   ]);
   
   const riskAssessment = useMemo(() => {
@@ -319,7 +314,6 @@ export default function FreezeDryerCalculator() {
   
   const [terpeneGuideUnit, setTerpeneGuideUnit] = useState<'C' | 'F'>('C');
   
-  // Log for debugging
   console.log("FreezeDryerCalculator render with:", {
     waterWeight,
     numberOfTrays: settings.numberOfTrays,
