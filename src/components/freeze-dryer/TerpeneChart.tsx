@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -17,6 +18,11 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
   const chartData = useMemo(() => {
     if (!dryingData.length) return [];
 
+    console.log("TerpeneChart received drying data with", dryingData.length, "points");
+    console.log("First point:", dryingData[0]);
+    console.log("Last point:", dryingData[dryingData.length - 1]);
+
+    // Calculate step durations and sublimation rates for each step
     const stepDurations: Record<number, number> = {};
     steps.forEach((step, index) => {
       stepDurations[index] = step.duration / 60;
@@ -37,6 +43,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       stepSublimationRates[idx] = 0;
     });
     
+    // Calculate sublimation amounts and rates for each step
     let lastProgress = 0;
     let lastStepIdx = 0;
     
@@ -60,9 +67,9 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       }
     });
     
-    console.log("Step sublimation amounts:", stepSublimationAmounts);
     console.log("Step sublimation rates per hour:", stepSublimationRates);
 
+    // Transform drying data for chart display
     return dryingData.map((point, idx) => {
       const terpenesAtPoint: Record<string, number> = {};
       terpenes.forEach((terpene) => {
@@ -95,6 +102,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     });
   }, [dryingData, displayUnit, steps]);
 
+  // Generate temperature step data for the chart
   const temperatureStepData = useMemo(() => {
     if (!steps.length) return [];
     
@@ -139,6 +147,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     return result;
   }, [steps, displayUnit]);
 
+  // Calculate tick marks for the time axis
   const timeAxisTicks = useMemo(() => {
     if (!chartData.length) return [0];
     
@@ -151,8 +160,9 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     
     const tickCount = Math.min(10, Math.max(5, Math.ceil(totalTime)));
     return Array.from({ length: tickCount }, (_, i) => (totalTime * i) / (tickCount - 1));
-  }, [steps]);
+  }, [steps, chartData.length]);
 
+  // Custom tooltip component for the chart
   const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
     if (active && payload && payload.length) {
       const pointData = payload[0]?.payload;
@@ -223,6 +233,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     return null;
   };
 
+  // Filter terpenes based on user selection
   const filteredTerpenes = useMemo(() => {
     return terpenes.filter(t => showTerpenes.includes(t.name));
   }, [showTerpenes]);
@@ -235,11 +246,13 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
     );
   }
 
+  // Calculate total time for x-axis
   let totalTime = 0;
   steps.forEach(step => {
     totalTime += step.duration / 60;
   });
   
+  // Format time tick labels
   const formatTimeTick = (value: number) => {
     if (value === 0) return "0";
     
@@ -305,6 +318,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             iconSize={8}
           />
           
+          {/* Temperature line */}
           <Line
             yAxisId="temp"
             type="linear"
@@ -318,6 +332,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
+          {/* Sublimation progress line */}
           <Line
             yAxisId="progress"
             type="monotone"
@@ -330,6 +345,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
+          {/* Terpene boiling point lines */}
           {filteredTerpenes.map((terpene) => (
             <Line
               key={terpene.name}

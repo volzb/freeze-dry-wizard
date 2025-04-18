@@ -39,7 +39,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   const lastPoint = progressCurve[progressCurve.length - 1];
   const totalTime = lastPoint.time;
   
-  // Explicitly calculate completion percentage based on the last point's progress value
+  // Calculate completion percentage based on the last point's progress value
   const completedPercent = lastPoint.progress;
   const isOverDry = completedPercent > 100;
   const isDryingIncomplete = completedPercent < 99; // Consider less than 99% as incomplete
@@ -53,16 +53,16 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   // Find lowest pressure point
   const lowestPressurePoint = [...progressCurve].sort((a, b) => a.pressure - b.pressure)[0];
   
-  // Calculate the actual water weight removed based on completion percentage
-  // If completedPercent is 100% or more, the actualWaterRemoved should equal waterWeight
+  // Calculate the water weight removed
   const actualWaterRemoved = waterWeight !== undefined ? 
     (completedPercent >= 100 ? waterWeight : waterWeight * (completedPercent / 100)) : undefined;
 
-  console.log("Rendering ResultSummary with:", {
+  console.log("Displaying ResultSummary with:", {
     waterWeight,
     waterPercentage,
     completedPercent,
-    actualWaterRemoved
+    actualWaterRemoved,
+    totalTime
   });
   
   return (

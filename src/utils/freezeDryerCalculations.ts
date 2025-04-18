@@ -50,9 +50,12 @@ export function calculateSubTimeInHours(iceWeightKg: number, heatInputRateKJHr: 
 
 // Calculate water weight based on hash weight and water percentage
 export function calculateWaterWeight(hashWeightKg: number, waterPercentage: number): number {
+  // Ensure waterPercentage is treated as a number
+  const waterPercentageNum = Number(waterPercentage);
+  
   // Make sure to round to a reasonable precision to avoid floating point issues
-  const result = hashWeightKg * (waterPercentage / 100);
-  console.log(`calculateWaterWeight: ${hashWeightKg} kg hash with ${waterPercentage}% water = ${result} kg water`);
+  const result = hashWeightKg * (waterPercentageNum / 100);
+  console.log(`calculateWaterWeight: ${hashWeightKg} kg hash with ${waterPercentageNum}% water = ${result} kg water`);
   return result;
 }
 
@@ -73,7 +76,7 @@ export function estimateHeatInputRate(
   return calculateHeatInput(temperatureC, pressureMbar, totalShelfAreaM2);
 }
 
-// Calculate the sublimation progress over time for each drying step
+// Define the interface for time points in the sublimation progress curve
 export interface SubTimePoint {
   time: number; // accumulated time in hours
   progress: number; // percentage of ice sublimated
@@ -99,24 +102,17 @@ export function calculateStepTimePoints(steps: DryingStep[]): number[] {
 export function calculateProgressCurve(
   settings: FreezeDryerSettings
 ): SubTimePoint[] {
-  const { steps, iceWeight } = settings;
+  const { steps, iceWeight, waterPercentage } = settings;
   
   console.log("Calculating Progress Curve", { 
     stepsCount: steps?.length,
     iceWeight: iceWeight,
     numberOfTrays: settings.numberOfTrays,
     hashPerTray: settings.hashPerTray,
-    waterPercentage: settings.waterPercentage,
-    steps: steps.map(step => ({
-      temperature: step.temperature,
-      tempUnit: step.tempUnit,
-      duration: step.duration,
-      pressure: step.pressure,
-      pressureUnit: step.pressureUnit
-    }))
+    waterPercentage: settings.waterPercentage
   });
   
-  // Validate inputs and ensure positive values for critical parameters
+  // Validate inputs
   if (!steps?.length || !iceWeight || iceWeight <= 0) {
     console.warn("Invalid input for progress curve calculation:", { 
       stepsValid: !!steps?.length,
@@ -130,59 +126,61 @@ export function calculateProgressCurve(
   const totalShelfAreaM2 = ((settings.traySizeCm2 || 500) / 10000) * (settings.numberOfTrays || 1);
   console.log("Total shelf area:", totalShelfAreaM2, "m²");
 
-  // Generate exact step time boundaries
+  // Generate time points at step boundaries
   const stepTimes = calculateStepTimePoints(steps);
-  const totalTime = stepTimes[stepTimes.length - 1];
+  const totalProgramTime = stepTimes[stepTimes.length - 1];
   
-  // Calculate with many points for a smoother curve
-  const numPoints = Math.max(200, steps.length * 50); // More points for a smooth curve
-  const timeStep = totalTime / (numPoints - 1);
-  
-  const points: SubTimePoint[] = [];
-  let remainingIce = iceWeight; // Use the input iceWeight directly - this is the water we need to remove
-  
-  // Calculate heat rates for each step upfront
-  const baseHeatRates: number[] = [];
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
+  // Calculate the heat input rates for each step
+  const stepHeatRates: number[] = steps.map((step, index) => {
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
-    let stepHeatRate;
     if (settings.heatingPowerWatts) {
-      // Use per-tray heating power calculation
       const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
-      stepHeatRate = calculateHeatInputFromPower(
+      return calculateHeatInputFromPower(
         settings.heatingPowerWatts, 
         settings.numberOfTrays || 1, 
         efficiency
       );
     } else {
-      stepHeatRate = settings.heatInputRate || 
+      return settings.heatInputRate || 
         estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
     }
-    baseHeatRates.push(stepHeatRate);
-  }
+  });
   
-  // Add starting point at time 0
+  // Calculate the total energy required for complete sublimation
+  const totalEnergyRequired = iceWeight * LATENT_HEAT_SUBLIMATION; // kJ
+  console.log("Total energy required for sublimation:", totalEnergyRequired, "kJ");
+  
+  // Determine maximum # of points for smooth curve
+  const numPoints = Math.max(200, steps.length * 50); 
+  const timeStep = totalProgramTime / (numPoints - 1);
+  
+  // Initialize the progress curve
+  const progressCurve: SubTimePoint[] = [];
+  
+  // Initialize with first point at time 0
   const firstStep = steps[0];
   const firstTempC = normalizeTemperature(firstStep.temperature, firstStep.tempUnit);
   const firstPressureMbar = normalizePressure(firstStep.pressure, firstStep.pressureUnit);
   
-  points.push({
+  progressCurve.push({
     time: 0,
     progress: 0,
     step: 0,
     temperature: firstTempC,
-    pressure: firstPressureMbar,
+    pressure: firstPressureMbar
   });
   
-  // Generate data points with fine time resolution
-  for (let i = 1; i <= numPoints; i++) {
-    // Using <= ensures we include the last point exactly at totalTime
-    const currentTime = i < numPoints ? i * timeStep : totalTime;
+  // Track energy transferred and progress
+  let totalEnergyTransferred = 0;
+  let sublimationComplete = false;
+  
+  // Generate data points with specified time resolution
+  for (let i = 1; i < numPoints; i++) {
+    const currentTime = i * timeStep;
     
-    // Find current step
+    // Find the current step based on time
     let currentStepIndex = 0;
     for (let j = 1; j < stepTimes.length; j++) {
       if (currentTime <= stepTimes[j]) {
@@ -191,105 +189,75 @@ export function calculateProgressCurve(
       }
     }
     
+    // Get step parameters
     const step = steps[currentStepIndex];
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
-    // Time spent in this specific time segment
-    const previousTimePoint = points[points.length - 1];
-    const timeInSegment = currentTime - previousTimePoint.time;
+    // Calculate time elapsed since previous point
+    const timeElapsed = timeStep;
     
-    // Get base heat rate for this step
-    const baseHeatRate = baseHeatRates[currentStepIndex];
+    // Get heat rate for the current step
+    const baseHeatRate = stepHeatRates[currentStepIndex];
     
-    // Apply diminishing returns as sublimation progresses
-    const progressFactor = Math.max(0.2, 1 - Math.pow(previousTimePoint.progress / 100, 0.7));
+    // Calculate progress so far
+    const currentProgress = (totalEnergyTransferred / totalEnergyRequired) * 100;
     
-    // Apply efficiency factor considering how heat transfer becomes less efficient as the material dries
+    // Apply diminishing efficiency as material dries
+    // Higher progress means lower efficiency (0.8 to 0.2 range)
+    const progressFactor = Math.max(0.2, 0.8 - (0.6 * (currentProgress / 100)));
+    
+    // Calculate effective heat rate with diminishing returns
     const effectiveHeatRate = baseHeatRate * progressFactor;
     
-    // Energy transferred during this time segment
-    const energyTransferred = effectiveHeatRate * timeInSegment; // kJ
+    // Calculate energy transferred in this time segment
+    const energyTransferredInSegment = effectiveHeatRate * timeElapsed;
     
-    // Ice sublimated during this time segment - when remainder is 0, we're done
-    const iceSublimated = Math.min(remainingIce, energyTransferred / LATENT_HEAT_SUBLIMATION); // kg
-    remainingIce = Math.max(0, remainingIce - iceSublimated);
+    if (!sublimationComplete) {
+      totalEnergyTransferred += energyTransferredInSegment;
+      
+      // Check if sublimation is complete
+      if (totalEnergyTransferred >= totalEnergyRequired) {
+        sublimationComplete = true;
+        totalEnergyTransferred = totalEnergyRequired; // Cap at 100%
+      }
+    }
     
-    // Calculate progress percentage - always using the original iceWeight value
-    const progress = iceWeight > 0 ? ((iceWeight - remainingIce) / iceWeight) * 100 : 0;
+    // Calculate progress as percentage
+    const progress = (totalEnergyTransferred / totalEnergyRequired) * 100;
     
-    // Add the point with this step's temperature
-    points.push({
+    // Add point to curve
+    progressCurve.push({
       time: currentTime,
-      progress: Math.min(100, progress), // Cap at 100%
+      progress: progress,
       step: currentStepIndex,
       temperature: tempC,
-      pressure: pressureMbar,
+      pressure: pressureMbar
     });
-    
-    // If we've reached 100% sublimation, adjust remaining points to maintain 100%
-    if (remainingIce <= 0 && i < numPoints) {
-      console.log(`100% sublimation reached at ${currentTime.toFixed(2)} hours (point ${i} of ${numPoints})`);
-      
-      // Add data points for the rest of the time with 100% progress
-      for (let j = i + 1; j <= numPoints; j++) {
-        const remainingTime = j === numPoints ? totalTime : j * timeStep;
-        
-        // Find step for this time
-        let stepIndex = 0;
-        for (let k = 1; k < stepTimes.length; k++) {
-          if (remainingTime <= stepTimes[k]) {
-            stepIndex = k - 1;
-            break;
-          }
-        }
-        
-        const currentStep = steps[stepIndex];
-        const stepTempC = normalizeTemperature(currentStep.temperature, currentStep.tempUnit);
-        const stepPressureMbar = normalizePressure(currentStep.pressure, currentStep.pressureUnit);
-        
-        points.push({
-          time: remainingTime,
-          progress: 100, // Ensure exactly 100% for all remaining points
-          step: stepIndex,
-          temperature: stepTempC,
-          pressure: stepPressureMbar,
-        });
-      }
-      break;
-    }
   }
   
-  // Ensure the last point is exactly at totalTime with correct step values
+  // Ensure the last point is at exactly the total program time
   const lastStep = steps[steps.length - 1];
   const lastTempC = normalizeTemperature(lastStep.temperature, lastStep.tempUnit);
   const lastPressureMbar = normalizePressure(lastStep.pressure, lastStep.pressureUnit);
   
-  // Check if the last point is already at totalTime
-  const lastPoint = points[points.length - 1];
-  if (Math.abs(lastPoint.time - totalTime) > 0.001) {
-    // Add the final point if it's not already there
-    // If we reached 100% earlier in the simulation, ensure the final point also shows 100%
-    const finalProgress = remainingIce <= 0 ? 100 : ((iceWeight - remainingIce) / iceWeight) * 100;
-    points.push({
-      time: totalTime,
+  // If last point isn't exactly at total time, add it
+  const lastPoint = progressCurve[progressCurve.length - 1];
+  if (Math.abs(lastPoint.time - totalProgramTime) > 0.001) {
+    // Calculate final progress
+    const finalProgress = (totalEnergyTransferred / totalEnergyRequired) * 100;
+    
+    progressCurve.push({
+      time: totalProgramTime,
       progress: finalProgress,
       step: steps.length - 1,
       temperature: lastTempC,
-      pressure: lastPressureMbar,
+      pressure: lastPressureMbar
     });
   }
   
-  // If we removed all ice and the last point doesn't indicate 100%, correct it
-  if (remainingIce <= 0 && lastPoint.progress < 100) {
-    lastPoint.progress = 100;
-  }
+  console.log("Generated progress curve with", progressCurve.length, "points");
+  console.log("Final progress:", progressCurve[progressCurve.length - 1].progress.toFixed(2) + "%");
   
-  console.log(`Final ice remaining: ${remainingIce.toFixed(3)}kg (${((remainingIce/iceWeight) * 100).toFixed(1)}% remains)`);
-  console.log("Final progress curve points:", points.length);
-  if (points.length > 0) {
-    console.log("Last point:", points[points.length - 1]);
-  }
-  
-  return points;
+  return progressCurve;
 }
