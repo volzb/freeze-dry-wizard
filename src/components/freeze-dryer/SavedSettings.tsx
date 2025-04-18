@@ -47,6 +47,7 @@ export function SavedSettings({
   const [isLoading, setIsLoading] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [configName, setConfigName] = useState("");
+  const [selectedConfig, setSelectedConfig] = useState<SavedSettingsRecord | null>(null);
   const { isAuthenticated, user, saveConfigurationToStorage, getConfigurationsFromStorage } = useAuth();
 
   useEffect(() => {
@@ -106,6 +107,12 @@ export function SavedSettings({
     }
   };
 
+  const handleSelectSavedConfig = (config: SavedSettingsRecord) => {
+    setSelectedConfig(config);
+    setConfigName(config.name);
+    setSaveDialogOpen(true);
+  };
+
   const handleSaveConfig = async () => {
     if (!configName.trim()) {
       toast.error("Please enter a name for your configuration");
@@ -123,13 +130,9 @@ export function SavedSettings({
       const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
       const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
       
-      console.log("Current hashPerTray before save:", currentSettings.hashPerTray);
-      
       if (currentSettings.hashPerTray !== undefined) {
-        console.log("Setting explicit hashPerTray value for save:", currentSettings.hashPerTray);
         settingsCopy.hashPerTray = Number(currentSettings.hashPerTray);
       } else {
-        console.log("Setting default hashPerTray value in save");
         settingsCopy.hashPerTray = 0.15;
       }
       
@@ -141,28 +144,40 @@ export function SavedSettings({
         settingsCopy.waterPercentage = 75;
       }
       
-      console.log("Saving settings with hashPerTray:", settingsCopy.hashPerTray);
-      console.log("Full settings being saved:", settingsCopy);
+      let updatedConfigs: SavedSettingsRecord[];
       
-      const newConfig: SavedSettingsRecord = {
-        id: crypto.randomUUID(),
-        name: configName,
-        settings: settingsCopy,
-        steps: stepsCopy,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      if (selectedConfig) {
+        updatedConfigs = savedConfigs.map(config => 
+          config.id === selectedConfig.id 
+            ? {
+                ...config,
+                name: configName,
+                settings: settingsCopy,
+                steps: stepsCopy,
+                updatedAt: new Date().toISOString()
+              }
+            : config
+        );
+        toast.success("Configuration updated successfully");
+      } else {
+        const newConfig: SavedSettingsRecord = {
+          id: crypto.randomUUID(),
+          name: configName,
+          settings: settingsCopy,
+          steps: stepsCopy,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        updatedConfigs = [...savedConfigs, newConfig];
+        toast.success("Configuration saved successfully");
+      }
 
-      const updatedConfigs = [...savedConfigs, newConfig];
       setSavedConfigs(updatedConfigs);
-      
       await saveConfigurationToStorage(user.id, updatedConfigs);
       
-      console.log(`Updated configurations for ${user.id}:`, updatedConfigs);
-
       setConfigName("");
+      setSelectedConfig(null);
       setSaveDialogOpen(false);
-      toast.success("Configuration saved successfully");
     } catch (error) {
       console.error("Error saving configuration:", error);
       toast.error("Failed to save configuration");
@@ -257,9 +272,11 @@ export function SavedSettings({
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Save Configuration</DialogTitle>
+              <DialogTitle>{selectedConfig ? "Update Configuration" : "Save Configuration"}</DialogTitle>
               <DialogDescription>
-                Save your current freeze dryer settings to access them later.
+                {selectedConfig 
+                  ? "Update your existing freeze dryer settings configuration."
+                  : "Save your current freeze dryer settings to access them later."}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -273,16 +290,24 @@ export function SavedSettings({
               />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSaveDialogOpen(false);
+                  setSelectedConfig(null);
+                  setConfigName("");
+                }}
+              >
                 Cancel
               </Button>
               <Button onClick={handleSaveConfig} disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                    {selectedConfig ? "Updating..." : "Saving..."}
                   </>
                 ) : (
-                  "Save"
+                  selectedConfig ? "Update" : "Save"
                 )}
               </Button>
             </DialogFooter>
@@ -307,7 +332,7 @@ export function SavedSettings({
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" className="w-56">
             {savedConfigs.map((config) => (
               <div key={config.id} className="flex items-center justify-between px-2 py-1.5 hover:bg-muted">
                 <button
@@ -316,17 +341,30 @@ export function SavedSettings({
                 >
                   {config.name}
                 </button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteConfig(config.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectSavedConfig(config);
+                    }}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConfig(config.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </DropdownMenuContent>
