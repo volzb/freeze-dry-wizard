@@ -1,6 +1,5 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { SubTimePoint } from "@/utils/freezeDryerCalculations";
 import { celsiusToFahrenheit } from "@/utils/terpeneData";
 import { useEffect } from "react";
@@ -89,11 +88,7 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
               {Math.round(completedPercent)}%
               {isOverDry ? " (Over Dry)" : ""}
             </p>
-            <Progress 
-              value={Math.min(completedPercent, 100)} 
-              indicatorClassName={isOverDry ? "bg-amber-500" : isDryingIncomplete ? "bg-amber-500" : ""}
-              className="h-2 mt-1"
-            />
+            {/* Progress bar removed from here */}
           </div>
           
           <div className="space-y-1">
