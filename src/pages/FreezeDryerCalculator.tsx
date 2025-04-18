@@ -411,7 +411,7 @@ export default function FreezeDryerCalculator() {
           
           <div className="space-y-6">
             <ResultSummary 
-              key={`summary-${chartUpdateKey}-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
+              key={`summary-${waterWeight.toFixed(5)}-${settings.numberOfTrays}-${chartUpdateKey}`}
               progressCurve={progressCurve}
               displayUnit={displayUnit}
               waterWeight={waterWeight}

@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubTimePoint } from "@/utils/freezeDryerCalculations";
 import { celsiusToFahrenheit } from "@/utils/terpeneData";
+import { useEffect } from "react";
 
 interface ResultSummaryProps {
   progressCurve: SubTimePoint[];
@@ -11,6 +12,11 @@ interface ResultSummaryProps {
 }
 
 export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPercentage }: ResultSummaryProps) {
+  // For debugging purposes
+  useEffect(() => {
+    console.log("ResultSummary rendered with waterWeight:", waterWeight);
+  }, [waterWeight]);
+
   if (!progressCurve.length) {
     return (
       <Card>
