@@ -19,7 +19,8 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
       waterWeight,
       waterPercentage,
       progressCurveLength: progressCurve.length,
-      lastPointProgress: progressCurve.length > 0 ? progressCurve[progressCurve.length - 1].progress : 'N/A'
+      lastPointProgress: progressCurve.length > 0 ? progressCurve[progressCurve.length - 1].progress : 'N/A',
+      renderTime: new Date().toISOString()
     });
   }, [waterWeight, waterPercentage, progressCurve]);
 
@@ -62,7 +63,8 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
     waterPercentage,
     completedPercent,
     actualWaterRemoved,
-    totalTime
+    totalTime,
+    renderTime: new Date().toISOString()
   });
   
   return (

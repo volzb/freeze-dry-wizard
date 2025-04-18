@@ -98,11 +98,22 @@ export function calculateStepTimePoints(steps: DryingStep[]): number[] {
   return timePoints;
 }
 
+// Generate a unique calculation ID to help with memoization and cache busting
+export function generateCalculationId(settings: FreezeDryerSettings): string {
+  const { iceWeight, numberOfTrays, waterPercentage, hashPerTray, heatingPowerWatts, steps } = settings;
+  
+  // Create a string that captures all the important parameters that would affect calculations
+  return `${iceWeight?.toFixed(5)}-${numberOfTrays}-${waterPercentage}-${hashPerTray?.toFixed(5)}-${heatingPowerWatts}-${steps.length}`;
+}
+
 // Calculate dense progress curve with many data points
 export function calculateProgressCurve(
   settings: FreezeDryerSettings
 ): SubTimePoint[] {
-  console.log("Progress Curve Calculation Settings:", {
+  // Generate a calculation ID for debugging
+  const calculationId = generateCalculationId(settings);
+  
+  console.log(`Starting Progress Curve Calculation (ID: ${calculationId}):`, {
     iceWeight: settings.iceWeight,
     heatInputRate: settings.heatInputRate,
     traySizeCm2: settings.traySizeCm2,
@@ -116,17 +127,19 @@ export function calculateProgressCurve(
 
   const { steps, iceWeight } = settings;
   
-  console.log("Calculating Progress Curve", { 
-    stepsCount: steps?.length,
+  // Log key water parameters
+  console.log(`Water Calculation Parameters (ID: ${calculationId}):`, { 
     iceWeight: iceWeight,
     numberOfTrays: settings.numberOfTrays,
     hashPerTray: settings.hashPerTray,
-    waterPercentage: settings.waterPercentage
+    waterPercentage: settings.waterPercentage,
+    totalHashWeight: settings.hashPerTray * settings.numberOfTrays,
+    calculatedWaterWeight: calculateWaterWeight(settings.hashPerTray * settings.numberOfTrays, settings.waterPercentage)
   });
   
   // Validate inputs
   if (!steps?.length || !iceWeight || iceWeight <= 0) {
-    console.warn("Invalid input for progress curve calculation:", { 
+    console.warn(`Invalid input for progress curve calculation (ID: ${calculationId}):`, { 
       stepsValid: !!steps?.length,
       iceWeightValid: iceWeight && iceWeight > 0,
       iceWeight: iceWeight
@@ -136,7 +149,7 @@ export function calculateProgressCurve(
 
   // Calculate total shelf area in m²
   const totalShelfAreaM2 = ((settings.traySizeCm2 || 500) / 10000) * (settings.numberOfTrays || 1);
-  console.log("Total shelf area:", totalShelfAreaM2, "m²");
+  console.log(`Total shelf area (ID: ${calculationId}): ${totalShelfAreaM2} m²`);
 
   // Generate time points at step boundaries
   const stepTimes = calculateStepTimePoints(steps);
@@ -162,7 +175,7 @@ export function calculateProgressCurve(
   
   // Calculate the total energy required for complete sublimation
   const totalEnergyRequired = iceWeight * LATENT_HEAT_SUBLIMATION; // kJ
-  console.log("Total energy required for sublimation:", totalEnergyRequired, "kJ");
+  console.log(`Total energy required for sublimation (ID: ${calculationId}): ${totalEnergyRequired} kJ`);
   
   // Determine maximum # of points for smooth curve
   const numPoints = Math.max(200, steps.length * 50); 
@@ -268,8 +281,8 @@ export function calculateProgressCurve(
     });
   }
   
-  console.log("Generated progress curve with", progressCurve.length, "points");
-  console.log("Final progress:", progressCurve[progressCurve.length - 1].progress.toFixed(2) + "%");
+  console.log(`Generated progress curve (ID: ${calculationId}) with ${progressCurve.length} points`);
+  console.log(`Final progress (ID: ${calculationId}): ${progressCurve[progressCurve.length - 1].progress.toFixed(2)}%`);
   
   return progressCurve;
 }
