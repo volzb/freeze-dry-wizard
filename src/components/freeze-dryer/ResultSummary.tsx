@@ -51,6 +51,12 @@ export function ResultSummary({ progressCurve, displayUnit, waterWeight, waterPe
   // Make sure we're using the latest waterWeight prop value for this calculation
   const actualWaterRemoved = waterWeight !== undefined ? 
     (waterWeight * (completedPercent / 100)) : undefined;
+
+  console.log("Rendering ResultSummary with:", {
+    waterWeight,
+    completedPercent,
+    actualWaterRemoved
+  });
   
   return (
     <Card>

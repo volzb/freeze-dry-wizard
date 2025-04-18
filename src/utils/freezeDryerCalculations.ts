@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -112,6 +113,7 @@ export function calculateProgressCurve(
     }))
   });
   
+  // Validate inputs and ensure positive values for critical parameters
   if (!steps?.length || !iceWeight || iceWeight <= 0) {
     console.warn("Invalid input for progress curve calculation:", { 
       stepsValid: !!steps?.length,

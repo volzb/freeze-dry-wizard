@@ -15,7 +15,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 
 interface CalculationSettingsProps {
   settings: Partial<FreezeDryerSettings>;
@@ -36,6 +35,18 @@ export function CalculationSettings({
   
   // Flag to track if the initial values have been loaded from settings
   const [initialSettingsLoaded, setInitialSettingsLoaded] = useState(false);
+
+  // Log changes to parameters for debugging
+  useEffect(() => {
+    console.log("CalculationSettings parameter changes:", {
+      trayLength,
+      trayWidth,
+      hashPerTray,
+      waterPercentage,
+      heatingPowerWatts,
+      numberOfTrays
+    });
+  }, [trayLength, trayWidth, hashPerTray, waterPercentage, heatingPowerWatts, numberOfTrays]);
   
   // Update local state when settings change (e.g., when loading saved config)
   // But only do this once for initial load, not on every settings change
@@ -87,8 +98,15 @@ export function CalculationSettings({
   useEffect(() => {
     if (numberOfTrays !== '') {
       handleSettingChange("numberOfTrays", numberOfTrays);
+      
+      // Recalculate water weight when number of trays changes
+      if (hashPerTray !== '' && waterPercentage !== '') {
+        const totalHashWeight = hashPerTray * numberOfTrays;
+        const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
+        handleSettingChange("iceWeight", waterWeight);
+      }
     }
-  }, [numberOfTrays]);
+  }, [numberOfTrays, hashPerTray, waterPercentage]);
   
   // Calculate total ice weight when hash per tray, water percentage, or number of trays changes
   useEffect(() => {
@@ -96,9 +114,19 @@ export function CalculationSettings({
       const totalHashWeight = hashPerTray * numberOfTrays;
       const waterWeight = calculateWaterWeight(totalHashWeight, waterPercentage);
       
-      // Use toFixed(2) to ensure 2 decimal places for hashPerTray
-      handleSettingChange("hashPerTray", Number(hashPerTray.toString()));
+      console.log("Recalculating water weight:", {
+        hashPerTray,
+        numberOfTrays,
+        waterPercentage,
+        totalHashWeight,
+        calculatedWaterWeight: waterWeight
+      });
+      
+      // Update hashPerTray and waterPercentage values
+      handleSettingChange("hashPerTray", Number(hashPerTray));
       handleSettingChange("waterPercentage", waterPercentage);
+      
+      // Update ice weight - this is critical for the progress curve calculation
       handleSettingChange("iceWeight", waterWeight);
     }
   }, [hashPerTray, waterPercentage, numberOfTrays]);
@@ -142,6 +170,7 @@ export function CalculationSettings({
       [field]: value
     };
     
+    console.log(`Updating setting ${field}:`, value);
     onSettingsChange(updatedSettings);
   };
   
