@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useId, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -208,6 +207,7 @@ export default function FreezeDryerCalculator() {
     }
   };
   
+  // This is the key mechanism for updating water weight
   const waterWeight = useMemo(() => {
     const hashPerTrayValue = settings.hashPerTray !== undefined ? settings.hashPerTray : defaultSettings.hashPerTray;
     const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultSettings.numberOfTrays);
@@ -226,6 +226,7 @@ export default function FreezeDryerCalculator() {
     }));
   }, [waterWeight]);
   
+  // Add a chart update key to force recalculation when needed
   const [chartUpdateKey, setChartUpdateKey] = useState<number>(0);
   
   // Function to force update chart and calculations
@@ -283,7 +284,7 @@ export default function FreezeDryerCalculator() {
     forceUpdateKey,
     chartUpdateKey
   ]);
-  
+
   const riskAssessment = useMemo(() => {
     if (!steps.length) return [];
     
@@ -335,7 +336,7 @@ export default function FreezeDryerCalculator() {
   
   const [terpeneGuideUnit, setTerpeneGuideUnit] = useState<'C' | 'F'>('C');
   
-  // Log key values for debugging
+  // For debugging changes in key values
   console.log("FreezeDryerCalculator render with:", {
     waterWeight,
     numberOfTrays: settings.numberOfTrays,
@@ -343,6 +344,7 @@ export default function FreezeDryerCalculator() {
     chartUpdateKey
   });
   
+  // Component render starts here
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4">
       <div className="space-y-6">
