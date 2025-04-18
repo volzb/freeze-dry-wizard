@@ -380,7 +380,7 @@ export default function FreezeDryerCalculator() {
                   </div>
                   
                   <TerpeneChart 
-                    key={`chart-${chartUpdateKey}-${waterWeight.toFixed(3)}-${settings.numberOfTrays}`}
+                    key={`chart-${chartUpdateKey}-${waterWeight.toFixed(5)}-${settings.numberOfTrays}`}
                     dryingData={progressCurve}
                     steps={steps}
                     displayUnit={displayUnit}
