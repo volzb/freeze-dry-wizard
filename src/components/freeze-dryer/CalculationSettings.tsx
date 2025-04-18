@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -342,10 +343,10 @@ export function CalculationSettings({
               <div className="flex items-center">
                 <Input
                   id="hashPerTray"
-                  type="text"
+                  type="number"
                   value={hashPerTray === '' ? '' : hashPerTray.toString()}
                   onChange={(e) => handleInputChange(e, setHashPerTray, 'hashPerTray')}
-                  step="0.01"
+                  step="any"
                 />
                 <span className="ml-2 text-sm text-muted-foreground w-10">kg</span>
               </div>

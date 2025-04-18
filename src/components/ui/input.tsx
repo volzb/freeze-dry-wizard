@@ -7,7 +7,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
     // Add default step for number inputs that need decimal precision
     const inputProps = type === "number" ? { 
-      step: props.step || "any", // Changed from "0.01" to "any" to allow any decimal precision
+      step: props.step === undefined ? "any" : props.step, // Ensure step is "any" when not specified
       ...props 
     } : props;
 
