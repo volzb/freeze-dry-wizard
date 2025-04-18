@@ -1,4 +1,3 @@
-
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -102,6 +101,18 @@ export function calculateStepTimePoints(steps: DryingStep[]): number[] {
 export function calculateProgressCurve(
   settings: FreezeDryerSettings
 ): SubTimePoint[] {
+  console.log("Progress Curve Calculation Settings:", {
+    iceWeight: settings.iceWeight,
+    heatInputRate: settings.heatInputRate,
+    traySizeCm2: settings.traySizeCm2,
+    numberOfTrays: settings.numberOfTrays,
+    trayLength: settings.trayLength,
+    trayWidth: settings.trayWidth,
+    hashPerTray: settings.hashPerTray,
+    waterPercentage: settings.waterPercentage,
+    heatingPowerWatts: settings.heatingPowerWatts
+  });
+
   const { steps, iceWeight, waterPercentage } = settings;
   
   console.log("Calculating Progress Curve", { 
