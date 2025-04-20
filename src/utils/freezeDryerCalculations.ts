@@ -252,8 +252,9 @@ export function calculateProgressCurve(
     const currentProgress = (totalEnergyTransferred / totalEnergyRequired) * 100;
     
     // Apply diminishing efficiency as material dries
-    // Higher progress means lower efficiency (0.8 to 0.2 range)
-    const progressFactor = Math.max(0.2, 0.8 - (0.6 * (currentProgress / 100)));
+    // Enhanced slowdown factor to better match real-world observations
+    // Higher progress means lower efficiency (decreased from 0.8-0.2 range to 0.7-0.15)
+    const progressFactor = Math.max(0.15, 0.7 - (0.65 * Math.pow(currentProgress / 100, 0.8)));
     
     // Calculate effective heat rate with diminishing returns
     const effectiveHeatRate = baseHeatRate * progressFactor;
