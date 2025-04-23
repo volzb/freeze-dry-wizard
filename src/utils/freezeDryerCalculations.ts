@@ -1,3 +1,4 @@
+
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -344,8 +345,8 @@ export function calculateProgressCurve(
   // If last point isn't exactly at total time, add it
   const lastPoint = progressCurve[progressCurve.length - 1];
   if (Math.abs(lastPoint.time - totalProgramTime) > 0.001) {
-    // Calculate final progress
-    const finalProgress = (totalEnergyTransferred / totalEnergyRequired) * 100;
+    // Calculate final progress based on actual water removed
+    const finalProgress = Math.min(100, (totalWaterRemoved / iceWeightGrams) * 100);
     
     progressCurve.push({
       time: totalProgramTime,
@@ -354,8 +355,8 @@ export function calculateProgressCurve(
       temperature: lastTempC,
       pressure: lastPressureMbar,
       sublimationRate: 0, // At the end, rate becomes zero
-      waterRemoved: lastWaterRemoved,
-      remainingWater: Math.max(0, iceWeightGrams - lastWaterRemoved),
+      waterRemoved: totalWaterRemoved,
+      remainingWater: Math.max(0, iceWeightGrams - totalWaterRemoved),
       estimatedRemainingTime: 0,
       stageProgress: 100
     });
