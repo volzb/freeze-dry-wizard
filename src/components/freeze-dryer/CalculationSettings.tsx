@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -169,10 +168,7 @@ export function CalculationSettings({
   // Calculate heat input rate based on heating power
   useEffect(() => {
     if (heatingPowerWatts !== '' && numberOfTrays !== '') {
-      const tempC = 20; // Default temperature
-      const pressureMbar = 300; // Default pressure
-      
-      console.log(`Heating power changed (ID: ${renderInstanceId}):`, {
+      console.log(`Heating power or trays changed (ID: ${renderInstanceId}):`, {
         heatingPowerWatts,
         numberOfTrays,
         timestamp: new Date().toISOString()
@@ -181,7 +177,9 @@ export function CalculationSettings({
       // Update heating power (ensure numeric)
       handleSettingChange("heatingPowerWatts", Number(heatingPowerWatts));
       
-      // Calculate efficiency based on temperature and pressure
+      // Force recalculate heat input rate
+      const tempC = 20; // Default temperature
+      const pressureMbar = 300; // Default pressure
       const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
       
       // Calculate heat input rate from heating power and efficiency
@@ -190,6 +188,12 @@ export function CalculationSettings({
         Number(numberOfTrays),
         efficiency
       );
+      
+      console.log(`New heat input rate calculated (ID: ${renderInstanceId}):`, {
+        heatRate,
+        efficiency,
+        timestamp: new Date().toISOString()
+      });
       
       // Update heat input rate
       handleSettingChange("heatInputRate", Math.round(heatRate));

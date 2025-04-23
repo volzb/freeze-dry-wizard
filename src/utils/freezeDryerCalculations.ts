@@ -1,4 +1,3 @@
-
 // Constants for freeze drying calculations
 export const LATENT_HEAT_SUBLIMATION = 2835; // kJ/kg for ice
 
@@ -137,13 +136,9 @@ export function calculateProgressCurve(
   console.log(`Starting Progress Curve Calculation (ID: ${calculationId}):`, {
     iceWeight: settingsNormalized.iceWeight,
     heatInputRate: settingsNormalized.heatInputRate,
-    traySizeCm2: settingsNormalized.traySizeCm2,
-    numberOfTrays: settingsNormalized.numberOfTrays,
-    trayLength: settingsNormalized.trayLength,
-    trayWidth: settingsNormalized.trayWidth,
-    hashPerTray: settingsNormalized.hashPerTray,
-    waterPercentage: settingsNormalized.waterPercentage,
     heatingPowerWatts: settingsNormalized.heatingPowerWatts,
+    numberOfTrays: settingsNormalized.numberOfTrays,
+    totalPower: settingsNormalized.heatingPowerWatts * settingsNormalized.numberOfTrays,
     timestamp: new Date().toISOString()
   });
 
@@ -183,22 +178,34 @@ export function calculateProgressCurve(
   const stepTimes = calculateStepTimePoints(steps);
   const totalProgramTime = stepTimes[stepTimes.length - 1];
   
-  // Calculate the heat input rates for each step
+  // Calculate the heat input rates for each step based on heating power
   const stepHeatRates: number[] = steps.map((step, index) => {
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
+    let heatRate;
     if (settingsNormalized.heatingPowerWatts) {
       const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
-      return calculateHeatInputFromPower(
+      heatRate = calculateHeatInputFromPower(
         settingsNormalized.heatingPowerWatts, 
         settingsNormalized.numberOfTrays || 1, 
         efficiency
       );
     } else {
-      return settingsNormalized.heatInputRate || 
+      heatRate = settingsNormalized.heatInputRate || 
         estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
     }
+    
+    console.log(`Step ${index + 1} heat rate:`, {
+      tempC,
+      pressureMbar,
+      heatRate,
+      heatingPowerWatts: settingsNormalized.heatingPowerWatts,
+      numberOfTrays: settingsNormalized.numberOfTrays,
+      timestamp: new Date().toISOString()
+    });
+    
+    return heatRate;
   });
 
   // Calculate stage-specific water removal targets
@@ -219,7 +226,7 @@ export function calculateProgressCurve(
 
   console.log('Stage water removal targets:', stageWaterTargets);
 
-  // Initialize progress tracking
+  // Initialize progress tracking with enhanced logging
   let totalWaterRemoved = 0;
   let currentStageWaterRemoved = 0;
   let lastStepIndex = 0;
@@ -262,8 +269,7 @@ export function calculateProgressCurve(
     stageProgress: 0
   });
 
-  // Track energy transferred and progress
-  let totalEnergyTransferred = 0;
+  // Track energy transferred and progress with power-based calculations
   let sublimationComplete = false;
   let lastWaterRemoved = 0;
 
@@ -290,7 +296,7 @@ export function calculateProgressCurve(
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
-    // Calculate stage-specific sublimation rate
+    // Calculate stage-specific sublimation rate based on power
     const baseHeatRate = stepHeatRates[currentStepIndex];
     const stageTarget = stageWaterTargets[currentStepIndex];
     const currentStageProgress = currentStageWaterRemoved / stageTarget;
@@ -320,6 +326,19 @@ export function calculateProgressCurve(
     let estimatedRemainingTime: number | undefined = undefined;
     if (sublimationRate > 0 && remainingWater > 0) {
       estimatedRemainingTime = remainingWater / sublimationRate;
+    }
+    
+    // Add enhanced logging for debugging
+    if (i % Math.floor(numPoints / 10) === 0) {
+      console.log(`Progress point ${i}/${numPoints}:`, {
+        time: currentTime,
+        progress: overallProgress,
+        sublimationRate,
+        effectiveHeatRate,
+        stageEfficiency,
+        waterRemoved: totalWaterRemoved,
+        timestamp: new Date().toISOString()
+      });
     }
     
     // Add point to curve
