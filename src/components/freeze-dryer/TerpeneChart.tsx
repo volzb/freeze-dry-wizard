@@ -355,7 +355,7 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
             isAnimationActive={false}
           />
           
-          {/* Sublimation progress line */}
+          {/* Progress line with stage-specific variations */}
           <Line
             yAxisId="progress"
             type="monotone"

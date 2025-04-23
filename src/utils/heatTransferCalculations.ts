@@ -1,4 +1,3 @@
-
 // Constants
 const WATTS_TO_KJ_PER_HOUR = 3.6; // 1 Watt = 3.6 kJ/hr
 const HEAT_TRANSFER_ADJUSTMENT = 0.6; // Global adjustment factor to account for real-world inefficiencies
@@ -14,7 +13,7 @@ const NYLON_MESH_FACTOR = 0.85; // Factor accounting for 25μm nylon mesh therma
 export function calculateHeatInputFromPower(
   heatingPowerWatts: number,
   numberOfTrays: number = 1,
-  efficiency: number = 0.85 // Default efficiency of 85%
+  efficiency: number = 0.85
 ): number {
   // Total power is per-tray wattage multiplied by number of trays
   const totalPower = heatingPowerWatts * numberOfTrays;
