@@ -2,6 +2,7 @@
 // Constants
 const WATTS_TO_KJ_PER_HOUR = 3.6; // 1 Watt = 3.6 kJ/hr
 const HEAT_TRANSFER_ADJUSTMENT = 0.6; // Global adjustment factor to account for real-world inefficiencies
+const NYLON_MESH_FACTOR = 0.85; // Factor accounting for 25μm nylon mesh thermal resistance
 
 /**
  * Calculate heat input rate based on heating element power and efficiency
@@ -18,9 +19,9 @@ export function calculateHeatInputFromPower(
   // Total power is per-tray wattage multiplied by number of trays
   const totalPower = heatingPowerWatts * numberOfTrays;
   
-  // Apply the global adjustment factor to account for physical barriers like stainless steel
-  // and other real-world inefficiencies not captured in the theoretical model
-  return totalPower * WATTS_TO_KJ_PER_HOUR * efficiency * HEAT_TRANSFER_ADJUSTMENT;
+  // Apply the global adjustment and nylon mesh factors to account for physical barriers
+  // like stainless steel, nylon mesh, and other real-world inefficiencies
+  return totalPower * WATTS_TO_KJ_PER_HOUR * efficiency * HEAT_TRANSFER_ADJUSTMENT * NYLON_MESH_FACTOR;
 }
 
 /**
@@ -85,6 +86,9 @@ export function estimateHeatInputRate(
   // Thermal conductivity factor - reduced to account for stainless steel barrier
   const conductivityFactor = 0.8; // Reduced from 1.0
   
-  // Calculate total heat transfer rate
-  return baseRatePerM2 * efficiency * conductivityFactor * totalShelfAreaM2;
+  // Apply the nylon mesh factor to account for the 25μm nylon mesh between tray and hash
+  const meshFactor = NYLON_MESH_FACTOR;
+  
+  // Calculate total heat transfer rate with all factors
+  return baseRatePerM2 * efficiency * conductivityFactor * meshFactor * totalShelfAreaM2;
 }

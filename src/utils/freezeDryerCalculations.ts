@@ -26,6 +26,19 @@ export interface FreezeDryerSettings {
   heatingPowerWatts: number; // heating element power in watts
 }
 
+// Define the interface for time points in the sublimation progress curve
+export interface SubTimePoint {
+  time: number; // accumulated time in hours
+  progress: number; // percentage of ice sublimated
+  step: number; // drying step index
+  temperature: number; // in celsius
+  pressure: number; // in mbar
+  sublimationRate: number; // in g/hour or % per hour
+  waterRemoved: number; // total grams removed
+  remainingWater: number; // grams remaining
+  estimatedRemainingTime?: number; // estimated hours to completion
+}
+
 // Convert temperature based on unit
 export function normalizeTemperature(temperature: number, unit: 'C' | 'F'): number {
   if (unit === 'F') {
@@ -75,15 +88,6 @@ export function estimateHeatInputRate(
   totalShelfAreaM2: number = 0.5
 ): number {
   return calculateHeatInput(temperatureC, pressureMbar, totalShelfAreaM2);
-}
-
-// Define the interface for time points in the sublimation progress curve
-export interface SubTimePoint {
-  time: number; // accumulated time in hours
-  progress: number; // percentage of ice sublimated
-  step: number; // drying step index
-  temperature: number; // in celsius
-  pressure: number; // in mbar
 }
 
 // Helper to calculate exact time points for each drying step
@@ -200,6 +204,9 @@ export function calculateProgressCurve(
   const totalEnergyRequired = iceWeight * LATENT_HEAT_SUBLIMATION; // kJ
   console.log(`Total energy required for sublimation (ID: ${calculationId}): ${totalEnergyRequired} kJ`);
   
+  // Convert ice weight to grams for rate calculations
+  const iceWeightGrams = iceWeight * 1000;
+  
   // Determine maximum # of points for smooth curve
   const numPoints = Math.max(200, steps.length * 50); 
   const timeStep = totalProgramTime / (numPoints - 1);
@@ -217,12 +224,17 @@ export function calculateProgressCurve(
     progress: 0,
     step: 0,
     temperature: firstTempC,
-    pressure: firstPressureMbar
+    pressure: firstPressureMbar,
+    sublimationRate: 0,
+    waterRemoved: 0,
+    remainingWater: iceWeightGrams,
+    estimatedRemainingTime: undefined
   });
   
   // Track energy transferred and progress
   let totalEnergyTransferred = 0;
   let sublimationComplete = false;
+  let lastWaterRemoved = 0;
   
   // Generate data points with specified time resolution
   for (let i = 1; i < numPoints; i++) {
@@ -262,13 +274,31 @@ export function calculateProgressCurve(
     // Calculate energy transferred in this time segment
     const energyTransferredInSegment = effectiveHeatRate * timeElapsed;
     
+    // Calculate water removed in grams
+    const waterRemovedInSegment = !sublimationComplete ? 
+      (energyTransferredInSegment / LATENT_HEAT_SUBLIMATION) * 1000 : 0;
+      
+    const currentWaterRemoved = lastWaterRemoved + waterRemovedInSegment;
+    const currentRemainingWater = Math.max(0, iceWeightGrams - currentWaterRemoved);
+    
+    // Calculate instantaneous sublimation rate in g/hour
+    const sublimationRate = waterRemovedInSegment / timeElapsed;
+    
+    // Calculate estimated remaining time based on current rate
+    let estimatedRemainingTime: number | undefined = undefined;
+    if (sublimationRate > 0 && currentRemainingWater > 0) {
+      estimatedRemainingTime = currentRemainingWater / sublimationRate;
+    }
+    
     if (!sublimationComplete) {
       totalEnergyTransferred += energyTransferredInSegment;
+      lastWaterRemoved = currentWaterRemoved;
       
       // Check if sublimation is complete
       if (totalEnergyTransferred >= totalEnergyRequired) {
         sublimationComplete = true;
         totalEnergyTransferred = totalEnergyRequired; // Cap at 100%
+        lastWaterRemoved = iceWeightGrams;
       }
     }
     
@@ -281,7 +311,11 @@ export function calculateProgressCurve(
       progress: progress,
       step: currentStepIndex,
       temperature: tempC,
-      pressure: pressureMbar
+      pressure: pressureMbar,
+      sublimationRate: sublimationRate,
+      waterRemoved: currentWaterRemoved,
+      remainingWater: currentRemainingWater,
+      estimatedRemainingTime: estimatedRemainingTime
     });
   }
   
@@ -301,13 +335,18 @@ export function calculateProgressCurve(
       progress: finalProgress,
       step: steps.length - 1,
       temperature: lastTempC,
-      pressure: lastPressureMbar
+      pressure: lastPressureMbar,
+      sublimationRate: 0, // At the end, rate becomes zero
+      waterRemoved: lastWaterRemoved,
+      remainingWater: Math.max(0, iceWeightGrams - lastWaterRemoved),
+      estimatedRemainingTime: 0
     });
   }
   
   console.log(`Generated progress curve (ID: ${calculationId}) with ${progressCurve.length} points`);
   console.log(`Final progress (ID: ${calculationId}): ${progressCurve[progressCurve.length - 1].progress.toFixed(2)}%`, {
     iceWeight,
+    waterRemoved: progressCurve[progressCurve.length - 1].waterRemoved,
     timestamp: new Date().toISOString()
   });
   

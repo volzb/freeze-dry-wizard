@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { terpenes, calculateBoilingPoint, celsiusToFahrenheit, Terpene, getTerpeneGroups } from "@/utils/terpeneData";
@@ -97,6 +96,10 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
         hourlyRate,
         pressure: point.pressure,
         step: point.step,
+        sublimationRate: point.sublimationRate,
+        waterRemoved: point.waterRemoved,
+        remainingWater: point.remainingWater,
+        estimatedRemainingTime: point.estimatedRemainingTime,
         ...terpenesAtPoint
       };
     });
@@ -175,6 +178,12 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
       const hourlyRate = typeof pointData.hourlyRate === 'number' ? pointData.hourlyRate : 0;
       const pressure = pointData.pressure || 0;
       
+      // Enhanced sublimation data from pointData
+      const sublimationRate = pointData.sublimationRate || 0;
+      const waterRemoved = pointData.waterRemoved || 0;
+      const remainingWater = pointData.remainingWater || 0;
+      const estimatedRemainingTime = pointData.estimatedRemainingTime;
+      
       // Calculate sublimation efficiency based on pressure
       let sublimationEfficiency = "High";
       let sublimationColor = "text-green-500";
@@ -204,6 +213,20 @@ export function TerpeneChart({ dryingData, steps, displayUnit, showTerpenes }: T
           <p className="text-sm mb-1">{`Temperature: ${Math.round(stepTemp)}°${displayUnit}`}</p>
           <p className="text-sm mb-1">{`Pressure: ${pointData.pressure ? Math.round(pointData.pressure) : 'N/A'} mBar`}</p>
           <p className="text-sm mb-1">{`Ice Sublimated: ${Math.round(progress)}%`}</p>
+          
+          {/* Enhanced sublimation data */}
+          <p className="text-sm mb-1">{`Water Removed: ${waterRemoved.toFixed(1)} g`}</p>
+          <p className="text-sm mb-1">{`Remaining Water: ${remainingWater.toFixed(1)} g`}</p>
+          <p className="text-sm mb-1">{`Sublimation Rate: ${sublimationRate.toFixed(1)} g/hour`}</p>
+          
+          {estimatedRemainingTime !== undefined && estimatedRemainingTime > 0 && (
+            <p className="text-sm mb-1">
+              {`Est. Remaining Time: ${estimatedRemainingTime > 1 ? 
+                Math.round(estimatedRemainingTime) + ' hours' : 
+                Math.round(estimatedRemainingTime * 60) + ' minutes'}`}
+            </p>
+          )}
+          
           {currentStep !== null && (
             <p className="text-sm mb-1">{`Step ${currentStep} Rate: ${hourlyRate.toFixed(1)}% per hour`}</p>
           )}
