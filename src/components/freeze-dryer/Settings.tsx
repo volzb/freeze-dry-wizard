@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Settings as SettingsIcon, Trash2, Loader2, Info } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Loader2 } from "lucide-react";
 import { FreezeDryerSettings, DryingStep } from "@/utils/freezeDryerCalculations";
 import { SavedSettingsRecord } from "./SavedSettings";
 import {
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { supabase } from "@/lib/supabase";
 
 interface SettingsProps {
   currentSettings: Partial<FreezeDryerSettings>;
@@ -75,13 +76,21 @@ export function Settings({
 
     setIsLoading(true);
     try {
-      // Create deep copies to ensure we capture all properties
-      const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
-      const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
+      const stepsToSave = currentSteps.map(step => ({
+        ...JSON.parse(JSON.stringify(step))
+      }));
       
-      // Log what we're saving for debugging purposes
-      console.log("Saving settings:", settingsCopy);
-      console.log("Saving steps:", stepsCopy);
+      const settingsToSave = { ...JSON.parse(JSON.stringify(currentSettings)) };
+      
+      // Ensure we're saving all required data
+      console.log("Saving settings:", settingsToSave);
+      console.log("Saving steps:", stepsToSave);
+      
+      if (!stepsToSave || stepsToSave.length === 0) {
+        toast.error("No drying steps to save");
+        setIsLoading(false);
+        return;
+      }
       
       const existingConfigs = await getConfigurationsFromStorage(user.id) || [];
       let updatedConfigs: SavedSettingsRecord[];
@@ -92,8 +101,8 @@ export function Settings({
             ? {
                 ...config,
                 name: configName,
-                settings: settingsCopy,
-                steps: stepsCopy,
+                settings: settingsToSave,
+                steps: stepsToSave,
                 updatedAt: new Date().toISOString()
               }
             : config
@@ -103,8 +112,8 @@ export function Settings({
         const newConfig: SavedSettingsRecord = {
           id: crypto.randomUUID(),
           name: configName,
-          settings: settingsCopy,
-          steps: stepsCopy,
+          settings: settingsToSave,
+          steps: stepsToSave,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -112,7 +121,22 @@ export function Settings({
         toast.success("Configuration saved successfully");
       }
 
-      await saveConfigurationToStorage(user.id, updatedConfigs);
+      if (isAuthenticated && user) {
+        await saveConfigurationToStorage(user.id, updatedConfigs);
+        
+        // Double check that the data was saved correctly
+        const savedData = await getConfigurationsFromStorage(user.id);
+        const savedConfig = selectedConfig 
+          ? savedData?.find(c => c.id === selectedConfig.id)
+          : savedData?.[savedData.length - 1];
+          
+        console.log("Saved configuration verified:", savedConfig);
+        
+        if (!savedConfig?.steps || savedConfig.steps.length === 0) {
+          console.warn("Steps may not have saved correctly");
+        }
+      }
+      
       setSavedConfigs(updatedConfigs);
       setConfigName("");
       setSelectedConfig(null);
@@ -156,7 +180,7 @@ export function Settings({
         throw new Error("Configuration settings are missing");
       }
       
-      if (!config.steps || !Array.isArray(config.steps)) {
+      if (!config.steps || !Array.isArray(config.steps) || config.steps.length === 0) {
         throw new Error("Configuration steps are missing or invalid");
       }
       
@@ -164,8 +188,12 @@ export function Settings({
       setConfigName(config.name);
       setSelectedConfig(config);
       
+      // Load the configuration
       onLoadSettings(config.settings, config.steps);
       toast.success(`Loaded configuration: ${config.name}`);
+      
+      // Close the dialog after loading
+      setDialogOpen(false);
     } catch (error) {
       console.error("Error loading configuration:", error);
       toast.error(`Failed to load configuration: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -175,6 +203,29 @@ export function Settings({
   const handleSelectConfig = (config: SavedSettingsRecord) => {
     setSelectedConfig(config);
     setConfigName(config.name);
+  };
+
+  // For debugging purposes, add direct DB query capability
+  const handleVerifyDbData = async () => {
+    if (!isAuthenticated || !user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('freeze_dryer_configs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      console.log("Data directly from DB:", data);
+      if (data && data.length > 0) {
+        console.log("First config steps:", data[0].steps);
+        console.log("First config settings:", data[0].settings);
+      }
+    } catch (err) {
+      console.error("Error querying DB directly:", err);
+    }
   };
 
   return (
@@ -235,6 +286,7 @@ export function Settings({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Steps</TableHead>
                       <TableHead className="w-[100px] text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -247,6 +299,11 @@ export function Settings({
                       >
                         <TableCell className="font-medium cursor-pointer">
                           {config.name}
+                        </TableCell>
+                        <TableCell>
+                          {config.steps && Array.isArray(config.steps) ? 
+                            `${config.steps.length} steps` : 
+                            'No steps'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -278,6 +335,19 @@ export function Settings({
                 </Table>
               )}
             </div>
+            
+            {isAuthenticated && process.env.NODE_ENV === 'development' && (
+              <div className="pt-2 text-xs text-muted-foreground">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleVerifyDbData} 
+                  className="text-xs"
+                >
+                  Debug: Verify DB Data
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
