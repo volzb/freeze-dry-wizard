@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -12,12 +12,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Save, Trash2, Loader2 } from "lucide-react";
@@ -46,10 +40,10 @@ export function SavedSettings({
   const [savedConfigs, setSavedConfigs] = useState<SavedSettingsRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [configName, setConfigName] = useState("");
   const [selectedConfig, setSelectedConfig] = useState<SavedSettingsRecord | null>(null);
   const { isAuthenticated, user, saveConfigurationToStorage, getConfigurationsFromStorage } = useAuth();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     console.log("Auth state changed or component mounted, loading configurations. User:", user?.id || "anonymous");
@@ -69,7 +63,6 @@ export function SavedSettings({
     setIsLoading(true);
     try {
       console.log(`Loading configurations for user: ${user.id}`);
-      
       const configs = await getConfigurationsFromStorage(user.id);
       
       if (configs && configs.length > 0) {
@@ -85,12 +78,6 @@ export function SavedSettings({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSelectSavedConfig = (config: SavedSettingsRecord) => {
-    setSelectedConfig(config);
-    setConfigName(config.name);
-    setSaveDialogOpen(true);
   };
 
   const handleSaveConfig = async () => {
@@ -166,6 +153,27 @@ export function SavedSettings({
     }
   };
 
+  const handleDeleteConfig = async (id: string) => {
+    if (!isAuthenticated || !user?.id) {
+      toast.error("Please login to delete settings");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const updatedConfigs = savedConfigs.filter(config => config.id !== id);
+      setSavedConfigs(updatedConfigs);
+      await saveConfigurationToStorage(user.id, updatedConfigs);
+      toast.success("Configuration deleted successfully");
+    } catch (error) {
+      console.error("Error deleting configuration:", error);
+      toast.error("Failed to delete configuration");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLoadConfig = (config: SavedSettingsRecord) => {
     try {
       console.log(`Loading configuration: ${config.name}`, config);
@@ -197,6 +205,7 @@ export function SavedSettings({
       console.log("Full settings being loaded:", settingsCopy);
       
       onLoadSettings(settingsCopy, stepsCopy);
+      setLoadDialogOpen(false);
       toast.success(`Loaded settings: ${config.name}`);
     } catch (error) {
       console.error("Error loading configuration:", error);
@@ -204,49 +213,11 @@ export function SavedSettings({
     }
   };
 
-  const handleDeleteConfig = async (id: string) => {
-    if (!isAuthenticated) {
-      toast.error("Please login to delete settings");
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      const userId = user?.id;
-      
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
-      
-      console.log(`Deleting configuration for user ${userId} with id ${id}`);
-      
-      const updatedConfigs = savedConfigs.filter(config => config.id !== id);
-      setSavedConfigs(updatedConfigs);
-      
-      await saveConfigurationToStorage(userId, updatedConfigs);
-      
-      toast.success("Configuration deleted");
-    } catch (error) {
-      console.error("Error deleting configuration:", error);
-      toast.error("Failed to delete configuration");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogTrigger asChild>
-          <Button 
-            id="save-settings-trigger"
-            variant="outline" 
-            size="sm" 
-            className="hidden"
-            disabled={!isAuthenticated}
-          >
-            <Save className="h-4 w-4" />
+          <Button id="save-settings-trigger" variant="outline" size="sm" className="hidden">
             Save Current Settings
           </Button>
         </DialogTrigger>
@@ -294,65 +265,60 @@ export function SavedSettings({
         </DialogContent>
       </Dialog>
 
-      <Button 
-        id="load-settings-trigger"
-        variant="outline" 
-        size="sm" 
-        className="hidden"
-        disabled={savedConfigs.length === 0 || !isAuthenticated}
-        onClick={() => setDropdownOpen(true)}
-      >
-        Load Settings
-      </Button>
-
-      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-        <DropdownMenuContent align="start" className="w-56">
-          {savedConfigs.map((config) => (
-            <div key={config.id} className="flex items-center justify-between px-2 py-1.5 hover:bg-muted">
-              <button
-                onClick={() => handleLoadConfig(config)}
-                className="text-left flex-1 px-2"
-              >
-                {config.name}
-              </button>
-              <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectSavedConfig(config);
-                  }}
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteConfig(config.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      
-      {!isAuthenticated && (
-        <p className="text-sm text-muted-foreground">
-          Please <Link to="/login" className="text-primary hover:underline">login</Link> to save and load settings
-        </p>
-      )}
-      
-      {isAuthenticated && savedConfigs.length === 0 && (
-        <p className="text-sm text-muted-foreground">No saved configurations</p>
-      )}
+      <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+        <DialogTrigger asChild>
+          <Button id="load-settings-trigger" variant="outline" size="sm" className="hidden">
+            Load Settings
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Load Configuration</DialogTitle>
+            <DialogDescription>
+              Select a configuration to load
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            {savedConfigs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No saved configurations</p>
+            ) : (
+              savedConfigs.map((config) => (
+                <div key={config.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent">
+                  <span className="flex-1">{config.name}</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedConfig(config);
+                        setConfigName(config.name);
+                        setLoadDialogOpen(false);
+                        setSaveDialogOpen(true);
+                      }}
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteConfig(config.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleLoadConfig(config)}
+                    >
+                      Load
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
