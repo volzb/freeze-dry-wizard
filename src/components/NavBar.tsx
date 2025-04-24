@@ -1,8 +1,7 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User, Save, Download } from "lucide-react";
+import { LogOut, User, Save, Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -78,7 +77,6 @@ export function NavBar() {
       return;
     }
 
-    // Get current settings and steps from hidden inputs
     const currentSettingsElem = document.getElementById('current-settings') as HTMLInputElement;
     const currentStepsElem = document.getElementById('current-steps') as HTMLInputElement;
     
@@ -110,7 +108,6 @@ export function NavBar() {
         settingsCopy.waterPercentage = 75;
       }
       
-      // Get existing configurations
       const existingConfigs = await getConfigurationsFromStorage(user.id) || [];
       let updatedConfigs: SavedSettingsRecord[];
       
@@ -160,7 +157,6 @@ export function NavBar() {
     }
     
     try {
-      // Use the hidden trigger to load this configuration
       const loadTriggerElem = document.getElementById('load-config-trigger') as HTMLButtonElement;
       
       if (!loadTriggerElem) {
@@ -168,11 +164,9 @@ export function NavBar() {
         return;
       }
       
-      // Set the data attributes on the trigger element
       loadTriggerElem.setAttribute('data-settings', JSON.stringify(config.settings));
       loadTriggerElem.setAttribute('data-steps', JSON.stringify(config.steps));
       
-      // Trigger the click
       loadTriggerElem.click();
       
       setLoadDialogOpen(false);
@@ -268,7 +262,6 @@ export function NavBar() {
         </nav>
       </div>
       
-      {/* Save Dialog */}
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -314,7 +307,6 @@ export function NavBar() {
         </DialogContent>
       </Dialog>
 
-      {/* Load Dialog */}
       <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -354,7 +346,7 @@ export function NavBar() {
                       onClick={() => handleDeleteConfig(config.id)}
                       title="Delete configuration"
                     >
-                      <trash-2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                     <Button
                       variant="outline"
