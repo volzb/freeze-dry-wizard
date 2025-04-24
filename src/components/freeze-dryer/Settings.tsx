@@ -11,9 +11,17 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Settings as SettingsIcon, Trash2, Loader2 } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Loader2, Info } from "lucide-react";
 import { FreezeDryerSettings, DryingStep } from "@/utils/freezeDryerCalculations";
 import { SavedSettingsRecord } from "./SavedSettings";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface SettingsProps {
   currentSettings: Partial<FreezeDryerSettings>;
@@ -67,8 +75,13 @@ export function Settings({
 
     setIsLoading(true);
     try {
+      // Create deep copies to ensure we capture all properties
       const settingsCopy = JSON.parse(JSON.stringify(currentSettings));
       const stepsCopy = JSON.parse(JSON.stringify(currentSteps));
+      
+      // Log what we're saving for debugging purposes
+      console.log("Saving settings:", settingsCopy);
+      console.log("Saving steps:", stepsCopy);
       
       const existingConfigs = await getConfigurationsFromStorage(user.id) || [];
       let updatedConfigs: SavedSettingsRecord[];
@@ -120,6 +133,12 @@ export function Settings({
       setSavedConfigs(updatedConfigs);
       await saveConfigurationToStorage(user.id, updatedConfigs);
       toast.success("Configuration deleted successfully");
+      
+      // If the deleted config was selected, clear selection
+      if (selectedConfig?.id === id) {
+        setSelectedConfig(null);
+        setConfigName("");
+      }
     } catch (error) {
       console.error("Error deleting configuration:", error);
       toast.error("Failed to delete configuration");
@@ -130,12 +149,32 @@ export function Settings({
 
   const handleLoadConfig = (config: SavedSettingsRecord) => {
     try {
+      console.log("Loading configuration:", config);
+      
+      // Validate we have all needed data
+      if (!config.settings) {
+        throw new Error("Configuration settings are missing");
+      }
+      
+      if (!config.steps || !Array.isArray(config.steps)) {
+        throw new Error("Configuration steps are missing or invalid");
+      }
+      
+      // Set the config name in the input field for easier updating
+      setConfigName(config.name);
+      setSelectedConfig(config);
+      
       onLoadSettings(config.settings, config.steps);
       toast.success(`Loaded configuration: ${config.name}`);
     } catch (error) {
       console.error("Error loading configuration:", error);
-      toast.error("Failed to load configuration");
+      toast.error(`Failed to load configuration: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
+  };
+
+  const handleSelectConfig = (config: SavedSettingsRecord) => {
+    setSelectedConfig(config);
+    setConfigName(config.name);
   };
 
   return (
@@ -182,38 +221,61 @@ export function Settings({
               </Button>
             </div>
 
-            <div className="max-h-[300px] overflow-y-auto space-y-2">
+            <div className="max-h-[300px] overflow-y-auto">
               {isLoading ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : savedConfigs.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No saved configurations
-                </p>
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">No saved configurations</p>
+                </div>
               ) : (
-                savedConfigs.map((config) => (
-                  <div key={config.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent border">
-                    <span className="flex-1 font-medium truncate">{config.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteConfig(config.id)}
-                        title="Delete configuration"
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="w-[100px] text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {savedConfigs.map((config) => (
+                      <TableRow 
+                        key={config.id} 
+                        className={selectedConfig?.id === config.id ? "bg-accent" : ""}
+                        onClick={() => handleSelectConfig(config)}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleLoadConfig(config)}
-                      >
-                        Load
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                        <TableCell className="font-medium cursor-pointer">
+                          {config.name}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteConfig(config.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLoadConfig(config);
+                              }}
+                            >
+                              Load
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </div>
           </div>
