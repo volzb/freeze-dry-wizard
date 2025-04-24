@@ -1,3 +1,4 @@
+
 // Constants
 const WATTS_TO_KJ_PER_HOUR = 3.6; // 1 Watt = 3.6 kJ/hr
 const HEAT_TRANSFER_ADJUSTMENT = 0.6; // Global adjustment factor to account for real-world inefficiencies
@@ -5,6 +6,7 @@ const NYLON_MESH_FACTOR = 0.85; // Factor accounting for 25μm nylon mesh therma
 
 /**
  * Calculate heat input rate based on heating element power and efficiency
+ * This function is key for responding to changes in number of trays and heating power
  * @param heatingPowerWatts Power of heating elements in watts
  * @param numberOfTrays Number of trays being used
  * @param efficiency Efficiency of heat transfer (0 to 1)
@@ -20,7 +22,19 @@ export function calculateHeatInputFromPower(
   
   // Apply the global adjustment and nylon mesh factors to account for physical barriers
   // like stainless steel, nylon mesh, and other real-world inefficiencies
-  return totalPower * WATTS_TO_KJ_PER_HOUR * efficiency * HEAT_TRANSFER_ADJUSTMENT * NYLON_MESH_FACTOR;
+  const heatRate = totalPower * WATTS_TO_KJ_PER_HOUR * efficiency * HEAT_TRANSFER_ADJUSTMENT * NYLON_MESH_FACTOR;
+  
+  // Add debug logging for the calculation
+  console.log('Heat input calculation:', {
+    heatingPowerWatts,
+    numberOfTrays,
+    totalPower,
+    efficiency,
+    heatRate,
+    timestamp: new Date().toISOString()
+  });
+  
+  return heatRate;
 }
 
 /**
@@ -59,7 +73,20 @@ export function estimateHeatTransferEfficiency(
   }
   
   // Combined efficiency (capped between 0.2 and 0.9)
-  return Math.min(0.9, Math.max(0.2, tempFactor * pressureFactor));
+  const efficiency = Math.min(0.9, Math.max(0.2, tempFactor * pressureFactor));
+  
+  // Add debug logging for efficiency calculation
+  console.log('Efficiency calculation:', {
+    temperatureC,
+    pressureMbar,
+    normalizedTemp,
+    tempFactor,
+    pressureFactor,
+    efficiency,
+    timestamp: new Date().toISOString()
+  });
+  
+  return efficiency;
 }
 
 /**
@@ -89,5 +116,17 @@ export function estimateHeatInputRate(
   const meshFactor = NYLON_MESH_FACTOR;
   
   // Calculate total heat transfer rate with all factors
-  return baseRatePerM2 * efficiency * conductivityFactor * meshFactor * totalShelfAreaM2;
+  const heatRate = baseRatePerM2 * efficiency * conductivityFactor * meshFactor * totalShelfAreaM2;
+  
+  // Add debug logging for the calculation
+  console.log('Legacy heat input calculation:', {
+    temperatureC,
+    pressureMbar,
+    totalShelfAreaM2,
+    efficiency,
+    heatRate,
+    timestamp: new Date().toISOString()
+  });
+  
+  return heatRate;
 }

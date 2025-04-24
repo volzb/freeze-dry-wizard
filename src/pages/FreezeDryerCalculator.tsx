@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useId, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +24,6 @@ import { InfoIcon } from "lucide-react";
 import { v4 as uuidv4 } from "@/utils/uuid";
 import { Toggle } from "@/components/ui/toggle";
 
-// Default calculator settings
 const defaultSettings = {
   trayLength: 45, // 45 cm
   trayWidth: 20, // 20 cm
@@ -37,7 +35,6 @@ const defaultSettings = {
   iceWeight: 1.25 // Will be recalculated based on hash and water percentage
 };
 
-// Default drying steps configuration
 const defaultDryingSteps: DryingStep[] = [
   {
     id: "61521471-d2bc-4f08-a723-4512a48599da",
@@ -81,7 +78,6 @@ const defaultDryingSteps: DryingStep[] = [
   }
 ];
 
-// Load saved default settings from localStorage
 const loadSavedDefaults = (): Partial<FreezeDryerSettings> => {
   try {
     const savedDefaultsString = localStorage.getItem('freezeDryerDefaults');
@@ -96,7 +92,6 @@ const loadSavedDefaults = (): Partial<FreezeDryerSettings> => {
   return defaultSettings;
 };
 
-// Save current settings as defaults in localStorage
 const saveAsDefaults = (settings: Partial<FreezeDryerSettings>) => {
   try {
     localStorage.setItem('freezeDryerDefaults', JSON.stringify(settings));
@@ -107,16 +102,13 @@ const saveAsDefaults = (settings: Partial<FreezeDryerSettings>) => {
 };
 
 export default function FreezeDryerCalculator() {
-  // Main state
   const [displayUnit, setDisplayUnit] = useState<'C' | 'F'>('C');
   const { isAuthenticated, user } = useAuth();
   const forceUpdateKey = useId();
   const [savedSettingsKey, setSavedSettingsKey] = useState<number>(0);
   
-  // Initialize settings from saved defaults or use system defaults
   const initialSettings = useMemo(() => loadSavedDefaults(), []);
   
-  // Calculate initial heat rate based on default parameters
   const initialHeatRate = useMemo(() => estimateHeatInputRate(
     -20, // Initial temperature
     0.1, // Initial pressure
@@ -124,7 +116,6 @@ export default function FreezeDryerCalculator() {
     (initialSettings.numberOfTrays || defaultSettings.numberOfTrays)
   ), [initialSettings]);
   
-  // Initialize drying steps and settings
   const [steps, setSteps] = useState<DryingStep[]>(defaultDryingSteps);
   const [settings, setSettings] = useState<Partial<FreezeDryerSettings>>({
     iceWeight: initialSettings.iceWeight || defaultSettings.iceWeight,
@@ -138,28 +129,23 @@ export default function FreezeDryerCalculator() {
     heatingPowerWatts: initialSettings.heatingPowerWatts || defaultSettings.heatingPowerWatts
   });
   
-  // Force re-renders when key settings change
   const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
   
-  // Reload saved settings when auth state changes
   useEffect(() => {
     setSavedSettingsKey(prev => prev + 1);
     console.log("Auth state changed in calculator, triggering saved settings reload");
   }, [isAuthenticated, user]);
   
-  // Save settings as defaults when they change
   useEffect(() => {
     if (Object.keys(settings).length > 0) {
       saveAsDefaults(settings);
     }
   }, [settings]);
   
-  // State for selected terpenes to display
   const [selectedTerpenes, setSelectedTerpenes] = useState<string[]>(
     terpenes.slice(0, 5).map(t => t.name)
   );
   
-  // Handle loading saved settings
   const handleLoadSavedSettings = useCallback((savedSettings: Partial<FreezeDryerSettings>, savedSteps: DryingStep[]) => {
     try {
       console.log("Loading saved settings:", savedSettings);
@@ -170,7 +156,6 @@ export default function FreezeDryerCalculator() {
         return;
       }
       
-      // Ensure numeric values are properly parsed
       if (savedSettings.hashPerTray !== undefined) {
         savedSettings.hashPerTray = Number(savedSettings.hashPerTray);
       }
@@ -181,7 +166,6 @@ export default function FreezeDryerCalculator() {
       
       const savedSettingsCopy = JSON.parse(JSON.stringify(savedSettings));
       
-      // Apply default values for any missing settings
       if (savedSettingsCopy.hashPerTray === undefined) {
         savedSettingsCopy.hashPerTray = defaultSettings.hashPerTray;
       }
@@ -202,7 +186,6 @@ export default function FreezeDryerCalculator() {
         savedSettingsCopy.heatingPowerWatts = defaultSettings.heatingPowerWatts;
       }
       
-      // Ensure steps have required properties
       const completeSteps = savedSteps.map(step => ({
         ...step,
         id: step.id || uuidv4(),
@@ -214,14 +197,11 @@ export default function FreezeDryerCalculator() {
           : 'C' as 'C' | 'F'
       }));
       
-      // Update state with loaded settings
       setSettings(savedSettingsCopy);
       setSteps(completeSteps);
       
-      // Save loaded settings as new defaults
       saveAsDefaults(savedSettingsCopy);
       
-      // Force update to recalculate everything
       updateChartAndCalculations();
       
     } catch (error) {
@@ -229,7 +209,6 @@ export default function FreezeDryerCalculator() {
     }
   }, []);
   
-  // Calculate water weight based on hash amount and water percentage
   const waterWeight = useMemo(() => {
     const hashPerTrayValue = settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : defaultSettings.hashPerTray;
     const totalHashWeight = hashPerTrayValue * (settings.numberOfTrays || defaultSettings.numberOfTrays);
@@ -247,44 +226,40 @@ export default function FreezeDryerCalculator() {
     return calculatedWaterWeight;
   }, [settings.hashPerTray, settings.numberOfTrays, settings.waterPercentage]);
   
-  // Chart update state - crucial for triggering recalculations
   const [chartUpdateKey, setChartUpdateKey] = useState<number>(0);
   
-  // Function to force update chart and calculations
   const updateChartAndCalculations = useCallback(() => {
     console.log("Forcing chart update", { timestamp: new Date().toISOString() });
     setChartUpdateKey(prevKey => prevKey + 1);
     setForceUpdateCounter(prev => prev + 1);
   }, []);
   
-  // Update ice weight in settings when water weight changes
   useEffect(() => {
     console.log("Water weight changed to:", waterWeight, "kg", "Updating ice weight in settings");
-    // Update settings with the new water weight
     setSettings(prevSettings => ({
       ...prevSettings,
       iceWeight: waterWeight
     }));
     
-    // Force chart update when water weight changes
     updateChartAndCalculations();
   }, [waterWeight, updateChartAndCalculations]);
   
-  // Update chart when settings change
   useEffect(() => {
     const hashPerTrayValue = settings.hashPerTray !== undefined ? Number(settings.hashPerTray) : defaultSettings.hashPerTray;
     const waterPercentageValue = settings.waterPercentage !== undefined ? Number(settings.waterPercentage) : defaultSettings.waterPercentage;
+    const heatingPowerWatts = settings.heatingPowerWatts !== undefined ? Number(settings.heatingPowerWatts) : defaultSettings.heatingPowerWatts;
+    const numberOfTrays = settings.numberOfTrays !== undefined ? Number(settings.numberOfTrays) : defaultSettings.numberOfTrays;
     
     console.log("Key parameters changed - forcing chart update:", {
       hashPerTray: hashPerTrayValue,
-      numberOfTrays: settings.numberOfTrays,
+      numberOfTrays,
       waterPercentage: waterPercentageValue,
-      heatingPowerWatts: settings.heatingPowerWatts,
+      heatingPowerWatts,
+      totalPower: heatingPowerWatts * numberOfTrays,
       iceWeight: settings.iceWeight,
       timestamp: new Date().toISOString()
     });
     
-    // Add a small delay to ensure all state updates have propagated
     const timer = setTimeout(() => {
       updateChartAndCalculations();
     }, 50);
@@ -295,12 +270,11 @@ export default function FreezeDryerCalculator() {
     settings.hashPerTray, 
     settings.numberOfTrays, 
     settings.waterPercentage,
-    settings.heatingPowerWatts,
+    settings.heatingPowerWatts, 
     steps,
     updateChartAndCalculations
   ]);
   
-  // Calculate the sublimation progress curve with explicit dependency tracking
   const progressCurve = useMemo(() => {
     if (!steps.length || !settings.iceWeight || settings.iceWeight <= 0) {
       console.log("Cannot calculate progress curve - missing steps or invalid water weight:", {
@@ -311,7 +285,6 @@ export default function FreezeDryerCalculator() {
       return [] as SubTimePoint[];
     }
     
-    // Create a unique key for debugging and change detection
     const uniqueKey = `${settings.iceWeight?.toFixed(5)}-${settings.numberOfTrays || 0}-${settings.heatingPowerWatts || 0}-${settings.hashPerTray || 0}-${settings.waterPercentage || 0}-${chartUpdateKey}-${forceUpdateCounter}`;
     
     console.log("Calculating progress curve with key:", uniqueKey, {
@@ -323,7 +296,6 @@ export default function FreezeDryerCalculator() {
       timestamp: new Date().toISOString()
     });
     
-    // Create settings object for calculation with explicit numeric conversions
     const calculationSettings: FreezeDryerSettings = {
       steps: [...steps],
       iceWeight: Number(settings.iceWeight),
@@ -337,7 +309,6 @@ export default function FreezeDryerCalculator() {
       heatingPowerWatts: Number(settings.heatingPowerWatts) || defaultSettings.heatingPowerWatts
     };
     
-    // Calculate the progress curve
     const result = calculateProgressCurve(calculationSettings);
     console.log("Progress curve calculation complete with", result.length, "points", {
       lastPoint: result.length > 0 ? result[result.length - 1] : null,
@@ -360,13 +331,11 @@ export default function FreezeDryerCalculator() {
     forceUpdateCounter
   ]);
 
-  // Calculate risk assessment for the current settings
   const riskAssessment = useMemo(() => {
     if (!steps.length) return [];
     
     const risks = [];
     
-    // Check for very high water content
     if (settings.waterPercentage && settings.waterPercentage > 90) {
       risks.push({
         type: "water",
@@ -374,7 +343,6 @@ export default function FreezeDryerCalculator() {
       });
     }
 
-    // Check if drying will be complete
     if (progressCurve.length > 0) {
       const completedPercent = progressCurve[progressCurve.length - 1].progress;
       const isDryingIncomplete = completedPercent < 99;
@@ -387,7 +355,6 @@ export default function FreezeDryerCalculator() {
       }
     }
     
-    // Check each step for temperature and pressure risks
     steps.forEach((step, index) => {
       const tempC = normalizeTemperature(step.temperature, step.tempUnit);
       const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
@@ -413,10 +380,8 @@ export default function FreezeDryerCalculator() {
     return risks;
   }, [steps, settings.waterPercentage, progressCurve]);
   
-  // State for terpene guide temperature unit
   const [terpeneGuideUnit, setTerpeneGuideUnit] = useState<'C' | 'F'>('C');
   
-  // Debug key values
   console.log("FreezeDryerCalculator render with:", {
     waterWeight,
     waterPercentage: settings.waterPercentage,
@@ -429,7 +394,6 @@ export default function FreezeDryerCalculator() {
     timestamp: new Date().toISOString()
   });
   
-  // Component render starts here
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4">
       <div className="space-y-6">
@@ -489,7 +453,7 @@ export default function FreezeDryerCalculator() {
                   </div>
                   
                   <TerpeneChart 
-                    key={`chart-${chartUpdateKey}-${forceUpdateCounter}-${waterWeight}-${settings.iceWeight}-${settings.hashPerTray}`}
+                    key={`chart-${chartUpdateKey}-${forceUpdateCounter}-${waterWeight}-${settings.iceWeight}-${settings.hashPerTray}-${settings.heatingPowerWatts}-${settings.numberOfTrays}`}
                     dryingData={progressCurve}
                     steps={steps}
                     displayUnit={displayUnit}
@@ -520,7 +484,7 @@ export default function FreezeDryerCalculator() {
           
           <div className="space-y-6">
             <ResultSummary 
-              key={`summary-${chartUpdateKey}-${forceUpdateCounter}-${waterWeight}-${settings.waterPercentage}`}
+              key={`summary-${chartUpdateKey}-${forceUpdateCounter}-${waterWeight}-${settings.waterPercentage}-${settings.heatingPowerWatts}-${settings.numberOfTrays}`}
               progressCurve={progressCurve}
               displayUnit={displayUnit}
               waterWeight={waterWeight}
