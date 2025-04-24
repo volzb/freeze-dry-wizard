@@ -184,17 +184,29 @@ export function calculateProgressCurve(
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
+    // Enhanced logging for step heat rate calculation
+    console.log(`Calculating heat rate for step ${index + 1}:`, {
+      stepIndex: index,
+      tempC,
+      pressureMbar,
+      heatingPowerWatts: settingsNormalized.heatingPowerWatts,
+      numberOfTrays: settingsNormalized.numberOfTrays,
+      timestamp: new Date().toISOString()
+    });
+    
     let heatRate;
-    if (settingsNormalized.heatingPowerWatts) {
-      const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
+    const efficiency = estimateHeatTransferEfficiency(tempC, pressureMbar);
+    
+    // Always prioritize power-based calculation when heating power is available
+    if (settingsNormalized.heatingPowerWatts && settingsNormalized.heatingPowerWatts > 0) {
       heatRate = calculateHeatInputFromPower(
         settingsNormalized.heatingPowerWatts, 
         settingsNormalized.numberOfTrays || 1, 
         efficiency
       );
     } else {
-      heatRate = settingsNormalized.heatInputRate || 
-        estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
+      // Fallback to area-based calculation
+      heatRate = estimateHeatInputRate(tempC, pressureMbar, totalShelfAreaM2);
     }
     
     console.log(`Step ${index + 1} heat rate:`, {
@@ -203,26 +215,50 @@ export function calculateProgressCurve(
       heatRate,
       heatingPowerWatts: settingsNormalized.heatingPowerWatts,
       numberOfTrays: settingsNormalized.numberOfTrays,
+      efficiency,
       timestamp: new Date().toISOString()
     });
     
     return heatRate;
   });
 
-  // Calculate stage-specific water removal targets
+  // Calculate stage-specific water removal targets based on heat rates
+  // This makes targets directly proportional to the heat input for each step
   const stageWaterTargets: number[] = [];
+  const totalHeatEnergy = stepHeatRates.reduce((sum, rate, index) => {
+    // Convert rates to total energy by multiplying by step duration
+    const stepDurationHours = steps[index].duration / 60;
+    return sum + (rate * stepDurationHours);
+  }, 0);
+  
+  console.log('Total heat energy for all steps:', totalHeatEnergy, 'kJ');
+  
   let remainingWater = iceWeight;
-  steps.forEach((_, index) => {
-    const stageEfficiency = Math.max(0.15, 0.7 - (0.65 * Math.pow(index / steps.length, 0.8)));
-    const stageTarget = (remainingWater * stageEfficiency * stepHeatRates[index]) / 
-      stepHeatRates.reduce((sum, rate) => sum + rate, 0);
-    stageWaterTargets.push(stageTarget);
-    remainingWater -= stageTarget;
+  steps.forEach((step, index) => {
+    const stepDurationHours = step.duration / 60;
+    const stepEnergy = stepHeatRates[index] * stepDurationHours;
+    const stepWaterTarget = (iceWeight * stepEnergy) / totalHeatEnergy;
+    
+    // Cap water removal to not exceed remaining water
+    const actualStepWaterTarget = Math.min(remainingWater, stepWaterTarget);
+    stageWaterTargets.push(actualStepWaterTarget);
+    remainingWater -= actualStepWaterTarget;
+    
+    console.log(`Step ${index + 1} water removal target:`, {
+      stepDurationHours,
+      stepHeatRate: stepHeatRates[index],
+      stepEnergy,
+      stepWaterTarget,
+      actualStepWaterTarget,
+      remainingWater,
+      timestamp: new Date().toISOString()
+    });
   });
 
   // Adjust final stage to account for any remaining water
   if (remainingWater > 0 && stageWaterTargets.length > 0) {
     stageWaterTargets[stageWaterTargets.length - 1] += remainingWater;
+    console.log(`Added remaining water (${remainingWater} kg) to final step target`);
   }
 
   console.log('Stage water removal targets:', stageWaterTargets);
@@ -233,29 +269,15 @@ export function calculateProgressCurve(
   let lastStepIndex = 0;
 
   // Generate progress curve points
-  const progressCurve: SubTimePoint[] = [{
-    time: 0,
-    progress: 0,
-    step: 0,
-    temperature: normalizeTemperature(steps[0].temperature, steps[0].tempUnit),
-    pressure: normalizePressure(steps[0].pressure, steps[0].pressureUnit),
-    sublimationRate: 0,
-    waterRemoved: 0,
-    remainingWater: iceWeight * 1000,
-    stageProgress: 0
-  }];
-
-  // Convert ice weight to grams for rate calculations
-  const iceWeightGrams = iceWeight * 1000;
-
-  // Determine maximum # of points for smooth curve
-  const numPoints = Math.max(200, steps.length * 50); 
-  const timeStep = totalProgramTime / (numPoints - 1);
+  const progressCurve: SubTimePoint[] = [];
 
   // Initialize with first point at time 0
   const firstStep = steps[0];
   const firstTempC = normalizeTemperature(firstStep.temperature, firstStep.tempUnit);
   const firstPressureMbar = normalizePressure(firstStep.pressure, firstStep.pressureUnit);
+  
+  // Convert ice weight to grams for rate calculations
+  const iceWeightGrams = iceWeight * 1000;
   
   progressCurve.push({
     time: 0,
@@ -272,7 +294,10 @@ export function calculateProgressCurve(
 
   // Track energy transferred and progress with power-based calculations
   let sublimationComplete = false;
-  let lastWaterRemoved = 0;
+
+  // Determine maximum # of points for smooth curve
+  const numPoints = Math.max(200, steps.length * 50); 
+  const timeStep = totalProgramTime / (numPoints - 1);
 
   // Calculate time points with varying rates
   for (let i = 1; i < numPoints; i++) {
@@ -285,43 +310,56 @@ export function calculateProgressCurve(
         currentStepIndex = j - 1;
         break;
       }
+      if (j === stepTimes.length - 1) {
+        currentStepIndex = j; // Last step
+      }
     }
 
     // Reset stage progress when moving to new stage
     if (currentStepIndex !== lastStepIndex) {
       currentStageWaterRemoved = 0;
       lastStepIndex = currentStepIndex;
+      console.log(`Moving to step ${currentStepIndex + 1} at time ${currentTime.toFixed(2)} hours`);
     }
 
     const step = steps[currentStepIndex];
     const tempC = normalizeTemperature(step.temperature, step.tempUnit);
     const pressureMbar = normalizePressure(step.pressure, step.pressureUnit);
     
-    // Calculate stage-specific sublimation rate based on power
+    // Calculate stage-specific sublimation rate based on power and step water target
     const baseHeatRate = stepHeatRates[currentStepIndex];
     const stageTarget = stageWaterTargets[currentStepIndex];
-    const currentStageProgress = currentStageWaterRemoved / stageTarget;
+    const stepDurationHours = step.duration / 60;
     
-    // Apply diminishing efficiency within the stage
-    const stageEfficiency = Math.max(0.15, 0.7 - (0.65 * Math.pow(currentStageProgress, 0.8)));
+    // Calculate how far we are into this step
+    const stepStartTime = currentStepIndex > 0 ? stepTimes[currentStepIndex] : 0;
+    const relativeStepTime = currentTime - stepStartTime;
+    const stepProgress = Math.min(1, relativeStepTime / stepDurationHours);
+    
+    // Apply diminishing efficiency within the stage based on progress
+    // More efficient at start, less at end
+    const stageEfficiency = Math.max(0.15, 0.7 - (0.55 * Math.pow(stepProgress, 0.8)));
     const effectiveHeatRate = baseHeatRate * stageEfficiency;
     
-    // Calculate water removed in this time segment
-    const timeElapsed = timeStep;
-    const waterRemovedInSegment = (effectiveHeatRate * timeElapsed / LATENT_HEAT_SUBLIMATION) * 1000; // Convert to grams
+    // Calculate water removed in this time segment based on heat rate
+    const waterRemovedInSegment = (effectiveHeatRate * timeStep / LATENT_HEAT_SUBLIMATION) * 1000; // Convert to grams
     
+    // Track water removed for this step and overall
     currentStageWaterRemoved += waterRemovedInSegment;
     totalWaterRemoved += waterRemovedInSegment;
     
-    // Calculate progress metrics
-    const overallProgress = (totalWaterRemoved / iceWeightGrams) * 100;
-    const stageProgress = (currentStageWaterRemoved / stageTarget) * 100;
+    // Cap total water removed to not exceed ice weight
+    const cappedTotalWaterRemoved = Math.min(totalWaterRemoved, iceWeightGrams);
     
-    // Calculate instantaneous sublimation rate
-    const sublimationRate = waterRemovedInSegment / timeElapsed;
+    // Calculate progress metrics
+    const overallProgress = (cappedTotalWaterRemoved / iceWeightGrams) * 100;
+    const stageProgress = stageTarget > 0 ? Math.min(100, (currentStageWaterRemoved / (stageTarget * 1000)) * 100) : 0;
+    
+    // Calculate instantaneous sublimation rate (g/hr)
+    const sublimationRate = waterRemovedInSegment / timeStep;
     
     // Calculate remaining water
-    const remainingWater = Math.max(0, iceWeightGrams - totalWaterRemoved);
+    const remainingWater = Math.max(0, iceWeightGrams - cappedTotalWaterRemoved);
     
     // Estimate remaining time
     let estimatedRemainingTime: number | undefined = undefined;
@@ -330,14 +368,14 @@ export function calculateProgressCurve(
     }
     
     // Add enhanced logging for debugging
-    if (i % Math.floor(numPoints / 10) === 0) {
+    if (i % Math.floor(numPoints / 10) === 0 || i === numPoints - 1) {
       console.log(`Progress point ${i}/${numPoints}:`, {
         time: currentTime,
         progress: overallProgress,
         sublimationRate,
         effectiveHeatRate,
         stageEfficiency,
-        waterRemoved: totalWaterRemoved,
+        waterRemoved: cappedTotalWaterRemoved,
         timestamp: new Date().toISOString()
       });
     }
@@ -350,36 +388,44 @@ export function calculateProgressCurve(
       temperature: tempC,
       pressure: pressureMbar,
       sublimationRate: sublimationRate,
-      waterRemoved: totalWaterRemoved,
+      waterRemoved: cappedTotalWaterRemoved,
       remainingWater: remainingWater,
       estimatedRemainingTime: estimatedRemainingTime,
       stageProgress: Math.min(100, stageProgress)
     });
+    
+    // Stop if we've reached 100% or close to it
+    if (overallProgress >= 99.99) {
+      console.log(`Sublimation complete at time ${currentTime.toFixed(2)} hours`);
+      sublimationComplete = true;
+      break;
+    }
   }
 
-  // Ensure the last point is at exactly the total program time
-  const lastStep = steps[steps.length - 1];
-  const lastTempC = normalizeTemperature(lastStep.temperature, lastStep.tempUnit);
-  const lastPressureMbar = normalizePressure(lastStep.pressure, lastStep.pressureUnit);
-  
-  // If last point isn't exactly at total time, add it
-  const lastPoint = progressCurve[progressCurve.length - 1];
-  if (Math.abs(lastPoint.time - totalProgramTime) > 0.001) {
+  // Ensure the last point is at exactly the total program time if we didn't complete
+  if (!sublimationComplete) {
+    const lastStep = steps[steps.length - 1];
+    const lastTempC = normalizeTemperature(lastStep.temperature, lastStep.tempUnit);
+    const lastPressureMbar = normalizePressure(lastStep.pressure, lastStep.pressureUnit);
+    
     // Use waterRemoved value to calculate final progress accurately
     const finalProgress = Math.min(100, (totalWaterRemoved / iceWeightGrams) * 100);
     
-    progressCurve.push({
-      time: totalProgramTime,
-      progress: finalProgress,
-      step: steps.length - 1,
-      temperature: lastTempC,
-      pressure: lastPressureMbar,
-      sublimationRate: 0, // At the end, rate becomes zero
-      waterRemoved: totalWaterRemoved,
-      remainingWater: Math.max(0, iceWeightGrams - totalWaterRemoved),
-      estimatedRemainingTime: 0,
-      stageProgress: 100
-    });
+    const lastPointTime = progressCurve[progressCurve.length - 1].time;
+    if (Math.abs(lastPointTime - totalProgramTime) > 0.001) {
+      progressCurve.push({
+        time: totalProgramTime,
+        progress: finalProgress,
+        step: steps.length - 1,
+        temperature: lastTempC,
+        pressure: lastPressureMbar,
+        sublimationRate: 0, // At the end, rate becomes zero
+        waterRemoved: totalWaterRemoved,
+        remainingWater: Math.max(0, iceWeightGrams - totalWaterRemoved),
+        estimatedRemainingTime: 0,
+        stageProgress: 100
+      });
+    }
   }
   
   console.log(`Generated progress curve (ID: ${calculationId}) with ${progressCurve.length} points`);

@@ -24,13 +24,18 @@ export function calculateHeatInputFromPower(
   // like stainless steel, nylon mesh, and other real-world inefficiencies
   const heatRate = totalPower * WATTS_TO_KJ_PER_HOUR * efficiency * HEAT_TRANSFER_ADJUSTMENT * NYLON_MESH_FACTOR;
   
-  // Add debug logging for the calculation
+  // Enhanced logging for power-related calculations
   console.log('Heat input calculation:', {
     heatingPowerWatts,
     numberOfTrays,
     totalPower,
     efficiency,
     heatRate,
+    adjustmentFactors: {
+      heatTransferAdjustment: HEAT_TRANSFER_ADJUSTMENT,
+      nylonMeshFactor: NYLON_MESH_FACTOR,
+      wattsToKJFactor: WATTS_TO_KJ_PER_HOUR
+    },
     timestamp: new Date().toISOString()
   });
   
