@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +43,16 @@ export function SavedSettings({
   const [configName, setConfigName] = useState("");
   const [selectedConfig, setSelectedConfig] = useState<SavedSettingsRecord | null>(null);
   const { isAuthenticated, user, saveConfigurationToStorage, getConfigurationsFromStorage } = useAuth();
+
+  useEffect(() => {
+    const settingsInput = document.getElementById('current-settings') as HTMLInputElement;
+    const stepsInput = document.getElementById('current-steps') as HTMLInputElement;
+    
+    if (settingsInput && stepsInput) {
+      settingsInput.value = JSON.stringify(currentSettings);
+      stepsInput.value = JSON.stringify(currentSteps);
+    }
+  }, [currentSettings, currentSteps]);
 
   useEffect(() => {
     console.log("Auth state changed or component mounted, loading configurations. User:", user?.id || "anonymous");
@@ -215,6 +224,37 @@ export function SavedSettings({
 
   return (
     <div className="space-y-4">
+      <input 
+        type="hidden" 
+        id="current-settings" 
+        value={JSON.stringify(currentSettings)} 
+      />
+      <input 
+        type="hidden" 
+        id="current-steps" 
+        value={JSON.stringify(currentSteps)} 
+      />
+      
+      <button 
+        id="load-config-trigger" 
+        className="hidden"
+        onClick={(e) => {
+          const target = e.currentTarget;
+          try {
+            const settingsJson = target.getAttribute('data-settings');
+            const stepsJson = target.getAttribute('data-steps');
+            
+            if (settingsJson && stepsJson) {
+              const settings = JSON.parse(settingsJson);
+              const steps = JSON.parse(stepsJson);
+              onLoadSettings(settings, steps);
+            }
+          } catch (error) {
+            console.error("Error loading configuration:", error);
+          }
+        }}
+      />
+
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogTrigger asChild>
           <Button id="save-settings-trigger" variant="outline" size="sm" className="hidden">
