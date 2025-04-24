@@ -6,7 +6,6 @@ import { TerpeneChart } from "@/components/freeze-dryer/TerpeneChart";
 import { TerpeneSelector } from "@/components/freeze-dryer/TerpeneSelector";
 import { CalculationSettings } from "@/components/freeze-dryer/CalculationSettings";
 import { ResultSummary } from "@/components/freeze-dryer/ResultSummary";
-import { SavedSettings } from "@/components/freeze-dryer/SavedSettings";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { terpenes, celsiusToFahrenheit } from "@/utils/terpeneData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -382,6 +381,56 @@ export default function FreezeDryerCalculator() {
   
   const [terpeneGuideUnit, setTerpeneGuideUnit] = useState<'C' | 'F'>('C');
   
+  const loadTriggerButton = (
+    <button 
+      id="load-config-trigger" 
+      className="hidden"
+      onClick={(e) => {
+        const target = e.currentTarget;
+        try {
+          const settingsJson = target.getAttribute('data-settings');
+          const stepsJson = target.getAttribute('data-steps');
+          
+          if (settingsJson && stepsJson) {
+            const loadedSettings = JSON.parse(settingsJson);
+            const loadedSteps = JSON.parse(stepsJson);
+            console.log("Loading configuration:", { loadedSettings, loadedSteps });
+            
+            if (loadedSettings.hashPerTray !== undefined) {
+              loadedSettings.hashPerTray = Number(loadedSettings.hashPerTray);
+            }
+            
+            if (loadedSettings.waterPercentage !== undefined) {
+              loadedSettings.waterPercentage = Number(loadedSettings.waterPercentage);
+            }
+            
+            if (loadedSettings.numberOfTrays !== undefined) {
+              loadedSettings.numberOfTrays = Number(loadedSettings.numberOfTrays);
+            }
+            
+            const completeSteps = loadedSteps.map((step: any) => ({
+              ...step,
+              id: step.id || uuidv4(),
+              pressureUnit: (step.pressureUnit === 'mBar' || step.pressureUnit === 'Torr') 
+                ? step.pressureUnit 
+                : 'mBar' as 'mBar' | 'Torr',
+              tempUnit: (step.tempUnit === 'C' || step.tempUnit === 'F') 
+                ? step.tempUnit 
+                : 'C' as 'C' | 'F'
+            }));
+            
+            setSettings(loadedSettings);
+            setSteps(completeSteps);
+            updateChartAndCalculations();
+            console.log("Configuration loaded successfully");
+          }
+        } catch (error) {
+          console.error("Error loading configuration:", error);
+        }
+      }}
+    />
+  );
+  
   console.log("FreezeDryerCalculator render with:", {
     waterWeight,
     waterPercentage: settings.waterPercentage,
@@ -397,6 +446,20 @@ export default function FreezeDryerCalculator() {
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4">
       <div className="space-y-6">
+        {loadTriggerButton}
+        <input 
+          type="hidden" 
+          id="current-settings" 
+          value={JSON.stringify(settings)} 
+          data-ready="true"
+        />
+        <input 
+          type="hidden" 
+          id="current-steps" 
+          value={JSON.stringify(steps)} 
+          data-ready="true"
+        />
+        
         {riskAssessment.length > 0 && (
           <Alert variant="destructive">
             <InfoIcon className="h-4 w-4" />
