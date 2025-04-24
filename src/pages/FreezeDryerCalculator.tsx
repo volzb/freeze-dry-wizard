@@ -397,13 +397,6 @@ export default function FreezeDryerCalculator() {
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Freeze Dryer Calculator</h1>
-          <p className="text-lg text-muted-foreground mt-2">
-            Optimize your freeze drying process and preserve terpenes
-          </p>
-        </div>
-        
         {riskAssessment.length > 0 && (
           <Alert variant="destructive">
             <InfoIcon className="h-4 w-4" />
@@ -423,17 +416,6 @@ export default function FreezeDryerCalculator() {
         
         <div className="grid gap-6 md:grid-cols-3">
           <div className="space-y-6 md:col-span-2">
-            <Card>
-              <CardContent className="p-4">
-                <SavedSettings 
-                  key={savedSettingsKey}
-                  currentSettings={settings}
-                  currentSteps={steps}
-                  onLoadSettings={handleLoadSavedSettings}
-                />
-              </CardContent>
-            </Card>
-            
             <Card>
               <CardHeader>
                 <CardTitle>Drying and Terpene Visualization</CardTitle>

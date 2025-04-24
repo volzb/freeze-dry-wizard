@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChevronDown, Save, Trash2, Loader2, Share2, Copy } from "lucide-react";
+import { Save, Trash2, Loader2 } from "lucide-react";
 import { FreezeDryerSettings, DryingStep } from "@/utils/freezeDryerCalculations";
 
 export type SavedSettingsRecord = {
@@ -49,6 +49,7 @@ export function SavedSettings({
   const [configName, setConfigName] = useState("");
   const [selectedConfig, setSelectedConfig] = useState<SavedSettingsRecord | null>(null);
   const { isAuthenticated, user, saveConfigurationToStorage, getConfigurationsFromStorage } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     console.log("Auth state changed or component mounted, loading configurations. User:", user?.id || "anonymous");
@@ -83,27 +84,6 @@ export function SavedSettings({
       toast.error("Failed to load configurations");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const copySettingsToClipboard = () => {
-    try {
-      const exportData = {
-        settings: currentSettings,
-        steps: currentSteps
-      };
-      
-      const jsonStr = JSON.stringify(exportData, null, 2);
-      
-      navigator.clipboard.writeText(jsonStr).then(() => {
-        toast.success("Settings and steps copied to clipboard");
-      }).catch((err) => {
-        console.error("Failed to copy settings:", err);
-        toast.error("Failed to copy to clipboard");
-      });
-    } catch (error) {
-      console.error("Error preparing settings for clipboard:", error);
-      toast.error("Failed to copy settings");
     }
   };
 
@@ -257,119 +237,112 @@ export function SavedSettings({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
-        <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-          <DialogTrigger asChild>
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            id="save-settings-trigger"
+            variant="outline" 
+            size="sm" 
+            className="hidden"
+            disabled={!isAuthenticated}
+          >
+            <Save className="h-4 w-4" />
+            Save Current Settings
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedConfig ? "Update Configuration" : "Save Configuration"}</DialogTitle>
+            <DialogDescription>
+              {selectedConfig 
+                ? "Update your existing freeze dryer settings configuration."
+                : "Save your current freeze dryer settings to access them later."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="configName">Configuration Name</Label>
+            <Input
+              id="configName"
+              value={configName}
+              onChange={(e) => setConfigName(e.target.value)}
+              placeholder="My Freeze Dryer Config"
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
             <Button 
               variant="outline" 
-              size="sm" 
-              className="flex items-center gap-1"
-              disabled={!isAuthenticated}
+              onClick={() => {
+                setSaveDialogOpen(false);
+                setSelectedConfig(null);
+                setConfigName("");
+              }}
             >
-              <Save className="h-4 w-4" />
-              Save Current Settings
+              Cancel
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{selectedConfig ? "Update Configuration" : "Save Configuration"}</DialogTitle>
-              <DialogDescription>
-                {selectedConfig 
-                  ? "Update your existing freeze dryer settings configuration."
-                  : "Save your current freeze dryer settings to access them later."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Label htmlFor="configName">Configuration Name</Label>
-              <Input
-                id="configName"
-                value={configName}
-                onChange={(e) => setConfigName(e.target.value)}
-                placeholder="My Freeze Dryer Config"
-                className="mt-2"
-              />
-            </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSaveDialogOpen(false);
-                  setSelectedConfig(null);
-                  setConfigName("");
-                }}
+            <Button onClick={handleSaveConfig} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  {selectedConfig ? "Updating..." : "Saving..."}
+                </>
+              ) : (
+                selectedConfig ? "Update" : "Save"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Button 
+        id="load-settings-trigger"
+        variant="outline" 
+        size="sm" 
+        className="hidden"
+        disabled={savedConfigs.length === 0 || !isAuthenticated}
+        onClick={() => setDropdownOpen(true)}
+      >
+        Load Settings
+      </Button>
+
+      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+        <DropdownMenuContent align="start" className="w-56">
+          {savedConfigs.map((config) => (
+            <div key={config.id} className="flex items-center justify-between px-2 py-1.5 hover:bg-muted">
+              <button
+                onClick={() => handleLoadConfig(config)}
+                className="text-left flex-1 px-2"
               >
-                Cancel
-              </Button>
-              <Button onClick={handleSaveConfig} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                    {selectedConfig ? "Updating..." : "Saving..."}
-                  </>
-                ) : (
-                  selectedConfig ? "Update" : "Save"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex items-center gap-1"
-          onClick={copySettingsToClipboard}
-        >
-          <Copy className="h-4 w-4" />
-          Copy Settings
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild disabled={savedConfigs.length === 0 || !isAuthenticated}>
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Load Settings
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            {savedConfigs.map((config) => (
-              <div key={config.id} className="flex items-center justify-between px-2 py-1.5 hover:bg-muted">
-                <button
-                  onClick={() => handleLoadConfig(config)}
-                  className="text-left flex-1 px-2"
+                {config.name}
+              </button>
+              <div className="flex items-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectSavedConfig(config);
+                  }}
                 >
-                  {config.name}
-                </button>
-                <div className="flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectSavedConfig(config);
-                    }}
-                  >
-                    <Save className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteConfig(config.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                  <Save className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteConfig(config.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+            </div>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       
       {!isAuthenticated && (
         <p className="text-sm text-muted-foreground">

@@ -2,7 +2,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Save } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -27,6 +33,25 @@ export function NavBar() {
           <Link to="/" className="text-sm font-medium hover:text-primary">
             Home
           </Link>
+          
+          {isAuthenticated && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Save className="h-4 w-4" />
+                  <span>Save/Load</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => document.getElementById('save-settings-trigger')?.click()}>
+                  Save Current Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => document.getElementById('load-settings-trigger')?.click()}>
+                  Load Settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
