@@ -2,10 +2,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Settings } from "lucide-react";
 import { useState } from "react";
 import { FreezeDryerSettings, DryingStep } from "@/utils/freezeDryerCalculations";
-import { ConfigManager } from "@/components/freeze-dryer/ConfigManager";
+import { Settings as SettingsComponent } from "@/components/freeze-dryer/Settings";
 
 export function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -89,7 +89,7 @@ export function NavBar() {
           
           {isAuthenticated && (
             <div className="flex items-center gap-2">
-              <ConfigManager 
+              <SettingsComponent 
                 currentSettings={currentSettings} 
                 currentSteps={currentSteps}
                 onLoadSettings={handleLoadSettings}
