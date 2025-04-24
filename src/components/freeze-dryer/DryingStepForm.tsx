@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, Trash2, Download, Upload } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Download, Upload, Plus, Trash2 } from "lucide-react";
 import { DryingStep } from "@/utils/freezeDryerCalculations";
 import { v4 as uuidv4 } from "@/utils/uuid";
 import { toast } from "sonner";
@@ -175,7 +175,7 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
           </Button>
         </div>
       </div>
-      
+
       {steps.length === 0 ? (
         <Card className="bg-muted/50">
           <CardContent className="p-6 text-center">
@@ -183,91 +183,93 @@ export function DryingStepForm({ steps, onChange, maxSteps = 8 }: DryingStepForm
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {steps.map((step, index) => (
-            <Card key={step.id} className="overflow-hidden">
-              <div className="bg-secondary/20 p-2 flex justify-between items-center">
-                <h4 className="font-medium">Step {index + 1}</h4>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => removeStep(index)} 
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`temp-${index}`}>Temperature</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id={`temp-${index}`}
-                      type="text"
-                      value={step.temperature}
-                      onChange={(e) => handleNumericInput(e, index, "temperature", -100, true)}
-                      min="-100"
-                      step="1"
-                    />
-                    <Select 
-                      value={step.tempUnit} 
-                      onValueChange={(value) => handleStepChange(index, "tempUnit", value as 'C' | 'F')}
-                    >
-                      <SelectTrigger className="w-[80px]">
-                        <SelectValue placeholder="°C" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="C">°C</SelectItem>
-                        <SelectItem value="F">°F</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor={`pressure-${index}`}>Pressure</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id={`pressure-${index}`}
-                      type="text"
-                      value={step.pressure}
-                      onChange={(e) => handleNumericInput(e, index, "pressure", 0)}
-                      min="0"
-                      step="1"
-                    />
-                    <Select 
-                      value={step.pressureUnit} 
-                      onValueChange={(value) => handleStepChange(index, "pressureUnit", value as 'mBar' | 'Torr')}
-                    >
-                      <SelectTrigger className="w-[80px]">
-                        <SelectValue placeholder="mBar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mBar">mBar</SelectItem>
-                        <SelectItem value="Torr">Torr</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor={`duration-${index}`}>Duration</Label>
-                  <div className="flex space-x-2 items-center">
-                    <Input
-                      id={`duration-${index}`}
-                      type="text"
-                      value={step.duration}
-                      onChange={(e) => handleNumericInput(e, index, "duration", 1)}
-                      min="1"
-                      step="1"
-                    />
-                    <span className="w-20 text-sm text-muted-foreground">minutes</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Step</TableHead>
+                  <TableHead>Temperature</TableHead>
+                  <TableHead>Pressure</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {steps.map((step, index) => (
+                  <TableRow key={step.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          value={step.temperature}
+                          onChange={(e) => handleNumericInput(e, index, "temperature", -100, true)}
+                          className="w-24"
+                        />
+                        <Select 
+                          value={step.tempUnit} 
+                          onValueChange={(value) => handleStepChange(index, "tempUnit", value as 'C' | 'F')}
+                        >
+                          <SelectTrigger className="w-16">
+                            <SelectValue placeholder="°C" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="C">°C</SelectItem>
+                            <SelectItem value="F">°F</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          value={step.pressure}
+                          onChange={(e) => handleNumericInput(e, index, "pressure", 0)}
+                          className="w-24"
+                        />
+                        <Select 
+                          value={step.pressureUnit} 
+                          onValueChange={(value) => handleStepChange(index, "pressureUnit", value as 'mBar' | 'Torr')}
+                        >
+                          <SelectTrigger className="w-20">
+                            <SelectValue placeholder="mBar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mBar">mBar</SelectItem>
+                            <SelectItem value="Torr">Torr</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          value={step.duration}
+                          onChange={(e) => handleNumericInput(e, index, "duration", 1)}
+                          className="w-24"
+                        />
+                        <span className="text-sm text-muted-foreground">min</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => removeStep(index)} 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
