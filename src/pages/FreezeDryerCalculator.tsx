@@ -13,6 +13,7 @@ import { ResultSummary } from "@/components/freeze-dryer/ResultSummary";
 import { ConfigManager } from "@/components/freeze-dryer/ConfigManager";
 import { terpenes } from "@/utils/terpeneData";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SavedSettingsRecord } from "@/components/freeze-dryer/SavedSettings";
 
 export default function FreezeDryerCalculator() {
   // State for settings and steps
@@ -75,10 +76,10 @@ export default function FreezeDryerCalculator() {
     return [];
   }, [settings, steps]);
 
-  // Handle loading saved settings
-  const handleLoadSettings = (loadedSettings: Partial<FreezeDryerSettings>, loadedSteps: DryingStep[]) => {
-    setSettings(loadedSettings);
-    setSteps(loadedSteps);
+  // Handle loading saved settings - modified to accept a single object parameter
+  const handleLoadSettings = (config: SavedSettingsRecord) => {
+    setSettings(config.settings);
+    setSteps(config.steps);
   };
 
   console.log("Rendering FreezeDryerCalculator with:", {
