@@ -75,21 +75,10 @@ export default function FreezeDryerCalculator() {
     return [];
   }, [settings, steps]);
 
-  // Handle loading saved settings - Supports both component interfaces
-  const handleLoadSettings = (
-    configOrSettings: SavedSettingsRecord | Partial<FreezeDryerSettings>, 
-    stepsArg?: DryingStep[]
-  ) => {
-    if (stepsArg !== undefined) {
-      // Handle two-argument pattern (settings, steps)
-      setSettings(configOrSettings as Partial<FreezeDryerSettings>);
-      setSteps(stepsArg);
-    } else {
-      // Handle single-argument pattern (SavedSettingsRecord)
-      const config = configOrSettings as SavedSettingsRecord;
-      setSettings(config.settings);
-      setSteps(config.steps);
-    }
+  // Handle loading saved settings
+  const handleLoadSettings = (configRecord: SavedSettingsRecord) => {
+    setSettings(configRecord.settings);
+    setSteps(configRecord.steps);
   };
 
   console.log("Rendering FreezeDryerCalculator with:", {

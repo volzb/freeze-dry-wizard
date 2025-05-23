@@ -24,11 +24,7 @@ import {
 interface ConfigManagerProps {
   currentSettings: Partial<FreezeDryerSettings>;
   currentSteps: DryingStep[];
-  // Update the type definition to support both calling patterns
-  onLoadSettings: (
-    configOrSettings: SavedSettingsRecord | Partial<FreezeDryerSettings>, 
-    steps?: DryingStep[]
-  ) => void;
+  onLoadSettings: (configRecord: SavedSettingsRecord) => void;
 }
 
 export function ConfigManager({
@@ -193,7 +189,7 @@ export function ConfigManager({
       setConfigName(config.name);
       setSelectedConfig(config);
       
-      // Pass the full config object to onLoadSettings
+      // Pass the config object to onLoadSettings
       onLoadSettings(config);
       toast.success(`Loaded configuration: ${config.name}`);
       
