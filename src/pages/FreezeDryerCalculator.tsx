@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -76,18 +75,10 @@ export default function FreezeDryerCalculator() {
     return [];
   }, [settings, steps]);
 
-  // Enhanced handleLoadSettings function that can handle both parameter patterns
-  const handleLoadSettings = (configOrSettings: SavedSettingsRecord | Partial<FreezeDryerSettings>, stepsArg?: DryingStep[]) => {
-    if (stepsArg) {
-      // Case 1: Called with separate arguments (old way)
-      setSettings(configOrSettings as Partial<FreezeDryerSettings>);
-      setSteps(stepsArg);
-    } else {
-      // Case 2: Called with a single config object (new way)
-      const config = configOrSettings as SavedSettingsRecord;
-      setSettings(config.settings);
-      setSteps(config.steps);
-    }
+  // Handle loading saved settings - Must match the ConfigManager's expected signature
+  const handleLoadSettings = (config: SavedSettingsRecord) => {
+    setSettings(config.settings);
+    setSteps(config.steps);
   };
 
   console.log("Rendering FreezeDryerCalculator with:", {
