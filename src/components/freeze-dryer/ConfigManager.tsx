@@ -190,7 +190,7 @@ export function ConfigManager({
       setConfigName(config.name);
       setSelectedConfig(config);
       
-      // Load the configuration - pass the entire config object now
+      // Make sure to call onLoadSettings with just the config object
       onLoadSettings(config);
       toast.success(`Loaded configuration: ${config.name}`);
       
