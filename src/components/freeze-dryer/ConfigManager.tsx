@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +24,11 @@ import {
 interface ConfigManagerProps {
   currentSettings: Partial<FreezeDryerSettings>;
   currentSteps: DryingStep[];
-  onLoadSettings: (config: SavedSettingsRecord) => void;
+  // Update the type definition to support both calling patterns
+  onLoadSettings: (
+    configOrSettings: SavedSettingsRecord | Partial<FreezeDryerSettings>, 
+    steps?: DryingStep[]
+  ) => void;
 }
 
 export function ConfigManager({
@@ -190,7 +193,7 @@ export function ConfigManager({
       setConfigName(config.name);
       setSelectedConfig(config);
       
-      // Make sure to call onLoadSettings with just the config object
+      // Pass the full config object to onLoadSettings
       onLoadSettings(config);
       toast.success(`Loaded configuration: ${config.name}`);
       
