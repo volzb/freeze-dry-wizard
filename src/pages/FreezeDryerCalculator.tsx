@@ -75,8 +75,9 @@ export default function FreezeDryerCalculator() {
   }, [settings, steps]);
 
   // Handle loading saved settings
-  const handleLoadSettings = (loadedSettings: Partial<FreezeDryerSettings>) => {
+  const handleLoadSettings = (loadedSettings: Partial<FreezeDryerSettings>, loadedSteps: DryingStep[]) => {
     setSettings(loadedSettings);
+    setSteps(loadedSteps);
   };
 
   console.log("Rendering FreezeDryerCalculator with:", {
