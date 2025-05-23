@@ -17,39 +17,37 @@ import UpdatePassword from "./pages/UpdatePassword";
 import AuthRedirect from "./components/AuthRedirect";
 import "./App.css";
 
+// Create a client
+const queryClient = new QueryClient();
+
 const App = () => {
-  // Move queryClient inside the component 
-  const queryClient = new QueryClient();
-  
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <BrowserRouter>
-            <TooltipProvider>
-              <div className="min-h-screen flex flex-col bg-background">
-                <NavBar />
-                <main className="flex-1">
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/calculator" element={<FreezeDryerCalculator />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/update-password" element={<UpdatePassword />} />
-                    <Route path="/auth-redirect" element={<AuthRedirect />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-              </div>
-              <Toaster />
-              <Sonner />
-            </TooltipProvider>
-          </BrowserRouter>
-        </AuthProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <TooltipProvider>
+            <div className="min-h-screen flex flex-col bg-background">
+              <NavBar />
+              <main className="flex-1">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/calculator" element={<FreezeDryerCalculator />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/update-password" element={<UpdatePassword />} />
+                  <Route path="/auth-redirect" element={<AuthRedirect />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 
