@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -67,7 +66,7 @@ export default function FreezeDryerCalculator() {
       console.error("Error saving settings:", error);
     }
   }, [settings, steps, displayUnit, selectedTerpenes]);
-
+  
   // Calculate progress curve for visualization
   const progressCurve = useMemo(() => {
     if (settings && steps.length > 0) {

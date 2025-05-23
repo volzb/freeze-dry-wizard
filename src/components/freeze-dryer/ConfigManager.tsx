@@ -25,7 +25,7 @@ import {
 interface ConfigManagerProps {
   currentSettings: Partial<FreezeDryerSettings>;
   currentSteps: DryingStep[];
-  onLoadSettings: (settings: Partial<FreezeDryerSettings>, steps: DryingStep[]) => void;
+  onLoadSettings: (config: SavedSettingsRecord) => void;
 }
 
 export function ConfigManager({
@@ -190,8 +190,8 @@ export function ConfigManager({
       setConfigName(config.name);
       setSelectedConfig(config);
       
-      // Load the configuration
-      onLoadSettings(config.settings, config.steps);
+      // Load the configuration - pass the entire config object now
+      onLoadSettings(config);
       toast.success(`Loaded configuration: ${config.name}`);
       
       // Close the dialog after loading
