@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -75,7 +76,7 @@ export default function FreezeDryerCalculator() {
     return [];
   }, [settings, steps]);
 
-  // Handle loading saved settings - modified to accept a single object parameter
+  // Handle loading saved settings - updated to match the prop signature
   const handleLoadSettings = (config: SavedSettingsRecord) => {
     setSettings(config.settings);
     setSteps(config.steps);
