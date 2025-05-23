@@ -76,7 +76,7 @@ export default function FreezeDryerCalculator() {
     return [];
   }, [settings, steps]);
 
-  // Handle loading saved settings - updated to match the prop signature
+  // Handle loading saved settings
   const handleLoadSettings = (config: SavedSettingsRecord) => {
     setSettings(config.settings);
     setSteps(config.steps);
