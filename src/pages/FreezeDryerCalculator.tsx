@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -75,7 +76,7 @@ export default function FreezeDryerCalculator() {
     return [];
   }, [settings, steps]);
 
-  // Handle loading saved settings - Must match the ConfigManager's expected signature
+  // Handle loading saved settings - Updated to match ConfigManager's expected signature
   const handleLoadSettings = (config: SavedSettingsRecord) => {
     setSettings(config.settings);
     setSteps(config.steps);
